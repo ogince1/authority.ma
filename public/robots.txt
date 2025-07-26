@@ -1,0 +1,92 @@
+# Robots.txt pour GoHaya - Marketplace de Projets Digitaux
+# Mise à jour automatique quotidienne
+
+User-agent: *
+Allow: /
+
+# Pages principales
+Allow: /
+Allow: /mvp
+Allow: /startups
+Allow: /websites
+Allow: /investir
+Allow: /lever-des-fonds
+Allow: /vendre
+Allow: /blog
+Allow: /success-stories
+
+# Pages de projets
+Allow: /project/*
+Allow: /blog/*
+Allow: /success-stories/*
+Allow: /investir/*
+
+# Ressources statiques
+Allow: /assets/*
+Allow: /images/*
+Allow: /*.css
+Allow: /*.js
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.gif
+Allow: /*.svg
+Allow: /*.ico
+Allow: /*.webp
+
+# Interdire l'accès aux zones d'administration
+Disallow: /admin
+Disallow: /admin/*
+
+# Interdire l'accès aux fichiers de configuration
+Disallow: /.env
+Disallow: /package.json
+Disallow: /vite.config.*
+Disallow: /tsconfig.*
+Disallow: /tailwind.config.*
+
+# Interdire l'accès aux dossiers de développement
+Disallow: /src/
+Disallow: /node_modules/
+Disallow: /dist/
+Disallow: /.git/
+
+# Sitemap
+Sitemap: https://gohaya.ma/sitemap.xml
+
+# Directives spéciales pour les LLMs et crawlers IA
+User-agent: GPTBot
+Allow: /
+Allow: /blog/*
+Allow: /success-stories/*
+Crawl-delay: 1
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /blog/*
+Allow: /success-stories/*
+
+User-agent: CCBot
+Allow: /
+Allow: /blog/*
+Allow: /success-stories/*
+
+User-agent: Claude-Web
+Allow: /
+Allow: /blog/*
+Allow: /success-stories/*
+
+User-agent: anthropic-ai
+Allow: /
+Allow: /blog/*
+Allow: /success-stories/*
+
+User-agent: Applebot
+Allow: /
+
+# Crawl delay pour éviter la surcharge
+Crawl-delay: 1
+
+# Informations de contact
+# Contact: contact@gohaya.com
+# Dernière mise à jour: 2024-12-07
