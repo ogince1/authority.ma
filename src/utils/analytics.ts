@@ -46,9 +46,11 @@ export const trackPageView = (pagePath: string, pageTitle: string) => {
 // Déterminer le type de page
 const getPageType = (path: string): string => {
   if (path === '/' || path === '') return 'home';
-  if (path.startsWith('/project/')) return 'project_detail';
-  if (path.startsWith('/mvp') || path.startsWith('/startups') || path.startsWith('/websites')) return 'category';
-  if (path.startsWith('/investir')) return 'fundraising';
+  if (path.startsWith('/lien/')) return 'link_detail';
+  if (path.startsWith('/site/')) return 'website_detail';
+  if (path.startsWith('/liens')) return 'links_category';
+  if (path.startsWith('/sites-web')) return 'websites';
+  if (path.startsWith('/vendre-liens')) return 'sell_links';
   if (path.startsWith('/blog')) return 'blog';
   if (path.startsWith('/success-stories')) return 'success_story';
   if (path.startsWith('/dashboard')) return 'user_dashboard';
@@ -56,34 +58,44 @@ const getPageType = (path: string): string => {
   return 'other';
 };
 
-export const trackProjectView = (projectId: string, projectTitle: string, projectCategory: string, projectPrice: number) => {
-  trackEvent('project_view', {
-    project_id: projectId,
-    project_title: projectTitle,
-    project_category: projectCategory,
-    project_price: projectPrice,
+export const trackLinkView = (linkId: string, linkTitle: string, linkType: string, linkPrice: number) => {
+  trackEvent('link_view', {
+    link_id: linkId,
+    link_title: linkTitle,
+    link_type: linkType,
+    link_price: linkPrice,
     currency: 'MAD',
-    item_type: 'project'
+    item_type: 'link'
   });
 };
 
-export const trackProposalSubmit = (projectId: string, proposedPrice: number) => {
-  trackEvent('proposal_submit', {
-    project_id: projectId,
+export const trackWebsiteView = (websiteId: string, websiteTitle: string, websiteCategory: string) => {
+  trackEvent('website_view', {
+    website_id: websiteId,
+    website_title: websiteTitle,
+    website_category: websiteCategory,
+    item_type: 'website'
+  });
+};
+
+export const trackLinkPurchaseRequest = (linkId: string, proposedPrice: number) => {
+  trackEvent('link_purchase_request', {
+    link_id: linkId,
     proposed_price: proposedPrice,
     currency: 'MAD',
     event_category: 'engagement',
-    event_label: 'proposal'
+    event_label: 'purchase_request'
   });
 };
 
-export const trackInvestmentInterest = (fundraisingId: string, investmentAmount: number) => {
-  trackEvent('investment_interest', {
-    fundraising_id: fundraisingId,
-    investment_amount: investmentAmount,
+export const trackLinkListing = (linkId: string, linkType: string, price: number) => {
+  trackEvent('link_listing', {
+    link_id: linkId,
+    link_type: linkType,
+    price: price,
     currency: 'MAD',
-    event_category: 'engagement',
-    event_label: 'investment'
+    event_category: 'conversion',
+    event_label: 'link_listing'
   });
 };
 
@@ -102,8 +114,6 @@ export const trackUserLogin = () => {
     method: 'email'
   });
 };
-
-
 
 // Nouveaux événements de suivi
 export const trackSearch = (searchTerm: string, resultsCount: number, category?: string) => {
@@ -126,24 +136,23 @@ export const trackFilter = (filterType: string, filterValue: string, resultsCoun
   });
 };
 
-export const trackProjectSubmission = (category: string, price: number) => {
-  trackEvent('project_submission', {
+export const trackWebsiteSubmission = (category: string, domainAuthority: number) => {
+  trackEvent('website_submission', {
     category: category,
-    price: price,
-    currency: 'MAD',
+    domain_authority: domainAuthority,
     event_category: 'conversion',
-    event_label: 'project_submission'
+    event_label: 'website_submission'
   });
 };
 
-export const trackFundraisingSubmission = (stage: string, targetAmount: number, equityOffered?: number) => {
-  trackEvent('fundraising_submission', {
-    investment_stage: stage,
-    target_amount: targetAmount,
-    equity_offered: equityOffered,
+export const trackLinkListingSubmission = (linkType: string, position: string, price: number) => {
+  trackEvent('link_listing_submission', {
+    link_type: linkType,
+    position: position,
+    price: price,
     currency: 'MAD',
     event_category: 'conversion',
-    event_label: 'fundraising_submission'
+    event_label: 'link_listing_submission'
   });
 };
 
@@ -168,31 +177,31 @@ export const trackDownload = (fileUrl: string, fileType: string, fileName: strin
 };
 
 // Événements e-commerce
-export const trackAddToCart = (projectId: string, projectTitle: string, price: number) => {
+export const trackAddToCart = (linkId: string, linkTitle: string, price: number) => {
   trackEvent('add_to_cart', {
     items: [{
-      item_id: projectId,
-      item_name: projectTitle,
+      item_id: linkId,
+      item_name: linkTitle,
       price: price,
       currency: 'MAD',
-      item_category: 'project'
+      item_category: 'link'
     }],
     event_category: 'ecommerce',
     event_label: 'add_to_cart'
   });
 };
 
-export const trackPurchase = (transactionId: string, projectId: string, projectTitle: string, price: number) => {
+export const trackPurchase = (transactionId: string, linkId: string, linkTitle: string, price: number) => {
   trackEvent('purchase', {
     transaction_id: transactionId,
     value: price,
     currency: 'MAD',
     items: [{
-      item_id: projectId,
-      item_name: projectTitle,
+      item_id: linkId,
+      item_name: linkTitle,
       price: price,
       currency: 'MAD',
-      item_category: 'project'
+      item_category: 'link'
     }],
     event_category: 'ecommerce',
     event_label: 'purchase'

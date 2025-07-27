@@ -15,7 +15,9 @@ import {
   Target,
   Briefcase,
   Heart,
-  Eye
+  Eye,
+  ShoppingCart,
+  Users
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { signOut, getCurrentUser, getCurrentUserProfile } from '../../lib/supabase';
@@ -49,22 +51,32 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
   // Navigation selon le rôle
   const getNavigationByRole = (role: UserRole) => {
     switch (role) {
-      case 'entrepreneur':
+      case 'publisher':
         return [
           { name: 'Tableau de Bord', href: '/dashboard', icon: LayoutDashboard },
-          { name: 'Mes Projets', href: '/dashboard/projects', icon: FolderOpen },
-          { name: 'Levées de Fonds', href: '/dashboard/fundraising', icon: TrendingUp },
-          { name: 'Propositions Reçues', href: '/dashboard/proposals', icon: MessageSquare },
-          { name: 'Intérêts Investisseurs', href: '/dashboard/investment-interests', icon: DollarSign },
+          { name: 'Mes Sites Web', href: '/dashboard/websites', icon: FolderOpen },
+          { name: 'Mes Annonces', href: '/dashboard/link-listings', icon: FileText },
+          { name: 'Demandes Reçues', href: '/dashboard/purchase-requests', icon: MessageSquare },
+          { name: 'Mes Revenus', href: '/dashboard/transactions', icon: DollarSign },
           { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },
         ];
-      case 'investor':
+      case 'advertiser':
         return [
           { name: 'Tableau de Bord', href: '/dashboard', icon: LayoutDashboard },
-          { name: 'Explorer Projets', href: '/dashboard?view=projects', icon: Search },
-          { name: 'Investissements', href: '/dashboard?view=investments', icon: TrendingUp },
-          { name: 'Mes Intérêts', href: '/dashboard/investment-interests', icon: Heart },
-          { name: 'Favoris', href: '/dashboard/favorites', icon: Eye },
+          { name: 'Explorer Liens', href: '/liens', icon: Search },
+          { name: 'Mes Achats', href: '/dashboard/purchases', icon: ShoppingCart },
+          { name: 'Mes Demandes', href: '/dashboard/purchase-requests', icon: FileText },
+          { name: 'Favoris', href: '/dashboard/favorites', icon: Heart },
+          { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },
+        ];
+      case 'admin':
+        return [
+          { name: 'Tableau de Bord', href: '/dashboard', icon: LayoutDashboard },
+          { name: 'Gestion Sites', href: '/dashboard/websites', icon: FolderOpen },
+          { name: 'Gestion Annonces', href: '/dashboard/link-listings', icon: FileText },
+          { name: 'Demandes', href: '/dashboard/purchase-requests', icon: MessageSquare },
+          { name: 'Transactions', href: '/dashboard/transactions', icon: DollarSign },
+          { name: 'Utilisateurs', href: '/dashboard/users', icon: Users },
           { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },
         ];
 
@@ -76,7 +88,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
     }
   };
 
-  const navigation = getNavigationByRole(userProfile?.role || 'entrepreneur');
+  const navigation = getNavigationByRole(userProfile?.role || 'advertiser');
 
   const handleLogout = async () => {
     try {
@@ -91,17 +103,8 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
 
   const isActive = (path: string, itemName: string) => {
     if (path === '/dashboard') {
-      // Pour les investisseurs, "Explorer Projets", "Investissements" et "Tableau de Bord" pointent vers le même chemin
-      if (itemName === 'Explorer Projets' && userProfile?.role === 'investor') {
-        // "Explorer Projets" est actif si on a le paramètre view=projects
-        return location.pathname === '/dashboard' && location.search.includes('view=projects');
-      }
-      if (itemName === 'Investissements' && userProfile?.role === 'investor') {
-        // "Investissements" est actif si on a le paramètre view=investments
-        return location.pathname === '/dashboard' && location.search.includes('view=investments');
-      }
-      // "Tableau de Bord" est actif si on est sur /dashboard sans paramètre view
-      return location.pathname === '/dashboard' && !location.search.includes('view=');
+      // "Tableau de Bord" est actif si on est sur /dashboard
+      return location.pathname === '/dashboard';
     }
     return location.pathname.startsWith(path);
   };
@@ -125,23 +128,11 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
           <Link to="/" className="flex items-center space-x-2">
             <div className="flex items-center">
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-600 mr-0.5">
-                G
+              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-700 mr-0.5">
+                Authority
               </div>
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-500 mr-0.5">
-                o
-              </div>
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-600 mr-0.5">
-                H
-              </div>
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-500 mr-0.5">
-                a
-              </div>
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-600 mr-0.5">
-                y
-              </div>
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-500">
-                a
+              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-600 to-gray-700">
+                .ma
               </div>
             </div>
           </Link>

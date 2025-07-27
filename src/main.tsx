@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { trackPageView } from './utils/analytics.ts';
-import './utils/sitemapScheduler';
 
 // Initialiser le dataLayer avec les informations de base du site
 if (typeof window !== 'undefined') {
@@ -11,11 +10,11 @@ if (typeof window !== 'undefined') {
   window.dataLayer.push({
     'gtm.start': new Date().getTime(),
     event: 'gtm.js',
-    site_name: 'GoHaya',
+    site_name: 'Authority.ma',
     site_version: '1.0.0',
     site_language: 'fr',
     site_region: 'MA',
-    site_type: 'marketplace',
+    site_type: 'link_marketplace',
     environment: process.env.NODE_ENV
   });
   

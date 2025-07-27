@@ -1,39 +1,19 @@
 import React from 'react';
 import { generateSitemap } from '../utils/sitemap';
 
-const SitemapPage: React.FC = () => {
-  const [sitemap, setSitemap] = React.useState<string>('');
-  const [loading, setLoading] = React.useState(true);
+export default function SitemapPage() {
+  const [sitemapContent, setSitemapContent] = React.useState('');
 
   React.useEffect(() => {
     const fetchSitemap = async () => {
-      try {
-        const sitemapContent = await generateSitemap();
-        setSitemap(sitemapContent);
-      } catch (error) {
-        console.error('Erreur lors de la génération du sitemap:', error);
-      } finally {
-        setLoading(false);
-      }
+      const baseUrl = import.meta.env.VITE_APP_URL || 'https://authority.ma';
+      const content = await generateSitemap(baseUrl);
+      setSitemapContent(content);
     };
-
     fetchSitemap();
   }, []);
 
-  React.useEffect(() => {
-    // Définir le type de contenu comme XML
-    document.contentType = 'application/xml';
-  }, []);
-
-  if (loading) {
-    return <div>Génération du sitemap...</div>;
-  }
-
   return (
-    <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-      {sitemap}
-    </pre>
+    <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{sitemapContent}</pre>
   );
-};
-
-export default SitemapPage;
+}

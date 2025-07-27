@@ -3,13 +3,11 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { Toaster } from 'react-hot-toast';
 import HomePage from './pages/HomePage';
-import CategoryPage from './pages/CategoryPage';
-import ProjectDetailPage from './pages/ProjectDetailPage';
-import SellStartupPage from './pages/SellStartupPage';
+import LinksPage from './pages/LinksPage';
+import LinkDetailPage from './pages/LinkDetailPage';
+import WebsiteDetailPage from './pages/WebsiteDetailPage';
+import SellLinksPage from './pages/SellLinksPage';
 import AdminPage from './pages/AdminPage';
-import FundraisingPage from './pages/FundraisingPage';
-import FundraisingDetailPage from './pages/FundraisingDetailPage';
-import FundraisingSubmissionPage from './pages/FundraisingSubmissionPage';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
 import SuccessStoriesPage from './pages/SuccessStoriesPage';
@@ -18,9 +16,7 @@ import SitemapPage from './pages/SitemapPage';
 import UserDashboardPage from './pages/UserDashboardPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import DigitalProjectsPage from './pages/DigitalProjectsPage';
-import RealProjectsPage from './pages/RealProjectsPage';
-import ProjectCategoryPage from './pages/ProjectCategoryPage';
+import ContactPage from './pages/ContactPage';
 import SitemapGenerator from './components/SEO/SitemapGenerator';
 
 function App() {
@@ -32,34 +28,57 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             
-            {/* Routes pour les projets digitaux */}
-            <Route path="/projets-digitaux" element={<DigitalProjectsPage />} />
-            <Route path="/projets-digitaux/:category" element={<ProjectCategoryPage />} />
+            {/* Routes pour les liens */}
+            <Route path="/liens" element={<LinksPage />} />
+            <Route path="/liens/dofollow" element={<LinksPage />} />
+            <Route path="/liens/nofollow" element={<LinksPage />} />
+            <Route path="/liens/sponsored" element={<LinksPage />} />
+            <Route path="/liens/ugc" element={<LinksPage />} />
             
-            {/* Routes pour les projets réels */}
-            <Route path="/projets-reels" element={<RealProjectsPage />} />
-            <Route path="/projets-reels/:category" element={<ProjectCategoryPage />} />
+            {/* Routes pour les sites web */}
+            <Route path="/sites-web" element={<LinksPage />} />
+            <Route path="/site/:slug" element={<WebsiteDetailPage />} />
             
-            {/* Routes héritées (rétrocompatibilité) */}
-            <Route path="/mvp" element={<CategoryPage />} />
-            <Route path="/startups" element={<CategoryPage />} />
-            <Route path="/websites" element={<CategoryPage />} />
+            {/* Routes pour vendre des liens */}
+            <Route path="/vendre-liens" element={<SellLinksPage />} />
             
-            {/* Autres routes */}
-            <Route path="/investir" element={<FundraisingPage />} />
-            <Route path="/investir/:id" element={<FundraisingDetailPage />} />
-            <Route path="/lever-des-fonds" element={<FundraisingSubmissionPage />} />
+            {/* Routes pour les liens individuels */}
+            <Route path="/lien/:slug" element={<LinkDetailPage />} />
+            
+            {/* Routes pour le blog */}
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/blog/:slug" element={<BlogPostPage />} />
+            
+            {/* Routes pour les histoires de succès */}
             <Route path="/success-stories" element={<SuccessStoriesPage />} />
             <Route path="/success-stories/:slug" element={<SuccessStoryDetailPage />} />
-            <Route path="/project/:slug" element={<ProjectDetailPage />} />
-            <Route path="/vendre" element={<SellStartupPage />} />
+            
+            {/* Routes d'authentification */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/sitemap.xml" element={<SitemapPage />} />
+            <Route path="/inscription" element={<RegisterPage />} />
+            
+            {/* Routes pour le dashboard utilisateur */}
             <Route path="/dashboard/*" element={<UserDashboardPage />} />
+            <Route path="/profile" element={<UserDashboardPage />} />
+            
+            {/* Routes d'administration */}
             <Route path="/admin/*" element={<AdminPage />} />
+            
+            {/* Routes utilitaires */}
+            <Route path="/sitemap.xml" element={<SitemapPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            
+            {/* Routes de rétrocompatibilité (redirection vers la page d'accueil) */}
+            <Route path="/mvp" element={<HomePage />} />
+            <Route path="/startups" element={<HomePage />} />
+            <Route path="/websites" element={<HomePage />} />
+            <Route path="/projets-digitaux" element={<HomePage />} />
+            <Route path="/projets-reels" element={<HomePage />} />
+            <Route path="/investir" element={<HomePage />} />
+            <Route path="/lever-des-fonds" element={<HomePage />} />
+            <Route path="/vendre" element={<HomePage />} />
+            <Route path="/project/:slug" element={<HomePage />} />
           </Routes>
           <Toaster position="top-right" />
         </div>

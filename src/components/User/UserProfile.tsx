@@ -39,7 +39,7 @@ const UserProfile: React.FC = () => {
           if (userProfile) {
             reset({
               name: userProfile.name || '',
-              role: userProfile.role || 'entrepreneur',
+              role: userProfile.role || 'advertiser',
               phone: userProfile.phone || '',
               website: userProfile.website || '',
               bio: userProfile.bio || ''
@@ -161,8 +161,8 @@ const UserProfile: React.FC = () => {
                 <div className="text-sm text-blue-800">
                   <div className="font-medium mb-1">Comprendre les rôles :</div>
                   <ul className="text-xs space-y-1">
-                    <li><strong>Entrepreneur :</strong> Créer des projets, lever des fonds, recevoir des propositions</li>
-                    <li><strong>Investisseur :</strong> Explorer et investir dans des projets, suivre des opportunités</li>
+                    <li><strong>Éditeur :</strong> Vendre des liens sur vos sites web, gérer vos annonces</li>
+                    <li><strong>Annonceur :</strong> Acheter des liens pour vos sites, explorer les opportunités</li>
                   </ul>
                 </div>
               </div>
@@ -172,17 +172,17 @@ const UserProfile: React.FC = () => {
                 <input
                   {...register('role', { required: 'Le rôle est requis' })}
                   type="radio"
-                  value="entrepreneur"
-                  id="role-entrepreneur"
+                  value="publisher"
+                  id="role-publisher"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                 />
-                <label htmlFor="role-entrepreneur" className="flex items-center space-x-3 cursor-pointer flex-1">
+                <label htmlFor="role-publisher" className="flex items-center space-x-3 cursor-pointer flex-1">
                   <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                     <Briefcase className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-900">Entrepreneur</div>
-                    <div className="text-xs text-gray-500">Créer et gérer des projets</div>
+                    <div className="text-sm font-medium text-gray-900">Éditeur</div>
+                    <div className="text-xs text-gray-500">Vendre des liens sur vos sites web</div>
                   </div>
                 </label>
               </div>
@@ -191,17 +191,17 @@ const UserProfile: React.FC = () => {
                 <input
                   {...register('role', { required: 'Le rôle est requis' })}
                   type="radio"
-                  value="investor"
-                  id="role-investor"
+                  value="advertiser"
+                  id="role-advertiser"
                   className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
                 />
-                <label htmlFor="role-investor" className="flex items-center space-x-3 cursor-pointer flex-1">
+                <label htmlFor="role-advertiser" className="flex items-center space-x-3 cursor-pointer flex-1">
                   <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
                     <TrendingUp className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-900">Investisseur</div>
-                    <div className="text-xs text-gray-500">Investir dans des projets</div>
+                    <div className="text-sm font-medium text-gray-900">Annonceur</div>
+                    <div className="text-xs text-gray-500">Acheter des liens pour vos sites</div>
                   </div>
                 </label>
               </div>

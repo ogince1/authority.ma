@@ -26,14 +26,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   const navigation = [
     { name: 'Tableau de Bord', href: '/admin', icon: LayoutDashboard },
-    { name: 'Projets', href: '/admin/projects', icon: FolderOpen },
+    { name: 'Sites Web', href: '/admin/websites', icon: FolderOpen },
+    { name: 'Annonces de Liens', href: '/admin/link-listings', icon: FileText },
+    { name: 'Demandes d\'Achat', href: '/admin/purchase-requests', icon: MessageSquare },
+    { name: 'Transactions', href: '/admin/transactions', icon: TrendingUp },
+    { name: 'Utilisateurs', href: '/admin/users', icon: Users },
     { name: 'Blog', href: '/admin/blog', icon: FileText },
     { name: 'Success Stories', href: '/admin/success-stories', icon: Award },
-    { name: 'Levées de Fonds', href: '/admin/fundraising', icon: TrendingUp },
-    { name: 'Demandes de Vente', href: '/admin/submissions', icon: FileText },
-    { name: 'Propositions', href: '/admin/proposals', icon: MessageSquare },
-
-    { name: 'Intérêts Investisseurs', href: '/admin/investment-interests', icon: Users },
     { name: 'Paramètres', href: '/admin/settings', icon: Settings },
   ];
 
@@ -69,23 +68,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
           <div className="flex items-center space-x-2">
             <div className="flex items-center">
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-600 mr-0.5">
-                G
+              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-700 mr-0.5">
+                Authority
               </div>
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-500 mr-0.5">
-                o
-              </div>
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-600 mr-0.5">
-                H
-              </div>
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-500 mr-0.5">
-                a
-              </div>
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-600 mr-0.5">
-                y
-              </div>
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-500 mr-2">
-                a
+              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-600 to-gray-700 mr-2">
+                .ma
               </div>
               <div className="text-sm font-medium text-gray-600">
                 Admin

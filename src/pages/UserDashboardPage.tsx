@@ -4,15 +4,8 @@ import { getCurrentUser } from '../lib/supabase';
 import UserLayout from '../components/User/UserLayout';
 import UserDashboard from '../components/User/UserDashboard';
 import UserProfile from '../components/User/UserProfile';
-import ProjectsList from '../components/Admin/ProjectsList';
-import ProjectForm from '../components/Admin/ProjectForm';
-import ProjectFormWrapper from '../components/Admin/ProjectFormWrapper';
-import UserProposalsList from '../components/User/UserProposalsList';
-
-import UserFundraisingList from '../components/User/UserFundraisingList';
-import UserFundraisingForm from '../components/User/UserFundraisingForm';
-import UserFundraisingDetails from '../components/User/UserFundraisingDetails';
-import UserInvestmentInterestsList from '../components/User/UserInvestmentInterestsList';
+import UserWebsitesPage from './UserWebsitesPage';
+import UserLinkListingsPage from './UserLinkListingsPage';
 
 const useUserAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(null);
@@ -46,7 +39,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <UserLayout>{children}</UserLayout>;
@@ -65,50 +58,68 @@ const UserDashboardPage: React.FC = () => {
           <UserProfile />
         </ProtectedRoute>
       } />
-      <Route path="/projects" element={
+      
+      {/* Routes pour les éditeurs (publishers) */}
+      <Route path="/websites" element={
         <ProtectedRoute>
-          <ProjectsList />
+          <UserWebsitesPage />
         </ProtectedRoute>
       } />
-      <Route path="/projects/new" element={
+      <Route path="/websites/new" element={
         <ProtectedRoute>
-          <ProjectForm />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Ajouter un Site Web</h1>
+            <p className="text-gray-600">Formulaire d'ajout de site web (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
-      <Route path="/projects/:id/edit" element={
+      <Route path="/link-listings" element={
         <ProtectedRoute>
-          <ProjectFormWrapper isEdit={true} />
+          <UserLinkListingsPage />
         </ProtectedRoute>
       } />
-      <Route path="/proposals" element={
+      <Route path="/link-listings/new" element={
         <ProtectedRoute>
-          <UserProposalsList />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Créer une Annonce</h1>
+            <p className="text-gray-600">Formulaire de création d'annonce (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
-
-      <Route path="/fundraising" element={
+      
+      {/* Routes pour les annonceurs (advertisers) */}
+      <Route path="/purchases" element={
         <ProtectedRoute>
-          <UserFundraisingList />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Mes Achats</h1>
+            <p className="text-gray-600">Historique de vos achats de liens (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
-      <Route path="/fundraising/new" element={
+      <Route path="/purchase-requests" element={
         <ProtectedRoute>
-          <UserFundraisingForm />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Mes Demandes d'Achat</h1>
+            <p className="text-gray-600">Suivi de vos demandes d'achat (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
-      <Route path="/fundraising/:id/edit" element={
+      
+      {/* Routes communes */}
+      <Route path="/messages" element={
         <ProtectedRoute>
-          <UserFundraisingForm isEdit={true} />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Messages</h1>
+            <p className="text-gray-600">Système de messagerie (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
-      <Route path="/fundraising/:id" element={
+      <Route path="/notifications" element={
         <ProtectedRoute>
-          <UserFundraisingDetails />
-        </ProtectedRoute>
-      } />
-      <Route path="/investment-interests" element={
-        <ProtectedRoute>
-          <UserInvestmentInterestsList />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Notifications</h1>
+            <p className="text-gray-600">Centre de notifications (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
     </Routes>

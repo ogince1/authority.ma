@@ -4,20 +4,11 @@ import { getCurrentUser, isAdmin } from '../lib/supabase';
 import AdminLayout from '../components/Admin/AdminLayout';
 import AdminLogin from '../components/Admin/AdminLogin';
 import AdminDashboard from '../components/Admin/AdminDashboard';
-import ProjectsList from '../components/Admin/ProjectsList';
-import ProjectForm from '../components/Admin/ProjectForm';
-import ProjectFormWrapper from '../components/Admin/ProjectFormWrapper';
-import ProposalsList from '../components/Admin/ProposalsList';
-import SubmissionsList from '../components/Admin/SubmissionsList';
-import FundraisingList from '../components/Admin/FundraisingList';
-import InvestmentInterestsList from '../components/Admin/InvestmentInterestsList';
 import BlogList from '../components/Admin/BlogList';
 import BlogForm from '../components/Admin/BlogForm';
 import BlogFormWrapper from '../components/Admin/BlogFormWrapper';
 import SuccessStoriesList from '../components/Admin/SuccessStoriesList';
 import SuccessStoryForm from '../components/Admin/SuccessStoryForm';
-import FundraisingForm from '../components/Admin/FundraisingForm';
-import FundraisingFormSimple from '../components/Admin/FundraisingFormSimple';
 
 const useAdminAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(null);
@@ -71,41 +62,58 @@ const AdminPage: React.FC = () => {
           <AdminDashboard />
         </ProtectedRoute>
       } />
-      <Route path="/projects" element={
+      
+      {/* Gestion des sites web */}
+      <Route path="/websites" element={
         <ProtectedRoute>
-          <ProjectsList />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Gestion des Sites Web</h1>
+            <p className="text-gray-600">Modération et gestion des sites web (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
-      <Route path="/projects/new" element={
+      
+      {/* Gestion des annonces de liens */}
+      <Route path="/link-listings" element={
         <ProtectedRoute>
-          <ProjectForm />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Gestion des Annonces</h1>
+            <p className="text-gray-600">Modération des annonces de liens (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
-      <Route path="/projects/:id/edit" element={
+      
+      {/* Gestion des demandes d'achat */}
+      <Route path="/purchase-requests" element={
         <ProtectedRoute>
-          <ProjectFormWrapper isEdit={true} />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Demandes d'Achat</h1>
+            <p className="text-gray-600">Suivi des demandes d'achat (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
-      <Route path="/proposals" element={
+      
+      {/* Gestion des transactions */}
+      <Route path="/transactions" element={
         <ProtectedRoute>
-          <ProposalsList />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Transactions</h1>
+            <p className="text-gray-600">Gestion des transactions financières (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
-      <Route path="/fundraising" element={
+      
+      {/* Gestion des utilisateurs */}
+      <Route path="/users" element={
         <ProtectedRoute>
-          <FundraisingList />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Utilisateurs</h1>
+            <p className="text-gray-600">Gestion des utilisateurs (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
-      <Route path="/fundraising/new" element={
-        <ProtectedRoute>
-          <FundraisingForm />
-        </ProtectedRoute>
-      } />
-      <Route path="/fundraising/:id/edit" element={
-        <ProtectedRoute>
-          <FundraisingForm isEdit={true} />
-        </ProtectedRoute>
-      } />
+      
+      {/* Blog */}
       <Route path="/blog" element={
         <ProtectedRoute>
           <BlogList />
@@ -121,6 +129,8 @@ const AdminPage: React.FC = () => {
           <BlogFormWrapper isEdit={true} />
         </ProtectedRoute>
       } />
+      
+      {/* Histoires de succès */}
       <Route path="/success-stories" element={
         <ProtectedRoute>
           <SuccessStoriesList />
@@ -136,15 +146,24 @@ const AdminPage: React.FC = () => {
           <SuccessStoryForm isEdit={true} />
         </ProtectedRoute>
       } />
-
-      <Route path="/submissions" element={
+      
+      {/* Statistiques */}
+      <Route path="/stats" element={
         <ProtectedRoute>
-          <SubmissionsList />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Statistiques</h1>
+            <p className="text-gray-600">Tableau de bord analytics (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
-      <Route path="/investment-interests" element={
+      
+      {/* Paramètres */}
+      <Route path="/settings" element={
         <ProtectedRoute>
-          <InvestmentInterestsList />
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Paramètres</h1>
+            <p className="text-gray-600">Configuration de la plateforme (à implémenter)</p>
+          </div>
         </ProtectedRoute>
       } />
     </Routes>

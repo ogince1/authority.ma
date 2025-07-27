@@ -1,90 +1,155 @@
-// Types pour les projets
-export type ProjectCategory = 'mvp' | 'startup' | 'website' | 'site_web_actif' | 'domaine_site_trafic' | 'startup_tech' | 'application_mobile' | 'plateforme_saas';
+// Types pour la plateforme de vente de liens au Maroc
 
-export type RealProjectCategory = 'immobilier' | 'hotellerie' | 'industrie' | 'agriculture' | 'energie' | 'logistique' | 'mines' | 'art' | 'franchise' | 'fonds_commerce' | 'local_commercial' | 'projet_industriel' | 'restaurant_luxe' | 'salon_luxe' | 'commerce';
+// Types de sites web
+export type WebsiteCategory = 'blog' | 'ecommerce' | 'actualites' | 'lifestyle' | 'tech' | 'business' | 'sante' | 'education' | 'immobilier' | 'automobile' | 'voyage' | 'cuisine' | 'sport' | 'culture' | 'politique' | 'economie';
 
-export type ProjectType = 'digital' | 'real';
+// Types de liens
+export type LinkType = 'dofollow' | 'nofollow' | 'sponsored' | 'ugc';
 
-export type IndustrySector = 'immobilier' | 'artisanat' | 'services' | 'e-commerce' | 'technologie' | 'sante' | 'education' | 'finance' | 'tourisme' | 'agriculture' | 'industrie' | 'energie' | 'logistique' | 'art' | 'franchise' | 'hotellerie' | 'commerce' | 'marketing' | 'conseil' | 'transport';
+// Types de positionnement
+export type LinkPosition = 'header' | 'footer' | 'sidebar' | 'content' | 'menu' | 'popup';
 
-// Nouveau type pour l'objectif du projet
-export type ProjectObjective = 'vente' | 'location' | 'levee_fonds';
+// Types de niches
+export type WebsiteNiche = 'immobilier' | 'sante' | 'beaute' | 'mode' | 'tech' | 'finance' | 'education' | 'voyage' | 'cuisine' | 'sport' | 'automobile' | 'lifestyle' | 'business' | 'actualites' | 'culture' | 'politique' | 'economie' | 'art' | 'musique' | 'cinema';
 
-// Nouveau type pour le statut du propriétaire
-export type OwnerStatus = 'professionnel' | 'particulier' | 'entreprise';
+// Statut du propriétaire du site
+export type OwnerStatus = 'professionnel' | 'particulier' | 'entreprise' | 'agence';
 
-// Interface pour les indicateurs de performance
-export interface ProjectMetrics {
-  monthly_traffic?: number; // Trafic mensuel (pour digital)
-  leads_clients?: number; // Leads/clients existants
-  revenue?: number; // Revenus (facultatif)
-  material_condition?: string; // État du matériel/local
-  additional_metrics?: Record<string, any>; // Métriques supplémentaires
+// Interface pour les métriques du site
+export interface WebsiteMetrics {
+  monthly_traffic?: number; // Trafic mensuel
+  domain_authority?: number; // Autorité du domaine (0-100)
+  page_authority?: number; // Autorité de la page (0-100)
+  backlinks_count?: number; // Nombre de backlinks
+  organic_keywords?: number; // Mots-clés organiques
+  alexa_rank?: number; // Classement Alexa
+  google_indexed_pages?: number; // Pages indexées par Google
+  social_media_followers?: Record<string, number>; // Followers réseaux sociaux
 }
 
-export interface Project {
+// Interface pour un site web (éditeur)
+export interface Website {
   id: string;
   title: string;
   description: string;
-  category: ProjectCategory;
-  project_type: ProjectType;
-  real_category?: RealProjectCategory;
-  industry_sector: IndustrySector;
-  
-  // Nouveau champ obligatoire : objectif
-  objective: ProjectObjective;
-  
-  // Nouveau champ : statut du propriétaire
+  url: string;
+  category: WebsiteCategory;
+  niche: WebsiteNiche;
   owner_status: OwnerStatus;
   
-  // Nouveau champ : indicateurs de performance
-  metrics?: ProjectMetrics;
+  // Métriques du site
+  metrics?: WebsiteMetrics;
   
-  price: number;
-  images: string[];
-  features: string[];
-  tech_stack: string[];
-  demo_url?: string;
-  contact_info?: any;
-  industry_tags: string[];
-  status: 'active' | 'sold' | 'pending';
+  // Informations de contact
+  contact_info: {
+    name: string;
+    email: string;
+    phone?: string;
+    whatsapp?: string;
+    website?: string;
+  };
+  
+  // Images et médias
+  logo?: string;
+  screenshots: string[];
+  
+  // Informations SEO
   meta_title?: string;
   meta_description?: string;
   slug: string;
+  
+  // Statut
+  status: 'active' | 'inactive' | 'pending_approval' | 'suspended';
+  
+  // Informations de création
   user_id?: string;
   created_at: string;
   updated_at: string;
-  // Champs spécifiques aux projets réels
-  is_real_project?: boolean;
-  location?: string;
-  property_details?: any;
-  rental_option?: boolean;
-  rental_price?: number;
   
-  // Nouveau champ : prix à afficher ou pas (décision du client)
-  show_price?: boolean;
+  // Champs spécifiques aux liens
+  available_link_spots: number; // Nombre d'emplacements disponibles
+  average_response_time?: number; // Temps de réponse moyen en heures
+  payment_methods: string[]; // Méthodes de paiement acceptées
+  languages: string[]; // Langues du site
+  content_quality: 'excellent' | 'good' | 'average' | 'poor'; // Qualité du contenu
 }
 
-export interface Proposal {
+// Interface pour une annonce de lien
+export interface LinkListing {
   id: string;
-  project_id: string;
-  buyer_name: string;
-  buyer_email: string;
-  buyer_phone?: string;
-  proposed_price: number;
+  website_id: string;
+  title: string;
+  description: string;
+  target_url: string; // URL où le lien sera placé
+  anchor_text: string; // Texte d'ancrage souhaité
+  
+  // Type et position du lien
+  link_type: LinkType;
+  position: LinkPosition;
+  
+  // Prix et conditions
+  price: number; // Prix en MAD
+  currency: 'MAD' | 'EUR' | 'USD';
+  minimum_contract_duration: number; // Durée minimale en mois
+  max_links_per_page?: number; // Nombre max de liens par page
+  
+  // Restrictions et conditions
+  allowed_niches: WebsiteNiche[]; // Niches autorisées
+  forbidden_keywords: string[]; // Mots-clés interdits
+  content_requirements?: string; // Exigences de contenu
+  
+  // Statut
+  status: 'active' | 'sold' | 'pending' | 'inactive';
+  
+  // Informations de création
+  user_id?: string;
+  created_at: string;
+  updated_at: string;
+  
+  // Métadonnées
+  meta_title?: string;
+  meta_description?: string;
+  slug: string;
+  
+  // Images
+  images: string[];
+  
+  // Tags
+  tags: string[];
+}
+
+// Interface pour une demande d'achat de lien
+export interface LinkPurchaseRequest {
+  id: string;
+  link_listing_id: string;
+  advertiser_name: string;
+  advertiser_email: string;
+  advertiser_phone?: string;
+  advertiser_website?: string;
+  
+  // Détails de la demande
+  proposed_anchor_text: string;
+  target_url: string;
   message?: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  
+  // Conditions proposées
+  proposed_price?: number; // Si l'annonceur veut négocier
+  proposed_duration: number; // Durée souhaitée en mois
+  
+  // Statut
+  status: 'pending' | 'accepted' | 'rejected' | 'negotiating';
+  
+  // Informations de création
   created_at: string;
+  updated_at: string;
+  
+  // Réponse de l'éditeur
+  editor_response?: string;
+  response_date?: string;
 }
 
-export interface AdminUser {
-  id: string;
-  email: string;
-  role: string;
-  created_at: string;
-}
-
-export type UserRole = 'entrepreneur' | 'investor';
+// Interface pour un utilisateur
+export type UserRole = 'advertiser' | 'publisher' | 'admin';
 
 export interface User {
   id: string;
@@ -94,191 +159,215 @@ export interface User {
   phone?: string;
   website?: string;
   bio?: string;
+  company_name?: string;
+  company_size?: 'startup' | 'sme' | 'large' | 'agency';
+  location?: string;
   created_at: string;
   updated_at: string;
+  
+  // Informations spécifiques aux annonceurs
+  advertiser_info?: {
+    industry: string;
+    target_markets: string[];
+    budget_range: 'low' | 'medium' | 'high' | 'enterprise';
+    preferred_link_types: LinkType[];
+  };
+  
+  // Informations spécifiques aux éditeurs
+  publisher_info?: {
+    total_websites: number;
+    average_traffic: number;
+    preferred_payment_methods: string[];
+    response_time_hours: number;
+  };
 }
 
-export interface CreateProposalData {
-  project_id: string;
-  buyer_name: string;
-  buyer_email: string;
-  buyer_phone?: string;
-  proposed_price: number;
-  message?: string;
-}
-
-export interface CreateProjectData {
+// Interface pour créer un site web
+export interface CreateWebsiteData {
   title: string;
   description: string;
-  category: ProjectCategory;
-  project_type: ProjectType;
-  real_category?: RealProjectCategory;
-  industry_sector: IndustrySector;
-  
-  // Nouveau champ obligatoire : objectif
-  objective: ProjectObjective;
-  
-  // Nouveau champ : statut du propriétaire
+  url: string;
+  category: WebsiteCategory;
+  niche: WebsiteNiche;
   owner_status: OwnerStatus;
-  
-  // Nouveau champ : indicateurs de performance
-  metrics?: ProjectMetrics;
-  
-  price: number;
-  images: string[];
-  features: string[];
-  tech_stack: string[];
-  demo_url?: string;
-  industry_tags: string[];
-  contact_info?: any;
+  metrics?: WebsiteMetrics;
+  contact_info: {
+    name: string;
+    email: string;
+    phone?: string;
+    whatsapp?: string;
+    website?: string;
+  };
+  logo?: string;
+  screenshots: string[];
   meta_title?: string;
-  user_id?: string;
   meta_description?: string;
   slug: string;
-  // Champs spécifiques aux projets réels
-  is_real_project?: boolean;
-  location?: string;
-  property_details?: any;
-  rental_option?: boolean;
-  rental_price?: number;
-  
-  // Nouveau champ : prix à afficher ou pas (décision du client)
-  show_price?: boolean;
+  available_link_spots: number;
+  average_response_time?: number;
+  payment_methods: string[];
+  languages: string[];
+  content_quality: 'excellent' | 'good' | 'average' | 'poor';
+  user_id?: string;
 }
 
-export interface ProjectFilterOptions {
-  category?: ProjectCategory;
-  project_type?: ProjectType;
-  real_category?: RealProjectCategory;
-  industry_sector?: IndustrySector;
-  minPrice?: number;
-  maxPrice?: number;
+// Interface pour créer une annonce de lien
+export interface CreateLinkListingData {
+  website_id: string;
+  title: string;
+  description: string;
+  target_url: string;
+  anchor_text: string;
+  link_type: LinkType;
+  position: LinkPosition;
+  price: number;
+  currency: 'MAD' | 'EUR' | 'USD';
+  minimum_contract_duration: number;
+  max_links_per_page?: number;
+  allowed_niches: WebsiteNiche[];
+  forbidden_keywords: string[];
+  content_requirements?: string;
+  status?: 'active' | 'pending' | 'inactive';
+  user_id?: string;
+  meta_title?: string;
+  meta_description?: string;
+  slug: string;
+  images: string[];
+  tags: string[];
+}
+
+// Interface pour créer une demande d'achat
+export interface CreateLinkPurchaseData {
+  link_listing_id: string;
+  advertiser_name: string;
+  advertiser_email: string;
+  advertiser_phone?: string;
+  advertiser_website?: string;
+  proposed_anchor_text: string;
+  target_url: string;
+  message?: string;
+  proposed_price?: number;
+  proposed_duration: number;
+}
+
+// Interface pour les filtres de recherche
+export interface WebsiteFilterOptions {
+  category?: WebsiteCategory;
+  niche?: WebsiteNiche;
+  min_traffic?: number;
+  max_traffic?: number;
+  min_domain_authority?: number;
+  max_domain_authority?: number;
   search?: string;
-  industryTags?: string[];
+  languages?: string[];
+  content_quality?: 'excellent' | 'good' | 'average' | 'poor';
+  available_spots?: boolean;
   user_id?: string;
-  location?: string;
-  rental_option?: boolean;
 }
 
-export interface ProjectSubmission {
+export interface LinkListingFilterOptions {
+  website_category?: WebsiteCategory;
+  website_niche?: WebsiteNiche;
+  link_type?: LinkType;
+  position?: LinkPosition;
+  min_price?: number;
+  max_price?: number;
+  currency?: 'MAD' | 'EUR' | 'USD';
+  min_domain_authority?: number;
+  max_domain_authority?: number;
+  search?: string;
+  allowed_niches?: WebsiteNiche[];
+  status?: 'active' | 'sold' | 'pending' | 'inactive';
+  user_id?: string;
+}
+
+// Interface pour les statistiques
+export interface PlatformStats {
+  total_websites: number;
+  total_link_listings: number;
+  total_purchases: number;
+  total_revenue: number;
+  active_advertisers: number;
+  active_publishers: number;
+  average_link_price: number;
+  success_rate: number; // Pourcentage de demandes acceptées
+}
+
+// Interface pour les transactions
+export interface Transaction {
   id: string;
-  title: string;
-  description: string;
-  category: ProjectCategory;
-  project_type: ProjectType;
-  real_category?: RealProjectCategory;
-  industry_sector: IndustrySector;
-  price: number;
-  demo_url?: string;
-  features: string[];
-  tech_stack: string[];
-  industry_tags: string[];
-  contact_name: string;
-  contact_email: string;
-  contact_phone?: string;
-  contact_website?: string;
-  additional_info?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  admin_notes?: string;
+  purchase_request_id: string;
+  amount: number;
+  currency: 'MAD' | 'EUR' | 'USD';
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  payment_method: string;
   created_at: string;
-  reviewed_at?: string;
-  reviewed_by?: string;
-  // Champs spécifiques aux projets réels
-  is_real_project?: boolean;
-  location?: string;
-  property_details?: any;
-  rental_option?: boolean;
-  rental_price?: number;
+  completed_at?: string;
+  
+  // Informations des parties
+  advertiser_id: string;
+  publisher_id: string;
+  link_listing_id: string;
+  
+  // Commission de la plateforme
+  platform_fee: number;
+  publisher_amount: number;
 }
 
-export interface CreateProjectSubmissionData {
-  title: string;
-  description: string;
-  category: ProjectCategory;
-  project_type: ProjectType;
-  real_category?: RealProjectCategory;
-  industry_sector: IndustrySector;
-  
-  // Nouveau champ obligatoire : objectif
-  objective: ProjectObjective;
-  
-  // Nouveau champ : statut du propriétaire
-  owner_status: OwnerStatus;
-  
-  // Nouveau champ : indicateurs de performance
-  metrics?: ProjectMetrics;
-  
-  price: number;
-  demo_url?: string;
-  features: string[];
-  tech_stack: string[];
-  industry_tags: string[];
-  contact_name: string;
-  contact_email: string;
-  contact_phone?: string;
-  contact_website?: string;
-  additional_info?: string;
-  // Champs spécifiques aux projets réels
-  is_real_project?: boolean;
-  location?: string;
-  property_details?: any;
-  rental_option?: boolean;
-  rental_price?: number;
-  
-  // Nouveau champ : prix à afficher ou pas (décision du client)
-  show_price?: boolean;
-}
-
-export interface FundraisingOpportunity {
+// Interface pour les avis et évaluations
+export interface Review {
   id: string;
-  project_id: string;
-  target_amount: number;
-  investment_stage: 'pre_seed' | 'seed' | 'series_a' | 'series_b' | 'bridge';
-  equity_offered?: number;
-  pitch_deck_url?: string;
-  financial_projections_url?: string;
-  description_for_investors: string;
-  minimum_investment: number;
-  status: 'active' | 'funded' | 'closed' | 'paused';
+  transaction_id: string;
+  reviewer_id: string; // ID de celui qui laisse l'avis
+  reviewed_id: string; // ID de celui qui reçoit l'avis
+  rating: number; // 1-5 étoiles
+  comment?: string;
+  created_at: string;
+  
+  // Type d'avis
+  review_type: 'advertiser_to_publisher' | 'publisher_to_advertiser';
+}
+
+// Interface pour les notifications
+export interface Notification {
+  id: string;
   user_id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  read: boolean;
   created_at: string;
-  updated_at: string;
+  
+  // Lien vers l'action
+  action_url?: string;
+  action_type?: 'link_purchase' | 'website_approval' | 'payment' | 'review';
 }
 
-export interface InvestmentInterest {
+// Interface pour les messages entre utilisateurs
+export interface Message {
   id: string;
-  fundraising_id: string;
-  investor_name: string;
-  investor_email: string;
-  investor_phone?: string;
-  investment_amount: number;
-  message?: string;
-  status: 'pending' | 'contacted' | 'rejected';
+  sender_id: string;
+  receiver_id: string;
+  subject: string;
+  content: string;
+  read: boolean;
+  created_at: string;
+  
+  // Contexte du message
+  related_purchase_request_id?: string;
+  related_website_id?: string;
+}
+
+// Interface pour les catégories de blog
+export interface BlogCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
   created_at: string;
 }
 
-export interface CreateInvestmentInterestData {
-  fundraising_id: string;
-  investor_name: string;
-  investor_email: string;
-  investor_phone?: string;
-  investment_amount: number;
-  message?: string;
-}
-
-export interface CreateFundraisingData {
-  project_id: string;
-  target_amount: number;
-  investment_stage: 'pre_seed' | 'seed' | 'series_a' | 'series_b' | 'bridge';
-  equity_offered?: number;
-  pitch_deck_url?: string;
-  financial_projections_url?: string;
-  description_for_investors: string;
-  minimum_investment: number;
-  status?: 'active' | 'funded' | 'closed' | 'paused';
-  user_id?: string;
-}
-
+// Interface pour les articles de blog
 export interface BlogPost {
   id: string;
   title: string;
@@ -298,6 +387,7 @@ export interface BlogPost {
   updated_at: string;
 }
 
+// Interface pour créer un article de blog
 export interface CreateBlogPostData {
   title: string;
   slug: string;
@@ -310,16 +400,10 @@ export interface CreateBlogPostData {
   status: 'draft' | 'published';
   meta_title?: string;
   meta_description?: string;
+  author_id?: string;
 }
 
-export interface BlogCategory {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  created_at: string;
-}
-
+// Interface pour les histoires de succès
 export interface SuccessStory {
   id: string;
   title: string;
@@ -345,6 +429,7 @@ export interface SuccessStory {
   updated_at: string;
 }
 
+// Interface pour créer une histoire de succès
 export interface CreateSuccessStoryData {
   title: string;
   slug: string;

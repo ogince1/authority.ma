@@ -43,8 +43,8 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <SEOHead 
-        title="Connexion | GoHaya - Marketplace de Projets Digitaux"
-        description="Connectez-vous à votre compte GoHaya pour gérer vos projets, propositions et levées de fonds."
+        title="Connexion | Authority.ma - Plateforme de Vente de Liens"
+        description="Connectez-vous à votre compte Authority.ma pour gérer vos sites web, annonces de liens et achats."
       />
       <Header />
       
@@ -59,12 +59,8 @@ const LoginPage: React.FC = () => {
             <div className="text-center mb-8">
               <div className="w-full mx-auto mb-4 flex items-center justify-center">
                 <div className="flex items-center">
-                  <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-600 mr-1">G</div>
-                  <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-500 mr-1">o</div>
-                  <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-600 mr-1">H</div>
-                  <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-500 mr-1">a</div>
-                  <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-600 mr-1">y</div>
-                  <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-500">a</div>
+                  <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-700 mr-1">Authority</div>
+                  <div className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-600 to-gray-700">.ma</div>
                 </div>
               </div>
               <h2 className="text-3xl font-bold text-gray-900 mb-2">

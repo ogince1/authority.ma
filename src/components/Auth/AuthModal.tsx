@@ -115,14 +115,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
                   <input
                     {...register('role', { required: mode === 'signup' ? 'Veuillez choisir un profil' : false })}
                     type="radio"
-                    value="entrepreneur"
+                    value="publisher"
                     className="mr-3 text-blue-600 focus:ring-blue-500"
                   />
                   <div className="flex items-center">
                     <Briefcase className="h-5 w-5 text-blue-600 mr-2" />
                     <div>
-                      <div className="font-medium text-gray-900">Entrepreneur</div>
-                      <div className="text-sm text-gray-600">Je veux créer et vendre des projets</div>
+                      <div className="font-medium text-gray-900">Éditeur</div>
+                      <div className="text-sm text-gray-600">Je veux vendre des liens sur mes sites web</div>
                     </div>
                   </div>
                 </label>
@@ -131,14 +131,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, mode, onModeChan
                   <input
                     {...register('role', { required: mode === 'signup' ? 'Veuillez choisir un profil' : false })}
                     type="radio"
-                    value="investor"
+                    value="advertiser"
                     className="mr-3 text-blue-600 focus:ring-blue-500"
                   />
                   <div className="flex items-center">
                     <TrendingUp className="h-5 w-5 text-green-600 mr-2" />
                     <div>
-                      <div className="font-medium text-gray-900">Investisseur</div>
-                      <div className="text-sm text-gray-600">Je veux investir dans des projets</div>
+                      <div className="font-medium text-gray-900">Annonceur</div>
+                      <div className="text-sm text-gray-600">Je veux acheter des liens pour mes sites</div>
                     </div>
                   </div>
                 </label>
