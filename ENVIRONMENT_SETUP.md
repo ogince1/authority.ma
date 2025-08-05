@@ -1,84 +1,203 @@
-# Environment Setup Guide
+# 🔧 Guide de Configuration des Variables d'Environnement
 
-## 🔧 Configuration des Variables d'Environnement
+## 📋 **Vue d'ensemble**
 
-Ce guide vous explique comment configurer les variables d'environnement nécessaires pour faire fonctionner l'application.
+Ce guide vous explique comment configurer les variables d'environnement pour votre projet **Authority.ma**.
 
-## 📋 Variables Requises
+## 🔐 **Types de Fichiers d'Environnement**
 
-### 1. **Supabase Configuration**
+### **1. `.env.example`** (Template)
+- **Usage** : Template partagé avec l'équipe
+- **Git** : ✅ Commité dans le repository
+- **Contenu** : Variables sans valeurs sensibles
 
-Vous devez créer un fichier `.env` à la racine du projet avec les variables suivantes :
+### **2. `.env.local`** (Configuration Locale)
+- **Usage** : Configuration spécifique à votre machine
+- **Git** : ❌ **NE JAMAIS** commité (sécurité)
+- **Contenu** : Variables avec vos vraies valeurs
 
-```env
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
-```
+### **3. `.env.production`** (Production)
+- **Usage** : Configuration pour la production
+- **Git** : ❌ **NE JAMAIS** commité
+- **Contenu** : Variables de production
 
-## 🚀 Comment Obtenir Vos Credentials Supabase
+## 🚀 **Installation Rapide**
 
-### Étape 1: Accéder à votre Dashboard Supabase
-1. Allez sur [supabase.com](https://supabase.com)
-2. Connectez-vous à votre compte
-3. Sélectionnez votre projet
-
-### Étape 2: Trouver vos Credentials
-1. Dans le menu de gauche, cliquez sur **Settings**
-2. Cliquez sur **API**
-3. Vous verrez deux sections importantes :
-   - **Project URL** → C'est votre `VITE_SUPABASE_URL`
-   - **anon public** → C'est votre `VITE_SUPABASE_ANON_KEY`
-
-### Étape 3: Créer le fichier .env
-1. Copiez le fichier `.env.example` vers `.env`
-2. Remplacez les valeurs par vos vraies credentials
-
+### **Option 1 : Script Automatique**
 ```bash
-cp .env.example .env
+# Exécuter le script de configuration
+./setup-env.sh
 ```
 
-3. Éditez le fichier `.env` avec vos vraies valeurs
+### **Option 2 : Configuration Manuelle**
+```bash
+# Copier le template
+cp env.example .env.local
 
-## 📁 Structure du Fichier .env
-
-```env
-# Supabase Configuration
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
-
-# Optional: Additional environment variables
-# VITE_APP_NAME=GoHaya
-# VITE_APP_URL=https://gohaya.com
-# VITE_GOOGLE_ANALYTICS_ID=GA_MEASUREMENT_ID
+# Éditer le fichier avec vos valeurs
+nano .env.local
 ```
 
-## ⚠️ Important
+## 🔧 **Configuration pour Développement Local**
 
-- **Ne jamais commiter** le fichier `.env` dans Git
-- Le fichier `.env` est déjà dans `.gitignore`
-- Utilisez toujours `.env.example` comme modèle
-- Gardez vos credentials secrets et sécurisés
+### **1. Variables Supabase (Obligatoires)**
+```bash
+# URL de Supabase local
+VITE_SUPABASE_URL=http://127.0.0.1:54321
 
-## 🔍 Vérification
+# Clé anonyme Supabase local
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 
-Après avoir configuré vos variables d'environnement :
+# Clé de service (pour les opérations admin)
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+```
 
-1. Redémarrez votre serveur de développement
-2. Vérifiez que l'application se connecte à Supabase
-3. Testez l'authentification et les fonctionnalités
+### **2. Variables Application**
+```bash
+# URL de l'application
+VITE_APP_URL=http://localhost:3000
 
-## 🆘 Dépannage
+# Mode de l'application
+NODE_ENV=development
+```
 
-Si vous rencontrez des erreurs :
+## 🌐 **Configuration pour Production**
 
-1. **Vérifiez que le fichier `.env` existe** à la racine du projet
-2. **Vérifiez que les variables sont correctement nommées** (avec le préfixe `VITE_`)
-3. **Redémarrez le serveur de développement** après avoir modifié `.env`
-4. **Vérifiez vos credentials Supabase** dans le dashboard
+### **1. Variables Supabase Production**
+```bash
+# URL de votre projet Supabase
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
 
-## 📞 Support
+# Clé anonyme de production
+VITE_SUPABASE_ANON_KEY=your-production-anon-key
 
-En cas de problème, vérifiez :
-- Les logs de la console du navigateur
-- Les logs du serveur de développement
-- La configuration de votre projet Supabase 
+# Clé de service de production
+SUPABASE_SERVICE_ROLE_KEY=your-production-service-role-key
+```
+
+### **2. Variables de Paiement**
+```bash
+# PayPal
+PAYPAL_CLIENT_ID=your-paypal-client-id
+PAYPAL_CLIENT_SECRET=your-paypal-client-secret
+
+# Stripe
+STRIPE_PUBLISHABLE_KEY=pk_live_your-stripe-key
+STRIPE_SECRET_KEY=sk_live_your-stripe-key
+```
+
+### **3. Variables Email**
+```bash
+# Configuration SMTP
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+```
+
+## 🔍 **Vérification de la Configuration**
+
+### **1. Tester la Connexion Supabase**
+```bash
+# Démarrer Supabase local
+supabase start
+
+# Vérifier le statut
+supabase status
+```
+
+### **2. Tester l'Application**
+```bash
+# Installer les dépendances
+npm install
+
+# Démarrer l'application
+npm run dev
+```
+
+### **3. Vérifier les Variables**
+```javascript
+// Dans votre code
+console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+console.log('App URL:', import.meta.env.VITE_APP_URL);
+```
+
+## 🛡️ **Sécurité**
+
+### **❌ Ne JAMAIS commiter :**
+- `.env.local`
+- `.env.production`
+- Fichiers contenant des clés API
+- Mots de passe
+- Clés de service
+
+### **✅ Peut être commité :**
+- `.env.example`
+- `env.example`
+- Templates sans valeurs sensibles
+
+## 🔄 **Gestion des Environnements**
+
+### **Développement**
+```bash
+# Variables de développement
+NODE_ENV=development
+VITE_APP_URL=http://localhost:3000
+```
+
+### **Staging**
+```bash
+# Variables de staging
+NODE_ENV=staging
+VITE_APP_URL=https://staging.authority.ma
+```
+
+### **Production**
+```bash
+# Variables de production
+NODE_ENV=production
+VITE_APP_URL=https://authority.ma
+```
+
+## 🚨 **Dépannage**
+
+### **Problème : Variables non chargées**
+```bash
+# Vérifier que le fichier existe
+ls -la .env.local
+
+# Vérifier le format (pas d'espaces autour du =)
+VITE_SUPABASE_URL=http://127.0.0.1:54321
+```
+
+### **Problème : Connexion Supabase échoue**
+```bash
+# Vérifier que Supabase est démarré
+supabase status
+
+# Redémarrer si nécessaire
+supabase stop
+supabase start
+```
+
+### **Problème : Variables Vite non reconnues**
+```bash
+# Redémarrer le serveur de développement
+npm run dev
+
+# Vérifier le préfixe VITE_ pour les variables côté client
+VITE_SUPABASE_URL=...
+```
+
+## 📚 **Ressources Utiles**
+
+- [Documentation Vite - Variables d'Environnement](https://vitejs.dev/guide/env-and-mode.html)
+- [Documentation Supabase - Configuration](https://supabase.com/docs/guides/getting-started/environment-variables)
+- [Guide de Sécurité des Variables d'Environnement](https://12factor.net/config)
+
+## 🤝 **Support**
+
+Si vous rencontrez des problèmes :
+1. Vérifiez ce guide
+2. Consultez la documentation officielle
+3. Contactez l'équipe de développement 

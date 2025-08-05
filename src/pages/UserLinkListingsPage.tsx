@@ -20,8 +20,8 @@ import { motion } from 'framer-motion';
 import { LinkListing } from '../types';
 import { getLinkListings, deleteLinkListing } from '../lib/supabase';
 import { getCurrentUser } from '../lib/supabase';
-import LinkCard from '../components/Links/LinkCard';
 import LinkListingForm from '../components/Links/LinkListingForm';
+import LinkCard from '../components/Links/LinkCard';
 import { trackPageView } from '../utils/analytics';
 import toast from 'react-hot-toast';
 
@@ -31,11 +31,11 @@ const UserLinkListingsPage: React.FC = () => {
   const [showForm, setShowForm] = React.useState(false);
   const [editingListing, setEditingListing] = React.useState<LinkListing | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
-  const [statusFilter, setStatusFilter] = React.useState<string>('all');
-  const [typeFilter, setTypeFilter] = React.useState<string>('all');
+  const [statusFilter, setStatusFilter] = React.useState<'all' | LinkListing['status']>('all');
+  const [typeFilter, setTypeFilter] = React.useState<'all' | LinkListing['link_type']>('all');
 
   React.useEffect(() => {
-    trackPageView('/dashboard/link-listings', 'Mes Annonces de Liens | Authority.ma');
+    trackPageView('/dashboard/link-listings', 'Mes Liens Existants | Authority.ma');
     fetchLinkListings();
   }, []);
 
@@ -44,7 +44,7 @@ const UserLinkListingsPage: React.FC = () => {
       const user = await getCurrentUser();
       if (!user) return;
 
-      const listingsData = await getLinkListings({ 
+      const listingsData: LinkListing[] = await getLinkListings({ 
         user_id: user.id
       });
       setLinkListings(listingsData);
@@ -61,7 +61,7 @@ const UserLinkListingsPage: React.FC = () => {
 
     try {
       await deleteLinkListing(listingId);
-      setLinkListings(prev => prev.filter(l => l.id !== listingId));
+      setLinkListings((prev: LinkListing[]) => prev.filter((l: LinkListing) => l.id !== listingId));
       toast.success('Annonce supprimée avec succès');
     } catch (error) {
       console.error('Error deleting link listing:', error);
@@ -71,19 +71,19 @@ const UserLinkListingsPage: React.FC = () => {
 
   const handleFormSuccess = (listing: LinkListing) => {
     if (editingListing) {
-      setLinkListings(prev => prev.map(l => l.id === listing.id ? listing : l));
+      setLinkListings((prev: LinkListing[]) => prev.map((l: LinkListing) => l.id === listing.id ? listing : l));
       toast.success('Annonce mise à jour avec succès');
     } else {
-      setLinkListings(prev => [listing, ...prev]);
+      setLinkListings((prev: LinkListing[]) => [listing, ...prev]);
       toast.success('Annonce créée avec succès');
     }
     setShowForm(false);
     setEditingListing(null);
   };
 
-  const filteredListings = linkListings.filter(listing => {
+  const filteredListings = linkListings.filter((listing: LinkListing) => {
     const matchesSearch = listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         listing.anchor_text.toLowerCase().includes(searchTerm.toLowerCase());
+                         (listing.anchor_text || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || listing.status === statusFilter;
     const matchesType = typeFilter === 'all' || listing.link_type === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
@@ -91,13 +91,13 @@ const UserLinkListingsPage: React.FC = () => {
 
   const stats = {
     total: linkListings.length,
-    active: linkListings.filter(l => l.status === 'active').length,
-    pending: linkListings.filter(l => l.status === 'pending').length,
-    sold: linkListings.filter(l => l.status === 'sold').length,
-    totalValue: linkListings.reduce((sum, l) => sum + l.price, 0)
+    active: linkListings.filter((l: LinkListing) => l.status === 'active').length,
+    pending: linkListings.filter((l: LinkListing) => l.status === 'pending').length,
+    sold: linkListings.filter((l: LinkListing) => l.status === 'sold').length,
+    totalValue: linkListings.reduce((sum: number, l: LinkListing) => sum + l.price, 0)
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: LinkListing['status']) => {
     switch (status) {
       case 'active':
         return 'bg-green-100 text-green-800 border-green-200';
@@ -112,7 +112,7 @@ const UserLinkListingsPage: React.FC = () => {
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: LinkListing['status']) => {
     switch (status) {
       case 'active':
         return 'Active';
@@ -127,7 +127,7 @@ const UserLinkListingsPage: React.FC = () => {
     }
   };
 
-  const getTypeLabel = (type: string) => {
+  const getTypeLabel = (type: LinkListing['link_type']) => {
     switch (type) {
       case 'dofollow':
         return 'Dofollow';
@@ -145,7 +145,7 @@ const UserLinkListingsPage: React.FC = () => {
   if (showForm) {
     return (
       <LinkListingForm
-        linkListing={editingListing || undefined}
+        listing={editingListing || undefined}
         isEdit={!!editingListing}
         onSuccess={handleFormSuccess}
         onCancel={() => {
@@ -161,7 +161,7 @@ const UserLinkListingsPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mes Annonces de Liens</h1>
+                      <h1 className="text-2xl font-bold text-gray-900">Mes Liens Existants</h1>
           <p className="text-gray-600 mt-1">
             Gérez vos annonces de liens et suivez vos ventes
           </p>
@@ -171,7 +171,7 @@ const UserLinkListingsPage: React.FC = () => {
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
         >
           <Plus className="h-4 w-4" />
-          <span>Créer une annonce</span>
+          <span>Ajouter un lien existant</span>
         </button>
       </div>
 
@@ -242,7 +242,7 @@ const UserLinkListingsPage: React.FC = () => {
           <div className="flex gap-4">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | LinkListing['status'])}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">Tous les statuts</option>
@@ -253,7 +253,7 @@ const UserLinkListingsPage: React.FC = () => {
             </select>
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              onChange={(e) => setTypeFilter(e.target.value as 'all' | LinkListing['link_type'])}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">Tous les types</option>
@@ -269,7 +269,7 @@ const UserLinkListingsPage: React.FC = () => {
       {/* Liste des annonces */}
       {loading ? (
         <div className="space-y-6">
-          {[...Array(6)].map((_, i) => (
+          {[...Array(6)].map((_: any, i: number) => (
             <div key={i} className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
               <div className="h-8 bg-gray-200 rounded w-1/2 mb-4"></div>
@@ -290,122 +290,28 @@ const UserLinkListingsPage: React.FC = () => {
           <p className="text-gray-500 mb-6">
             {searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
               ? 'Essayez de modifier vos filtres de recherche'
-              : 'Commencez par créer votre première annonce de lien'
+              : 'Commencez par ajouter votre premier lien existant'
             }
           </p>
           <button
             onClick={() => setShowForm(true)}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Créer une annonce
+            Ajouter un lien existant
           </button>
         </div>
       ) : (
-        <div className="space-y-6">
-          {filteredListings.map((listing, index) => (
-            <motion.div
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredListings.map((listing: LinkListing, index: number) => (
+            <LinkCard
               key={listing.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
-            >
-              {/* Header avec statut */}
-              <div className="p-4 border-b border-gray-100">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(listing.status)}`}>
-                      {getStatusLabel(listing.status)}
-                    </span>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      {getTypeLabel(listing.link_type)}
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
-                  {listing.title}
-                </h3>
-                <p className="text-sm text-gray-500 line-clamp-1">
-                  {listing.target_url}
-                </p>
-              </div>
-
-              {/* Détails */}
-              <div className="p-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900">
-                      {listing.price.toLocaleString()} {listing.currency}
-                    </div>
-                    <div className="text-xs text-gray-500">Prix mensuel</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900">
-                      {listing.minimum_contract_duration}
-                    </div>
-                    <div className="text-xs text-gray-500">Mois min.</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900">
-                      {listing.position}
-                    </div>
-                    <div className="text-xs text-gray-500">Position</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900">
-                      {listing.allowed_niches.length}
-                    </div>
-                    <div className="text-xs text-gray-500">Niches autorisées</div>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 line-clamp-2">
-                    {listing.description}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                  <span>Texte d'ancrage: <strong>{listing.anchor_text}</strong></span>
-                  <span>Max {listing.max_links_per_page || 1} lien(s)/page</span>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-between">
-                  <div className="flex space-x-2">
-                    <Link
-                      to={`/lien/${listing.slug}`}
-                      className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center space-x-1"
-                    >
-                      <Eye className="h-3 w-3" />
-                      <span>Voir</span>
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setEditingListing(listing);
-                        setShowForm(true);
-                      }}
-                      className="text-gray-600 hover:text-gray-700 text-sm font-medium flex items-center space-x-1"
-                    >
-                      <Edit className="h-3 w-3" />
-                      <span>Modifier</span>
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteListing(listing.id)}
-                    className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center space-x-1"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                    <span>Supprimer</span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+              listing={listing}
+              onEdit={(listing: LinkListing) => {
+                setEditingListing(listing);
+                setShowForm(true);
+              }}
+              onDelete={handleDeleteListing}
+            />
           ))}
         </div>
       )}

@@ -11,7 +11,8 @@ import {
   LogOut,
   Menu,
   X,
-  TrendingUp
+  TrendingUp,
+  AlertTriangle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -26,11 +27,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   const navigation = [
     { name: 'Tableau de Bord', href: '/admin', icon: LayoutDashboard },
-    { name: 'Sites Web', href: '/admin/websites', icon: FolderOpen },
-    { name: 'Annonces de Liens', href: '/admin/link-listings', icon: FileText },
-    { name: 'Demandes d\'Achat', href: '/admin/purchase-requests', icon: MessageSquare },
-    { name: 'Transactions', href: '/admin/transactions', icon: TrendingUp },
     { name: 'Utilisateurs', href: '/admin/users', icon: Users },
+    { name: 'Sites Web', href: '/admin/websites', icon: FolderOpen },
+    { name: 'Disputes', href: '/admin/disputes', icon: AlertTriangle },
+    { name: 'Transactions', href: '/admin/transactions', icon: TrendingUp },
     { name: 'Blog', href: '/admin/blog', icon: FileText },
     { name: 'Success Stories', href: '/admin/success-stories', icon: Award },
     { name: 'Paramètres', href: '/admin/settings', icon: Settings },

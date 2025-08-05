@@ -1,560 +1,540 @@
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
 import { 
-  Link as LinkIcon, 
+  ArrowLeft, 
   Save, 
-  Plus,
   X,
-  Tag,
-  DollarSign,
-  Clock,
   Globe,
+  Link as LinkIcon,
+  DollarSign,
+  Calendar,
+  Target,
+  FileText,
   AlertCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { LinkListing, CreateLinkListingData, LinkType, LinkPosition, Website } from '../../types';
-import { createLinkListing, updateLinkListing, getWebsites } from '../../lib/supabase';
+import { LinkListing, Website, CreateLinkListingData } from '../../types';
+import { getWebsites, createLinkListing, updateLinkListing } from '../../lib/supabase';
+import { getCurrentUser } from '../../lib/supabase';
+import { trackPageView } from '../../utils/analytics';
 import toast from 'react-hot-toast';
 
 interface LinkListingFormProps {
-  linkListing?: LinkListing;
+  listing?: LinkListing;
   isEdit?: boolean;
-  onSuccess?: (linkListing: LinkListing) => void;
-  onCancel?: () => void;
-}
-
-interface FormData {
-  title: string;
-  description: string;
-  website_id: string;
-  target_url: string;
-  anchor_text: string;
-  link_type: LinkType;
-  position: LinkPosition;
-  price: number;
-  currency: 'MAD' | 'EUR' | 'USD';
-  minimum_contract_duration: number;
-  max_links_per_page: number;
-  allowed_niches: string[];
-  forbidden_keywords: string[];
-  content_requirements: string;
+  onSuccess: (listing: LinkListing) => void;
+  onCancel: () => void;
 }
 
 const LinkListingForm: React.FC<LinkListingFormProps> = ({ 
-  linkListing, 
+  listing, 
   isEdit = false, 
   onSuccess, 
   onCancel 
 }) => {
   const [loading, setLoading] = React.useState(false);
   const [websites, setWebsites] = React.useState<Website[]>([]);
-  const [selectedWebsite, setSelectedWebsite] = React.useState<Website | null>(null);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    watch,
-    setValue
-  } = useForm<FormData>({
-    defaultValues: {
-      title: linkListing?.title || '',
-      description: linkListing?.description || '',
-      website_id: linkListing?.website_id || '',
-      target_url: linkListing?.target_url || '',
-      anchor_text: linkListing?.anchor_text || '',
-      link_type: linkListing?.link_type || 'dofollow',
-      position: linkListing?.position || 'content',
-      price: linkListing?.price || 0,
-      currency: linkListing?.currency || 'MAD',
-      minimum_contract_duration: linkListing?.minimum_contract_duration || 1,
-      max_links_per_page: linkListing?.max_links_per_page || 1,
-      allowed_niches: linkListing?.allowed_niches || [],
-      forbidden_keywords: linkListing?.forbidden_keywords || [],
-      content_requirements: linkListing?.content_requirements || ''
-    }
+  const [formData, setFormData] = React.useState<CreateLinkListingData>({
+    website_id: '',
+    title: '',
+    description: '',
+    target_url: '',
+    anchor_text: '',
+    link_type: 'dofollow',
+    position: 'content',
+    price: 0,
+    currency: 'MAD',
+    minimum_contract_duration: 1,
+    max_links_per_page: 1,
+    allowed_niches: [],
+    forbidden_keywords: [],
+    content_requirements: '',
+    status: 'active',
+    meta_title: '',
+    meta_description: '',
+    slug: '',
+    images: [],
+    tags: []
   });
 
-  const watchedAllowedNiches = watch('allowed_niches');
-  const watchedForbiddenKeywords = watch('forbidden_keywords');
-  const watchedWebsiteId = watch('website_id');
-
-  const linkTypes: { value: LinkType; label: string; description: string }[] = [
-    { 
-      value: 'dofollow', 
-      label: 'Dofollow', 
-      description: 'Lien qui transmet l\'autorité SEO' 
-    },
-    { 
-      value: 'nofollow', 
-      label: 'Nofollow', 
-      description: 'Lien qui ne transmet pas l\'autorité SEO' 
-    },
-    { 
-      value: 'sponsored', 
-      label: 'Sponsored', 
-      description: 'Lien sponsorisé (nofollow + sponsored)' 
-    },
-    { 
-      value: 'ugc', 
-      label: 'UGC', 
-      description: 'Contenu généré par l\'utilisateur' 
-    }
-  ];
-
-  const positions: { value: LinkPosition; label: string; description: string }[] = [
-    { value: 'header', label: 'Header', description: 'En-tête du site' },
-    { value: 'footer', label: 'Footer', description: 'Pied de page' },
-    { value: 'sidebar', label: 'Sidebar', description: 'Barre latérale' },
-    { value: 'content', label: 'Contenu', description: 'Dans le contenu principal' },
-    { value: 'menu', label: 'Menu', description: 'Dans la navigation' },
-    { value: 'popup', label: 'Popup', description: 'Fenêtre popup' }
-  ];
-
-  const currencies = [
-    { value: 'MAD', label: 'Dirham Marocain (MAD)' },
-    { value: 'EUR', label: 'Euro (EUR)' },
-    { value: 'USD', label: 'Dollar US (USD)' }
-  ];
-
-  const commonNiches = [
-    'immobilier', 'sante', 'beaute', 'mode', 'tech', 'finance', 'education',
-    'voyage', 'cuisine', 'sport', 'automobile', 'lifestyle', 'business',
-    'actualites', 'culture', 'politique', 'economie', 'art', 'musique', 'cinema'
-  ];
-
-  const commonForbiddenKeywords = [
-    'casino', 'poker', 'betting', 'gambling', 'porn', 'adult', 'viagra',
-    'cigarettes', 'alcohol', 'drugs', 'weapons', 'hacking', 'crack'
-  ];
-
   React.useEffect(() => {
-    const fetchWebsites = async () => {
-      try {
-        const websitesData = await getWebsites({ status: 'active' });
-        setWebsites(websitesData);
-      } catch (error) {
-        console.error('Error fetching websites:', error);
-        toast.error('Erreur lors du chargement des sites web');
-      }
-    };
-
+    trackPageView('/dashboard/link-listings/form', 'Formulaire Annonce Lien | Authority.ma');
     fetchWebsites();
-  }, []);
-
-  React.useEffect(() => {
-    if (watchedWebsiteId) {
-      const website = websites.find(w => w.id === watchedWebsiteId);
-      setSelectedWebsite(website || null);
+    
+    if (listing) {
+      setFormData({
+        website_id: listing.website_id,
+        title: listing.title,
+        description: listing.description,
+        target_url: listing.target_url,
+        anchor_text: listing.anchor_text,
+        link_type: listing.link_type,
+        position: listing.position,
+        price: listing.price,
+        currency: listing.currency,
+        minimum_contract_duration: listing.minimum_contract_duration,
+        max_links_per_page: listing.max_links_per_page || 1,
+        allowed_niches: listing.allowed_niches as any,
+        forbidden_keywords: listing.forbidden_keywords,
+        content_requirements: listing.content_requirements || '',
+        status: listing.status as any,
+        meta_title: listing.meta_title || '',
+        meta_description: listing.meta_description || '',
+        slug: listing.slug,
+        images: listing.images,
+        tags: listing.tags
+      });
     }
-  }, [watchedWebsiteId, websites]);
+  }, [listing]);
 
-  const addAllowedNiche = (niche: string) => {
-    if (!watchedAllowedNiches.includes(niche)) {
-      setValue('allowed_niches', [...watchedAllowedNiches, niche]);
+  const fetchWebsites = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (!user) return;
+
+      const websitesData = await getWebsites({ 
+        user_id: user.id 
+      });
+      setWebsites(websitesData);
+    } catch (error) {
+      console.error('Error fetching websites:', error);
+      toast.error('Erreur lors du chargement des sites web');
     }
   };
 
-  const removeAllowedNiche = (niche: string) => {
-    setValue('allowed_niches', watchedAllowedNiches.filter(n => n !== niche));
+  const handleInputChange = (field: keyof CreateLinkListingData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const addForbiddenKeyword = (keyword: string) => {
-    if (!watchedForbiddenKeywords.includes(keyword)) {
-      setValue('forbidden_keywords', [...watchedForbiddenKeywords, keyword]);
-    }
+  const handleNicheChange = (niche: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      allowed_niches: checked 
+        ? [...prev.allowed_niches, niche as any]
+        : prev.allowed_niches.filter(n => n !== niche)
+    }));
   };
 
-  const removeForbiddenKeyword = (keyword: string) => {
-    setValue('forbidden_keywords', watchedForbiddenKeywords.filter(k => k !== keyword));
+  const handleKeywordChange = (keyword: string, checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      forbidden_keywords: checked 
+        ? [...prev.forbidden_keywords, keyword]
+        : prev.forbidden_keywords.filter(k => k !== keyword)
+    }));
   };
 
   const generateSlug = (title: string) => {
     return title
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
   };
 
-  const onSubmit = async (data: FormData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
-    try {
-      const linkListingData: CreateLinkListingData = {
-        ...data,
-        slug: generateSlug(data.title),
-        status: 'active'
-      };
 
-      let result;
-      if (isEdit && linkListing) {
-        result = await updateLinkListing(linkListing.id, linkListingData);
+    try {
+      const user = await getCurrentUser();
+      if (!user) {
+        toast.error('Utilisateur non connecté');
+        return;
+      }
+
+      // Générer le slug si vide
+      if (!formData.slug) {
+        formData.slug = generateSlug(formData.title);
+      }
+
+      let result: LinkListing;
+
+      if (isEdit && listing) {
+        result = await updateLinkListing(listing.id, formData);
         toast.success('Annonce mise à jour avec succès');
       } else {
-        result = await createLinkListing(linkListingData);
+        result = await createLinkListing({
+          ...formData,
+          user_id: user.id
+        });
         toast.success('Annonce créée avec succès');
       }
 
-      onSuccess?.(result);
-    } catch (error: any) {
+      onSuccess(result);
+    } catch (error) {
       console.error('Error saving link listing:', error);
-      toast.error(error.message || 'Erreur lors de la sauvegarde');
+      toast.error('Erreur lors de la sauvegarde');
     } finally {
       setLoading(false);
     }
   };
 
+  const selectedWebsite = websites.find(w => w.id === formData.website_id);
+
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-900">
-            {isEdit ? 'Modifier l\'annonce' : 'Créer une nouvelle annonce de lien'}
-          </h1>
-          <p className="text-gray-600 mt-2">
-            {isEdit 
-              ? 'Modifiez les informations de votre annonce de lien'
-              : 'Créez une annonce pour vendre des liens sur votre site web'
-            }
-          </p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={onCancel}
+              className="text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {isEdit ? 'Modifier l\'annonce' : 'Ajouter un lien existant'}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                {isEdit ? 'Modifiez les détails de votre annonce' : 'Créez une annonce pour vendre un lien existant sur votre site'}
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Formulaire */}
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Informations de base */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Informations de base</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Titre de l'annonce *
-                </label>
-                <input
-                  {...register('title', { required: 'Le titre est requis' })}
-                  type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Lien dofollow dans le contenu"
-                />
-                {errors.title && (
-                  <p className="text-red-600 text-sm mt-1">{errors.title.message}</p>
-                )}
-              </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <FileText className="h-5 w-5 mr-2" />
+              Informations de base
+            </h2>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Site web */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Site web *
                 </label>
                 <select
-                  {...register('website_id', { required: 'Le site web est requis' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={formData.website_id}
+                  onChange={(e) => handleInputChange('website_id', e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="">Sélectionner un site web</option>
+                  <option value="">Sélectionnez un site web</option>
                   {websites.map(website => (
                     <option key={website.id} value={website.id}>
                       {website.title} ({website.url})
                     </option>
                   ))}
                 </select>
-                {errors.website_id && (
-                  <p className="text-red-600 text-sm mt-1">{errors.website_id.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description *
-              </label>
-              <textarea
-                {...register('description', { 
-                  required: 'La description est requise',
-                  minLength: { value: 30, message: 'La description doit faire au moins 30 caractères' }
-                })}
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Décrivez votre annonce, les conditions, les avantages..."
-              />
-              {errors.description && (
-                <p className="text-red-600 text-sm mt-1">{errors.description.message}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Informations du lien */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Informations du lien</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  URL de destination *
-                </label>
-                <input
-                  {...register('target_url', { 
-                    required: 'L\'URL de destination est requise',
-                    pattern: {
-                      value: /^https?:\/\/.+/,
-                      message: 'URL invalide (doit commencer par http:// ou https://)'
-                    }
-                  })}
-                  type="url"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://exemple.com"
-                />
-                {errors.target_url && (
-                  <p className="text-red-600 text-sm mt-1">{errors.target_url.message}</p>
+                {websites.length === 0 && (
+                  <p className="text-sm text-red-600 mt-1">
+                    Aucun site web disponible. <Link to="/dashboard/websites" className="text-blue-600 hover:underline">Créez d'abord un site web</Link>
+                  </p>
                 )}
               </div>
 
+              {/* Titre */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Texte d'ancrage *
+                  Titre de l'annonce *
                 </label>
                 <input
-                  {...register('anchor_text', { required: 'Le texte d\'ancrage est requis' })}
                   type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Votre texte d'ancrage"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ex: Titre de la page"
                 />
-                {errors.anchor_text && (
-                  <p className="text-red-600 text-sm mt-1">{errors.anchor_text.message}</p>
-                )}
               </div>
 
+              {/* Description */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description *
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  required
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Décrivez votre annonce de lien..."
+                />
+              </div>
+
+              {/* URL cible */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  URL cible *
+                </label>
+                <input
+                  type="url"
+                  value={formData.target_url}
+                  onChange={(e) => handleInputChange('target_url', e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://example.com"
+                />
+              </div>
+
+              {/* Texte d'ancrage */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Texte d'ancrage
+                </label>
+                <input
+                  type="text"
+                  value={formData.anchor_text}
+                  onChange={(e) => handleInputChange('anchor_text', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ex: Startup Tech Maroc (optionnel)"
+                />
+                <p className="text-xs text-gray-500 mt-1">Laissez vide pour laisser le choix à l'annonceur</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Détails du lien */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <LinkIcon className="h-5 w-5 mr-2" />
+              Détails du lien
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Type de lien */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Type de lien *
                 </label>
                 <select
-                  {...register('link_type', { required: 'Le type de lien est requis' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={formData.link_type}
+                  onChange={(e) => handleInputChange('link_type', e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {linkTypes.map(type => (
-                    <option key={type.value} value={type.value}>
-                      {type.label} - {type.description}
-                    </option>
-                  ))}
+                  <option value="dofollow">Dofollow</option>
+                  <option value="nofollow">Nofollow</option>
+                  <option value="sponsored">Sponsored</option>
+                  <option value="ugc">UGC</option>
                 </select>
-                {errors.link_type && (
-                  <p className="text-red-600 text-sm mt-1">{errors.link_type.message}</p>
-                )}
               </div>
 
+              {/* Position */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Position du lien *
+                  Position *
                 </label>
                 <select
-                  {...register('position', { required: 'La position est requise' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={formData.position}
+                  onChange={(e) => handleInputChange('position', e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {positions.map(position => (
-                    <option key={position.value} value={position.value}>
-                      {position.label} - {position.description}
-                    </option>
-                  ))}
+                  <option value="header">Header</option>
+                  <option value="footer">Footer</option>
+                  <option value="sidebar">Sidebar</option>
+                  <option value="content">Content</option>
+                  <option value="menu">Menu</option>
+                  <option value="popup">Popup</option>
                 </select>
-                {errors.position && (
-                  <p className="text-red-600 text-sm mt-1">{errors.position.message}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Prix et conditions */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Prix et conditions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Prix mensuel *
-                </label>
-                <div className="flex">
-                  <input
-                    {...register('price', { 
-                      required: 'Le prix est requis',
-                      min: { value: 0, message: 'Le prix doit être positif' }
-                    })}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="100"
-                  />
-                  <select
-                    {...register('currency', { required: 'La devise est requise' })}
-                    className="px-4 py-2 border border-l-0 border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {currencies.map(currency => (
-                      <option key={currency.value} value={currency.value}>
-                        {currency.value}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {errors.price && (
-                  <p className="text-red-600 text-sm mt-1">{errors.price.message}</p>
-                )}
               </div>
 
+              {/* Prix */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Durée minimale (mois) *
+                  Prix fixe (MAD) *
                 </label>
                 <input
-                  {...register('minimum_contract_duration', { 
-                    required: 'La durée minimale est requise',
-                    min: { value: 1, message: 'Au moins 1 mois' }
-                  })}
                   type="number"
-                  min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="3"
+                  value={formData.price}
+                  onChange={(e) => handleInputChange('price', parseFloat(e.target.value))}
+                  required
+                  min="0"
+                  step="0.01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="1500"
                 />
-                {errors.minimum_contract_duration && (
-                  <p className="text-red-600 text-sm mt-1">{errors.minimum_contract_duration.message}</p>
-                )}
+                <p className="text-xs text-gray-500 mt-1">Prix unique à payer une fois</p>
               </div>
 
+              {/* Durée minimale */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Liens max par page *
+                  Durée minimale (mois)
                 </label>
                 <input
-                  {...register('max_links_per_page', { 
-                    required: 'Le nombre de liens max est requis',
-                    min: { value: 1, message: 'Au moins 1 lien' }
-                  })}
                   type="number"
+                  value={formData.minimum_contract_duration}
+                  onChange={(e) => handleInputChange('minimum_contract_duration', parseInt(e.target.value))}
                   min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="1"
                 />
-                {errors.max_links_per_page && (
-                  <p className="text-red-600 text-sm mt-1">{errors.max_links_per_page.message}</p>
-                )}
+                <p className="text-xs text-gray-500 mt-1">Durée minimale d'engagement</p>
+              </div>
+
+              {/* Max liens par page */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Max liens par page
+                </label>
+                <input
+                  type="number"
+                  value={formData.max_links_per_page}
+                  onChange={(e) => handleInputChange('max_links_per_page', parseInt(e.target.value))}
+                  min="1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="1"
+                />
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Niches autorisées */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Niches autorisées</h2>
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                {watchedAllowedNiches.map((niche, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm flex items-center space-x-2"
-                  >
-                    <span>{niche}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeAllowedNiche(niche)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {commonNiches.filter(niche => !watchedAllowedNiches.includes(niche)).map(niche => (
-                  <button
-                    key={niche}
-                    type="button"
-                    onClick={() => addAllowedNiche(niche)}
-                    className="px-3 py-1 border border-gray-300 text-gray-700 rounded-full text-sm hover:bg-gray-50"
-                  >
-                    + {niche}
-                  </button>
-                ))}
-              </div>
-              <p className="text-sm text-gray-500">
-                Laissez vide pour accepter toutes les niches
-              </p>
-            </div>
-          </div>
+          {/* Restrictions et conditions */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Target className="h-5 w-5 mr-2" />
+              Restrictions et conditions
+            </h2>
 
-          {/* Mots-clés interdits */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Mots-clés interdits</h2>
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                {watchedForbiddenKeywords.map((keyword, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm flex items-center space-x-2"
-                  >
-                    <span>{keyword}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeForbiddenKeyword(keyword)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {commonForbiddenKeywords.filter(keyword => !watchedForbiddenKeywords.includes(keyword)).map(keyword => (
-                  <button
-                    key={keyword}
-                    type="button"
-                    onClick={() => addForbiddenKeyword(keyword)}
-                    className="px-3 py-1 border border-gray-300 text-gray-700 rounded-full text-sm hover:bg-gray-50"
-                  >
-                    + {keyword}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Exigences de contenu */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Exigences de contenu</h2>
-            <textarea
-              {...register('content_requirements')}
-              rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Décrivez vos exigences pour le contenu (longueur, style, ton, etc.)"
-            />
-          </div>
-
-          {/* Informations du site web sélectionné */}
-          {selectedWebsite && (
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Informations du site web</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <div className="text-sm text-gray-500">Site web</div>
-                  <div className="font-medium">{selectedWebsite.title}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Niches autorisées */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Niches autorisées
+                </label>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {['tech', 'business', 'finance', 'health', 'education', 'lifestyle', 'travel', 'food', 'sports', 'entertainment'].map(niche => (
+                    <label key={niche} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={formData.allowed_niches.includes(niche as any)}
+                        onChange={(e) => handleNicheChange(niche, e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700 capitalize">{niche}</span>
+                    </label>
+                  ))}
                 </div>
-                <div>
-                  <div className="text-sm text-gray-500">Domain Authority</div>
-                  <div className="font-medium">{selectedWebsite.metrics?.domain_authority || 'N/A'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Trafic mensuel</div>
-                  <div className="font-medium">
-                    {selectedWebsite.metrics?.monthly_traffic 
-                      ? `${(selectedWebsite.metrics.monthly_traffic / 1000).toFixed(1)}K`
-                      : 'N/A'
-                    }
-                  </div>
+              </div>
+
+              {/* Mots-clés interdits */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mots-clés interdits
+                </label>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {['casino', 'porn', 'pharma', 'gambling', 'adult', 'drugs'].map(keyword => (
+                    <label key={keyword} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={formData.forbidden_keywords.includes(keyword)}
+                        onChange={(e) => handleKeywordChange(keyword, e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{keyword}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
             </div>
-          )}
+
+            {/* Exigences de contenu */}
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Exigences de contenu
+              </label>
+              <textarea
+                value={formData.content_requirements}
+                onChange={(e) => handleInputChange('content_requirements', e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Décrivez vos exigences de contenu..."
+              />
+            </div>
+          </motion.div>
+
+          {/* SEO et métadonnées */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Globe className="h-5 w-5 mr-2" />
+              SEO et métadonnées
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Slug */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Slug URL
+                </label>
+                <input
+                  type="text"
+                  value={formData.slug}
+                  onChange={(e) => handleInputChange('slug', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="lien-dofollow-header-techblog"
+                />
+              </div>
+
+              {/* Meta title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Meta title
+                </label>
+                <input
+                  type="text"
+                  value={formData.meta_title}
+                  onChange={(e) => handleInputChange('meta_title', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Lien Dofollow Header TechBlog"
+                />
+              </div>
+
+              {/* Meta description */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Meta description
+                </label>
+                <textarea
+                  value={formData.meta_description}
+                  onChange={(e) => handleInputChange('meta_description', e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Description SEO de votre annonce..."
+                />
+              </div>
+            </div>
+          </motion.div>
 
           {/* Actions */}
-          <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="flex items-center justify-between pt-6"
+          >
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Annuler
             </button>
@@ -571,11 +551,11 @@ const LinkListingForm: React.FC<LinkListingFormProps> = ({
               ) : (
                 <>
                   <Save className="h-4 w-4" />
-                  <span>{isEdit ? 'Mettre à jour' : 'Créer l\'annonce'}</span>
+                  <span>{isEdit ? 'Mettre à jour' : 'Publier l\'annonce'}</span>
                 </>
               )}
             </button>
-          </div>
+          </motion.div>
         </form>
       </div>
     </div>

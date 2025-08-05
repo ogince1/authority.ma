@@ -18,6 +18,12 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ContactPage from './pages/ContactPage';
 import SitemapGenerator from './components/SEO/SitemapGenerator';
+import CartPage from './components/Cart/CartPage';
+import PaymentPage from './components/Payment/PaymentPage';
+import DisputesList from './components/User/DisputesList';
+import CreateDisputeForm from './components/User/CreateDisputeForm';
+import DisputeDetail from './components/User/DisputeDetail';
+import DisputeMessages from './components/User/DisputeMessages';
 
 function App() {
   return (
@@ -36,7 +42,6 @@ function App() {
             <Route path="/liens/ugc" element={<LinksPage />} />
             
             {/* Routes pour les sites web */}
-            <Route path="/sites-web" element={<LinksPage />} />
             <Route path="/site/:slug" element={<WebsiteDetailPage />} />
             
             {/* Routes pour vendre des liens */}
@@ -58,9 +63,23 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/inscription" element={<RegisterPage />} />
             
+            {/* Routes pour le panier et paiement */}
+            <Route path="/panier" element={<CartPage />} />
+            <Route path="/paiement" element={<PaymentPage />} />
+            
             {/* Routes pour le dashboard utilisateur */}
             <Route path="/dashboard/*" element={<UserDashboardPage />} />
             <Route path="/profile" element={<UserDashboardPage />} />
+            
+            {/* Routes pour les disputes */}
+            <Route path="/dashboard/disputes" element={<DisputesList />} />
+            <Route path="/dashboard/disputes/new" element={<CreateDisputeForm />} />
+            <Route path="/dashboard/disputes/:id" element={<DisputeDetail />} />
+            <Route path="/dashboard/disputes/:id/messages" element={<DisputeMessages />} />
+            <Route path="/disputes" element={<DisputesList />} />
+            <Route path="/disputes/new" element={<CreateDisputeForm />} />
+            <Route path="/disputes/:id" element={<DisputeDetail />} />
+            <Route path="/disputes/:id/messages" element={<DisputeMessages />} />
             
             {/* Routes d'administration */}
             <Route path="/admin/*" element={<AdminPage />} />

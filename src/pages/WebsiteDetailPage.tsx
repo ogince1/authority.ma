@@ -52,7 +52,6 @@ const WebsiteDetailPage: React.FC = () => {
           
           // Fetch link listings for this website
           const linksData = await getLinkListings({ 
-            website_id: websiteData.id,
             status: 'active'
           });
           setLinkListings(linksData);
@@ -178,7 +177,6 @@ const WebsiteDetailPage: React.FC = () => {
       <SEOHead 
         title={`${website.title} | Authority.ma`}
         description={website.description}
-        keywords={website.niche}
       />
       <Header />
       
@@ -189,7 +187,7 @@ const WebsiteDetailPage: React.FC = () => {
             <nav className="flex items-center space-x-2 text-sm text-gray-500">
               <Link to="/" className="hover:text-blue-600">Accueil</Link>
               <span>/</span>
-              <Link to="/sites-web" className="hover:text-blue-600">Sites Web</Link>
+              <Link to="/liens" className="hover:text-blue-600">Liens</Link>
               <span>/</span>
               <span className="text-gray-900">{website.title}</span>
             </nav>
@@ -205,7 +203,7 @@ const WebsiteDetailPage: React.FC = () => {
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center space-x-4">
                     <Link
-                      to="/sites-web"
+                      to="/liens"
                       className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
                       <ArrowLeft className="h-5 w-5" />
@@ -445,10 +443,10 @@ const WebsiteDetailPage: React.FC = () => {
                           {linkListings.map((link) => (
                             <LinkCard
                               key={link.id}
-                              link={link}
-                              onPurchase={(linkId) => {
+                              listing={link}
+                              onEdit={(listing) => {
                                 // Rediriger vers la page de détail du lien
-                                window.location.href = `/lien/${link.slug}`;
+                                window.location.href = `/lien/${listing.slug}`;
                               }}
                             />
                           ))}

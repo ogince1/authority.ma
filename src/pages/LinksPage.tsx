@@ -1,381 +1,364 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Filter, Globe, TrendingUp, DollarSign, Clock, Star } from 'lucide-react';
+import { Search, Filter, Globe, TrendingUp, DollarSign, Clock, Star, FileText, Plus, ShoppingCart, Eye, Target, Award, AlertCircle, CheckCircle, Users, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { LinkListing, LinkType, LinkPosition, WebsiteCategory, WebsiteNiche } from '../types';
-import { getLinkListings } from '../lib/supabase';
-import { trackPageView } from '../utils/analytics';
 import Header from '../components/Layout/Header';
 import Footer from '../components/Layout/Footer';
 import SEOHead from '../components/SEO/SEOHead';
 
 const LinksPage: React.FC = () => {
-  const [links, setLinks] = React.useState<LinkListing[]>([]);
-  const [loading, setLoading] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState('');
-  const [selectedLinkType, setSelectedLinkType] = React.useState<LinkType | 'all'>('all');
-  const [selectedPosition, setSelectedPosition] = React.useState<LinkPosition | 'all'>('all');
-  const [selectedCategory, setSelectedCategory] = React.useState<WebsiteCategory | 'all'>('all');
-  const [selectedNiche, setSelectedNiche] = React.useState<WebsiteNiche | 'all'>('all');
-  const [priceRange, setPriceRange] = React.useState({ min: '', max: '' });
-  const [sortBy, setSortBy] = React.useState<'price' | 'date' | 'authority'>('date');
 
-  React.useEffect(() => {
-    trackPageView('/liens', 'Liens Disponibles - Authority.ma');
-    fetchLinks();
-  }, []);
-
-  const fetchLinks = async () => {
-    try {
-      setLoading(true);
-      const filters: any = {};
-      
-      if (selectedLinkType !== 'all') filters.link_type = selectedLinkType;
-      if (selectedPosition !== 'all') filters.position = selectedPosition;
-      if (selectedCategory !== 'all') filters.website_category = selectedCategory;
-      if (selectedNiche !== 'all') filters.website_niche = selectedNiche;
-      if (priceRange.min) filters.min_price = parseFloat(priceRange.min);
-      if (priceRange.max) filters.max_price = parseFloat(priceRange.max);
-      if (searchTerm) filters.search = searchTerm;
-
-      const data = await getLinkListings(filters);
-      
-      // Trier les résultats
-      let sortedData = [...data];
-      switch (sortBy) {
-        case 'price':
-          sortedData.sort((a, b) => a.price - b.price);
-          break;
-        case 'date':
-          sortedData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          break;
-        case 'authority':
-          sortedData.sort((a, b) => (b.website?.metrics?.domain_authority || 0) - (a.website?.metrics?.domain_authority || 0));
-          break;
-      }
-      
-      setLinks(sortedData);
-    } catch (error) {
-      console.error('Error fetching links:', error);
-    } finally {
-      setLoading(false);
+  // Données statiques pour le SEO
+  const linkCategories = [
+    {
+      name: 'Blogs',
+      count: 150,
+      avgPrice: 120,
+      avgDR: 45,
+      description: 'Liens de qualité sur des blogs spécialisés'
+    },
+    {
+      name: 'Actualités',
+      count: 80,
+      avgPrice: 200,
+      avgDR: 65,
+      description: 'Liens sur des sites d\'actualités fiables'
+    },
+    {
+      name: 'E-commerce',
+      count: 95,
+      avgPrice: 150,
+      avgDR: 55,
+      description: 'Liens sur des sites e-commerce populaires'
+    },
+    {
+      name: 'Tech',
+      count: 120,
+      avgPrice: 180,
+      avgDR: 60,
+      description: 'Liens sur des sites technologiques'
+    },
+    {
+      name: 'Lifestyle',
+      count: 110,
+      avgPrice: 130,
+      avgDR: 50,
+      description: 'Liens sur des sites lifestyle et bien-être'
+    },
+    {
+      name: 'Business',
+      count: 75,
+      avgPrice: 250,
+      avgDR: 70,
+      description: 'Liens sur des sites business et finance'
     }
-  };
-
-  React.useEffect(() => {
-    fetchLinks();
-  }, [selectedLinkType, selectedPosition, selectedCategory, selectedNiche, priceRange, sortBy, searchTerm]);
-
-  const linkTypes: { value: LinkType; label: string; color: string }[] = [
-    { value: 'dofollow', label: 'Dofollow', color: 'bg-green-100 text-green-800' },
-    { value: 'nofollow', label: 'Nofollow', color: 'bg-blue-100 text-blue-800' },
-    { value: 'sponsored', label: 'Sponsored', color: 'bg-purple-100 text-purple-800' },
-    { value: 'ugc', label: 'UGC', color: 'bg-orange-100 text-orange-800' }
   ];
 
-  const positions: { value: LinkPosition; label: string }[] = [
-    { value: 'header', label: 'Header' },
-    { value: 'footer', label: 'Footer' },
-    { value: 'sidebar', label: 'Sidebar' },
-    { value: 'content', label: 'Contenu' },
-    { value: 'menu', label: 'Menu' },
-    { value: 'popup', label: 'Popup' }
+  const qualityLevels = [
+    {
+      name: 'Gold',
+      dr: '70+',
+      price: '200-500 MAD',
+      color: 'bg-yellow-100 text-yellow-800',
+      icon: '🥇',
+      description: 'Sites de très haute autorité'
+    },
+    {
+      name: 'Silver',
+      dr: '40-69',
+      price: '120-200 MAD',
+      color: 'bg-gray-100 text-gray-800',
+      icon: '🥈',
+      description: 'Sites de haute autorité'
+    },
+    {
+      name: 'Bronze',
+      dr: '20-39',
+      price: '80-120 MAD',
+      color: 'bg-amber-100 text-amber-800',
+      icon: '🥉',
+      description: 'Sites de bonne autorité'
+    }
   ];
 
-  const categories: { value: WebsiteCategory; label: string }[] = [
-    { value: 'blog', label: 'Blogs' },
-    { value: 'ecommerce', label: 'E-commerce' },
-    { value: 'actualites', label: 'Actualités' },
-    { value: 'lifestyle', label: 'Lifestyle' },
-    { value: 'tech', label: 'Tech' },
-    { value: 'business', label: 'Business' },
-    { value: 'sante', label: 'Santé' },
-    { value: 'education', label: 'Éducation' },
-    { value: 'immobilier', label: 'Immobilier' },
-    { value: 'automobile', label: 'Automobile' },
-    { value: 'voyage', label: 'Voyage' },
-    { value: 'cuisine', label: 'Cuisine' },
-    { value: 'sport', label: 'Sport' },
-    { value: 'culture', label: 'Culture' },
-    { value: 'politique', label: 'Politique' },
-    { value: 'economie', label: 'Économie' }
+  const features = [
+    {
+      icon: CheckCircle,
+      title: 'Liens Dofollow',
+      description: 'Tous nos liens sont dofollow pour un maximum d\'impact SEO'
+    },
+    {
+      icon: Target,
+      title: 'Placement Garanti',
+      description: 'Placement dans le contenu principal, pas en sidebar ou footer'
+    },
+    {
+      icon: Clock,
+      title: 'Durée Minimum 1 An',
+      description: 'Tous nos liens sont garantis pour une durée minimale d\'un an'
+    },
+    {
+      icon: Users,
+      title: 'Éditeurs Vérifiés',
+      description: 'Tous nos éditeurs sont vérifiés et leurs sites sont contrôlés'
+    },
+    {
+      icon: BarChart3,
+      title: 'Métriques Transparentes',
+      description: 'Accès aux métriques DR, TF, CF de chaque site'
+    },
+    {
+      icon: Award,
+      title: 'Qualité Premium',
+      description: 'Sélection rigoureuse des sites et du contenu'
+    }
   ];
-
-  const niches: { value: WebsiteNiche; label: string }[] = [
-    { value: 'immobilier', label: 'Immobilier' },
-    { value: 'sante', label: 'Santé' },
-    { value: 'beaute', label: 'Beauté' },
-    { value: 'mode', label: 'Mode' },
-    { value: 'tech', label: 'Tech' },
-    { value: 'finance', label: 'Finance' },
-    { value: 'education', label: 'Éducation' },
-    { value: 'voyage', label: 'Voyage' },
-    { value: 'cuisine', label: 'Cuisine' },
-    { value: 'sport', label: 'Sport' },
-    { value: 'automobile', label: 'Automobile' },
-    { value: 'lifestyle', label: 'Lifestyle' },
-    { value: 'business', label: 'Business' },
-    { value: 'actualites', label: 'Actualités' },
-    { value: 'culture', label: 'Culture' },
-    { value: 'politique', label: 'Politique' },
-    { value: 'economie', label: 'Économie' },
-    { value: 'art', label: 'Art' },
-    { value: 'musique', label: 'Musique' },
-    { value: 'cinema', label: 'Cinéma' }
-  ];
-
-  const clearFilters = () => {
-    setSelectedLinkType('all');
-    setSelectedPosition('all');
-    setSelectedCategory('all');
-    setSelectedNiche('all');
-    setPriceRange({ min: '', max: '' });
-    setSearchTerm('');
-    setSortBy('date');
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <SEOHead 
-        title="Liens Disponibles - Authority.ma"
-        description="Découvrez des liens de qualité pour améliorer votre SEO. Liens dofollow, nofollow, sponsored et UGC sur des sites web vérifiés au Maroc."
+        title="Liens de Qualité pour SEO - Authority.ma"
+        description="Découvrez notre catalogue de liens de qualité pour améliorer votre SEO. Liens dofollow, placement garanti, éditeurs vérifiés. Prix compétitifs et résultats garantis."
+        keywords="liens SEO, backlinks, dofollow, placement liens, autorité domaine, DR, TF, CF, Maroc"
       />
       <Header onSearchChange={setSearchTerm} searchValue={searchTerm} />
       
       {/* Hero Section */}
-      <section className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Liens Disponibles
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              Liens de Qualité pour votre SEO
             </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Trouvez les liens parfaits pour améliorer votre SEO et augmenter votre visibilité en ligne
+            <p className="text-xl md:text-2xl mb-8 text-blue-100">
+              Améliorez votre référencement avec nos liens dofollow de haute autorité
             </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/register"
+                className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+              >
+                Commencer Maintenant
+              </Link>
+              <Link
+                to="/contact"
+                className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+              >
+                En savoir plus
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Filters Section */}
-      <section className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Filtres :</span>
-            </div>
-
-            {/* Link Type Filter */}
-            <select
-              value={selectedLinkType}
-              onChange={(e) => setSelectedLinkType(e.target.value as LinkType | 'all')}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">Tous les types</option>
-              {linkTypes.map((type) => (
-                <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
-            </select>
-
-            {/* Position Filter */}
-            <select
-              value={selectedPosition}
-              onChange={(e) => setSelectedPosition(e.target.value as LinkPosition | 'all')}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">Toutes les positions</option>
-              {positions.map((position) => (
-                <option key={position.value} value={position.value}>{position.label}</option>
-              ))}
-            </select>
-
-            {/* Category Filter */}
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value as WebsiteCategory | 'all')}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">Toutes les catégories</option>
-              {categories.map((category) => (
-                <option key={category.value} value={category.value}>{category.label}</option>
-              ))}
-            </select>
-
-            {/* Niche Filter */}
-            <select
-              value={selectedNiche}
-              onChange={(e) => setSelectedNiche(e.target.value as WebsiteNiche | 'all')}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">Toutes les niches</option>
-              {niches.map((niche) => (
-                <option key={niche.value} value={niche.value}>{niche.label}</option>
-              ))}
-            </select>
-
-            {/* Price Range */}
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                placeholder="Prix min"
-                value={priceRange.min}
-                onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
-                className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <span className="text-gray-500">-</span>
-              <input
-                type="number"
-                placeholder="Prix max"
-                value={priceRange.max}
-                onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
-                className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Sort By */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'price' | 'date' | 'authority')}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="date">Plus récents</option>
-              <option value="price">Prix croissant</option>
-              <option value="authority">Autorité décroissante</option>
-            </select>
-
-            <button
-              onClick={clearFilters}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              Effacer les filtres
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Results Section */}
-      <section className="py-12">
+      {/* Statistiques */}
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Results Count */}
-          <div className="flex justify-between items-center mb-8">
-            <div className="text-gray-600">
-              {loading ? 'Chargement...' : `${links.length} lien${links.length > 1 ? 's' : ''} trouvé${links.length > 1 ? 's' : ''}`}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 mb-2">630+</div>
+              <div className="text-gray-600">Liens Disponibles</div>
             </div>
-            <Link
-              to="/vendre-liens"
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Vendre des Liens
-            </Link>
-          </div>
-
-          {/* Links Grid */}
-          {loading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, index) => (
-                <div key={index} className="bg-white rounded-xl shadow-md p-6 animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-3 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-6 bg-gray-200 rounded mb-4"></div>
-                  <div className="flex justify-between">
-                    <div className="h-4 bg-gray-200 rounded w-20"></div>
-                    <div className="h-4 bg-gray-200 rounded w-16"></div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-green-600 mb-2">150+</div>
+              <div className="text-gray-600">Éditeurs Vérifiés</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-purple-600 mb-2">98%</div>
+              <div className="text-gray-600">Taux de Satisfaction</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-orange-600 mb-2">24h</div>
+              <div className="text-gray-600">Placement Garanti</div>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : links.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {links.map((link, index) => (
-                <motion.div
-                  key={link.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6"
-                >
-                  {/* Link Type Badge */}
-                  <div className="flex items-center justify-between mb-4">
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                      linkTypes.find(t => t.value === link.link_type)?.color || 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {linkTypes.find(t => t.value === link.link_type)?.label}
-                    </span>
-                    <span className="text-2xl font-bold text-blue-600">
-                      {link.price} {link.currency}
-                    </span>
-                  </div>
+              </div>
+      </section>
 
-                  {/* Title and Description */}
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{link.title}</h3>
-                  <p className="text-gray-600 mb-4 line-clamp-3">{link.description}</p>
+      {/* Catégories de liens */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Catégories de Liens Disponibles
+            </h2>
+            <p className="text-xl text-gray-600">
+              Trouvez les liens qui correspondent à votre niche
+            </p>
+          </div>
 
-                  {/* Website Info */}
-                  {link.website && (
-                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Globe className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium text-gray-900">{link.website.title}</span>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        {link.website.metrics?.domain_authority && (
-                          <div className="flex items-center gap-1">
-                            <TrendingUp className="h-4 w-4" />
-                            <span>DA: {link.website.metrics.domain_authority}</span>
-                          </div>
-                        )}
-                        {link.website.metrics?.monthly_traffic && (
-                          <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4" />
-                            <span>{link.website.metrics.monthly_traffic.toLocaleString()} visites/mois</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Link Details */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Position:</span>
-                      <span className="font-medium">{positions.find(p => p.value === link.position)?.label}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Durée min:</span>
-                      <span className="font-medium">{link.minimum_contract_duration} mois</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Ancre:</span>
-                      <span className="font-medium text-blue-600">{link.anchor_text}</span>
-                    </div>
-                  </div>
-
-                  {/* Action Button */}
-                  <Link
-                    to={`/lien/${link.slug}`}
-                    className="block w-full bg-blue-600 text-white text-center py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Voir Détails
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Globe className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun lien trouvé</h3>
-              <p className="text-gray-600 mb-6">
-                Aucun lien ne correspond à vos critères de recherche. Essayez de modifier vos filtres.
-              </p>
-              <button
-                onClick={clearFilters}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {linkCategories.map((category, index) => (
+              <motion.div
+                key={category.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow"
               >
-                Effacer les Filtres
-              </button>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900">{category.name}</h3>
+                  <span className="text-2xl font-bold text-blue-600">{category.count}</span>
+                </div>
+                <p className="text-gray-600 mb-4">{category.description}</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Prix moyen:</span>
+                    <span className="font-medium">{category.avgPrice} MAD</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">DR moyen:</span>
+                    <span className="font-medium">{category.avgDR}</span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
             </div>
-          )}
+        </div>
+      </section>
+
+      {/* Niveaux de qualité */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Niveaux de Qualité
+            </h2>
+            <p className="text-xl text-gray-600">
+              Choisissez le niveau de qualité qui correspond à vos besoins
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {qualityLevels.map((level, index) => (
+                            <motion.div
+                key={level.name}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.6, delay: index * 0.1 }}
+                className="text-center"
+              >
+                <div className={`inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold mb-4 ${level.color}`}>
+                  <span className="mr-2">{level.icon}</span>
+                  {level.name}
+                              </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">{level.name}</h3>
+                <p className="text-gray-600 mb-4">{level.description}</p>
+                              <div className="space-y-2">
+                  <div className="text-lg font-semibold text-gray-900">DR: {level.dr}</div>
+                  <div className="text-lg font-semibold text-blue-600">{level.price}</div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+        </div>
+      </section>
+
+      {/* Fonctionnalités */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Pourquoi Choisir Authority.ma ?
+            </h2>
+            <p className="text-xl text-gray-600">
+              Des avantages exclusifs pour votre stratégie SEO
+                          </p>
+                        </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+                            <motion.div
+                key={feature.title}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.6, delay: index * 0.1 }}
+                className="bg-white rounded-xl shadow-md p-6 text-center"
+              >
+                <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <feature.icon className="h-8 w-8 text-blue-600" />
+                              </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </motion.div>
+            ))}
+                                </div>
+                              </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 bg-blue-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold mb-4">
+            Prêt à Améliorer votre SEO ?
+          </h2>
+          <p className="text-xl mb-8 text-blue-100">
+            Rejoignez des centaines d'entreprises qui font confiance à Authority.ma
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              to="/register"
+              className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+            >
+              Créer un Compte Gratuit
+            </Link>
+                                <Link
+              to="/contact"
+              className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                                >
+              Parler à un Expert
+                                </Link>
+                              </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Questions Fréquentes
+            </h2>
+                        </div>
+          
+          <div className="space-y-6">
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Combien de temps faut-il pour voir les résultats ?
+              </h3>
+              <p className="text-gray-600">
+                Les premiers résultats peuvent être visibles en 2-4 semaines, avec des améliorations continues sur 3-6 mois.
+                          </p>
+                        </div>
+            
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Les liens sont-ils garantis ?
+              </h3>
+              <p className="text-gray-600">
+                Oui, tous nos liens sont garantis pour une durée minimale d'un an. Si un lien est supprimé, nous le remplaçons gratuitement.
+              </p>
+                    </div>
+            
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Puis-je choisir le texte d'ancrage ?
+              </h3>
+              <p className="text-gray-600">
+                Oui, vous pouvez spécifier le texte d'ancrage de votre choix lors de la commande.
+              </p>
+              </div>
+            
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Comment sont sélectionnés les sites ?
+              </h3>
+              <p className="text-gray-600">
+                Nous sélectionnons rigoureusement chaque site en vérifiant leur autorité, leur trafic et la qualité de leur contenu.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 

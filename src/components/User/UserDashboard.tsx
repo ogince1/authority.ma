@@ -13,7 +13,9 @@ import {
   Users,
   Link as LinkIcon,
   ShoppingCart,
-  Bell
+  Bell,
+  Target,
+  AlertTriangle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { UserRole } from '../../types';
@@ -60,7 +62,7 @@ const UserDashboard: React.FC = () => {
       href: '/dashboard/websites'
     },
     {
-      name: 'Annonces Actives',
+      name: 'Mes Liens Existants',
       value: 0, // À connecter avec la base de données
       icon: LinkIcon,
       color: 'bg-green-500',
@@ -85,25 +87,25 @@ const UserDashboard: React.FC = () => {
   // Stats pour les annonceurs (advertisers)
   const advertiserStats = [
     {
-      name: 'Mes Achats',
+      name: 'Mes Campagnes',
       value: 0, // À connecter avec la base de données
-      icon: ShoppingCart,
+      icon: Target,
       color: 'bg-blue-500',
-      href: '/dashboard/purchases'
+      href: '/dashboard/campaigns'
     },
     {
-      name: 'Demandes Envoyées',
+      name: 'Opportunités',
       value: 0, // À connecter avec la base de données
-      icon: FileText,
+      icon: TrendingUp,
       color: 'bg-green-500',
-      href: '/dashboard/purchase-requests'
+      href: '/dashboard/campaigns/recommendations'
     },
     {
       name: 'Budget Utilisé',
       value: '0 MAD', // À connecter avec la base de données
       icon: DollarSign,
       color: 'bg-purple-500',
-      href: '/dashboard/purchases'
+      href: '/dashboard/campaigns'
     },
     {
       name: 'Liens Actifs',
@@ -129,6 +131,13 @@ const UserDashboard: React.FC = () => {
       icon: Bell,
       color: 'bg-red-500',
       href: '/dashboard/notifications'
+    },
+    {
+      name: 'Mes Disputes',
+      value: 0, // À connecter avec la base de données
+      icon: AlertTriangle,
+      color: 'bg-orange-500',
+      href: '/disputes'
     }
   ];
 
@@ -239,13 +248,29 @@ const UserDashboard: React.FC = () => {
           )}
           
           {userProfile?.role === 'advertiser' && (
-            <Link
-              to="/liens"
-              className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
-            >
-              <Eye className="h-5 w-5 text-blue-600" />
-              <span className="text-sm font-medium text-gray-900">Voir les liens</span>
-            </Link>
+            <>
+              <Link
+                to="/dashboard/campaigns/new"
+                className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
+              >
+                <Plus className="h-5 w-5 text-blue-600" />
+                <span className="text-sm font-medium text-gray-900">Nouvelle campagne</span>
+              </Link>
+              <Link
+                to="/dashboard/campaigns"
+                className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
+              >
+                <Target className="h-5 w-5 text-blue-600" />
+                <span className="text-sm font-medium text-gray-900">Mes campagnes</span>
+              </Link>
+              <Link
+                to="/liens"
+                className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
+              >
+                <Eye className="h-5 w-5 text-blue-600" />
+                <span className="text-sm font-medium text-gray-900">Explorer les liens</span>
+              </Link>
+            </>
           )}
           
           <Link
@@ -254,6 +279,14 @@ const UserDashboard: React.FC = () => {
           >
             <MessageSquare className="h-5 w-5 text-blue-600" />
             <span className="text-sm font-medium text-gray-900">Messages</span>
+          </Link>
+          
+          <Link
+            to="/dashboard/disputes"
+            className="flex items-center space-x-3 p-4 border border-gray-200 rounded-lg hover:border-orange-300 hover:bg-orange-50 transition-colors"
+          >
+            <AlertTriangle className="h-5 w-5 text-orange-600" />
+            <span className="text-sm font-medium text-gray-900">Mes Disputes</span>
           </Link>
           
           <Link

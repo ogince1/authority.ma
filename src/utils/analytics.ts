@@ -49,7 +49,7 @@ const getPageType = (path: string): string => {
   if (path.startsWith('/lien/')) return 'link_detail';
   if (path.startsWith('/site/')) return 'website_detail';
   if (path.startsWith('/liens')) return 'links_category';
-  if (path.startsWith('/sites-web')) return 'websites';
+      if (path.startsWith('/sites-web')) return 'links';
   if (path.startsWith('/vendre-liens')) return 'sell_links';
   if (path.startsWith('/blog')) return 'blog';
   if (path.startsWith('/success-stories')) return 'success_story';

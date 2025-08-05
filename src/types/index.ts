@@ -122,30 +122,73 @@ export interface LinkListing {
 export interface LinkPurchaseRequest {
   id: string;
   link_listing_id: string;
-  advertiser_name: string;
-  advertiser_email: string;
-  advertiser_phone?: string;
-  advertiser_website?: string;
+  user_id: string; // ID de l'annonceur
+  publisher_id: string; // ID de l'éditeur
+  campaign_id?: string; // ID de la campagne associée
   
   // Détails de la demande
-  proposed_anchor_text: string;
   target_url: string;
+  anchor_text: string;
   message?: string;
   
-  // Conditions proposées
-  proposed_price?: number; // Si l'annonceur veut négocier
-  proposed_duration: number; // Durée souhaitée en mois
+  // Prix et conditions
+  proposed_price: number;
+  proposed_duration: number; // Durée en mois
   
   // Statut
   status: 'pending' | 'accepted' | 'rejected' | 'negotiating';
+  
+  // Réponse de l'éditeur
+  editor_response?: string;
+  response_date?: string;
+  
+  // Informations de placement (quand acceptée)
+  placed_url?: string;
+  placed_at?: string;
   
   // Informations de création
   created_at: string;
   updated_at: string;
   
-  // Réponse de l'éditeur
-  editor_response?: string;
-  response_date?: string;
+  // Relations (pour les jointures)
+  link_listing?: LinkListing;
+  advertiser?: User; // Alias pour user_id
+  publisher?: User;
+  campaign?: Campaign;
+}
+
+export interface LinkPurchaseTransaction {
+  id: string;
+  purchase_request_id: string;
+  advertiser_id: string;
+  publisher_id: string;
+  link_listing_id: string;
+  
+  // Détails financiers
+  amount: number;
+  currency: 'MAD' | 'EUR' | 'USD';
+  platform_fee: number;
+  publisher_amount: number;
+  
+  // Statut
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  
+  // Informations de paiement
+  payment_method?: string;
+  payment_reference?: string;
+  
+  // Informations de création
+  created_at: string;
+  completed_at?: string;
+  
+  // Métadonnées
+  metadata?: Record<string, any>;
+  
+  // Relations
+  purchase_request?: LinkPurchaseRequest;
+  advertiser?: User;
+  publisher?: User;
+  link_listing?: LinkListing;
 }
 
 // Interface pour un utilisateur
@@ -164,6 +207,10 @@ export interface User {
   location?: string;
   created_at: string;
   updated_at: string;
+  
+  // Système de crédit/solde
+  balance: number; // Solde en dirhams (MAD)
+  credit_limit?: number; // Limite de crédit
   
   // Informations spécifiques aux annonceurs
   advertiser_info?: {
@@ -314,6 +361,47 @@ export interface Transaction {
   publisher_amount: number;
 }
 
+// Interface pour les transactions de crédit
+export interface CreditTransaction {
+  id: string;
+  user_id: string;
+  type: 'deposit' | 'withdrawal' | 'purchase' | 'refund' | 'commission';
+  amount: number;
+  currency: 'MAD';
+  status: 'pending' | 'completed' | 'failed' | 'cancelled';
+  description: string;
+  
+  // Contexte de la transaction
+  related_transaction_id?: string;
+  related_link_listing_id?: string;
+  related_purchase_request_id?: string;
+  
+  // Méthode de paiement (pour les dépôts)
+  payment_method?: 'bank_transfer' | 'paypal' | 'stripe' | 'manual';
+  payment_reference?: string;
+  
+  // Informations de création
+  created_at: string;
+  completed_at?: string;
+  
+  // Solde avant et après
+  balance_before: number;
+  balance_after: number;
+}
+
+// Interface pour créer une transaction de crédit
+export interface CreateCreditTransactionData {
+  user_id: string;
+  type: 'deposit' | 'withdrawal' | 'purchase' | 'refund' | 'commission';
+  amount: number;
+  description: string;
+  payment_method?: 'bank_transfer' | 'paypal' | 'stripe' | 'manual';
+  payment_reference?: string;
+  related_transaction_id?: string;
+  related_link_listing_id?: string;
+  related_purchase_request_id?: string;
+}
+
 // Interface pour les avis et évaluations
 export interface Review {
   id: string;
@@ -450,4 +538,277 @@ export interface CreateSuccessStoryData {
   status: 'draft' | 'published' | 'archived';
   meta_title?: string;
   meta_description?: string;
+}
+
+// ===== NOUVEAUX TYPES POUR LE SYSTÈME DE CAMPAGNES =====
+
+// Métriques SEO avancées
+export interface AdvancedSEOMetrics {
+  dr?: number; // Domain Rating (Ahrefs)
+  tf?: number; // Trust Flow (Majestic)
+  cf?: number; // Citation Flow (Majestic)
+  ttf?: number; // Topical Trust Flow
+  ps?: number; // Proximité Sémantique (%)
+  at?: number; // Authority Score
+  pt?: number; // Page Trust
+  radius?: number; // Radius thématique
+  focus?: number; // Focus score (spécialisation)
+  age?: number; // Âge du domaine/article (mois)
+  outlinks?: number; // Nombre de liens sortants
+  importance?: number; // Importance Google
+}
+
+// Types de qualité des liens
+export type LinkQualityType = 'bronze' | 'silver' | 'gold';
+
+// Types de recommandations
+export type RecommendationType = 'existing_article' | 'new_article';
+
+// Interface pour une campagne
+export interface Campaign {
+  id: string;
+  user_id: string;
+  name: string;
+  urls: string[]; // URLs à analyser
+  language: string; // Langue de la campagne
+  status: 'draft' | 'pending_editor_approval' | 'approved' | 'active' | 'rejected' | 'completed' | 'paused';
+  
+  // Métriques extraites automatiquement
+  extracted_metrics?: {
+    traffic: number;
+    mc: number; // Monthly clicks
+    dr: number;
+    cf: number;
+    tf: number;
+    category: string;
+  };
+  
+  // Budget et statistiques
+  budget: number;
+  total_orders: number;
+  total_spent: number;
+  spent_amount: number; // Montant dépensé (calculé automatiquement)
+  
+  // Dates de campagne
+  start_date?: string;
+  end_date?: string;
+  
+  // URLs cibles
+  target_urls?: string[];
+  
+  // Métriques de performance
+  performance_metrics?: Record<string, any>;
+  
+  // Notes
+  notes?: string;
+  
+  // Informations de création
+  created_at: string;
+  updated_at: string;
+}
+
+// Interface pour créer une campagne
+export interface CreateCampaignData {
+  name: string;
+  urls: string[];
+  language: string;
+  budget?: number;
+  user_id?: string;
+}
+
+// Interface pour une opportunité de lien
+export interface LinkOpportunity {
+  id: string;
+  campaign_id: string;
+  type: RecommendationType; // existing_article ou new_article
+  
+  // Informations du site
+  site_name: string;
+  site_url: string;
+  site_metrics: AdvancedSEOMetrics;
+  
+  // Qualité et classification
+  quality_type: LinkQualityType;
+  theme: string;
+  
+  // Pour les articles existants
+  existing_article?: {
+    title: string;
+    url: string;
+    age: number;
+    outlinks: number;
+  };
+  
+  // Pour les nouveaux articles
+  new_article?: {
+    duration: string; // "1 an"
+    placement_info: string; // "Articles seront à 2 clics de la page d'accueil"
+  };
+  
+  // Prix et conditions
+  price: number;
+  currency: 'MAD' | 'EUR' | 'USD';
+  
+  // Métadonnées
+  created_at: string;
+  updated_at: string;
+}
+
+// Interface pour les filtres de recommandations
+export interface RecommendationFilters {
+  price_min?: number;
+  price_max?: number;
+  ttf?: string;
+  tf_min?: string;
+  importance?: string;
+  dr_min?: number;
+  dr_max?: number;
+  at_min?: string;
+  type?: LinkQualityType;
+  ps_min?: number;
+  duration?: string;
+}
+
+// Interface pour l'analyse d'URL
+export interface URLAnalysis {
+  url: string;
+  metrics: {
+    traffic: number;
+    mc: number;
+    dr: number;
+    cf: number;
+    tf: number;
+  };
+  category: string;
+  analysis_status: 'pending' | 'completed' | 'failed';
+  created_at: string;
+}
+
+// Interface pour les commandes de liens
+export interface LinkOrder {
+  id: string;
+  campaign_id: string;
+  opportunity_id: string;
+  advertiser_id: string;
+  
+  // Détails de la commande
+  anchor_text: string;
+  target_url: string;
+  quantity: number;
+  
+  // Prix et paiement
+  unit_price: number;
+  total_price: number;
+  currency: 'MAD' | 'EUR' | 'USD';
+  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+  
+  // Informations de création
+  created_at: string;
+  updated_at: string;
+}
+
+// Interface pour créer une commande
+export interface CreateLinkOrderData {
+  campaign_id: string;
+  opportunity_id: string;
+  anchor_text: string;
+  target_url: string;
+  quantity: number;
+  advertiser_id?: string;
+}
+
+// Interface pour les statistiques de campagne
+export interface CampaignStats {
+  total_campaigns: number;
+  active_campaigns: number;
+  total_spent: number;
+  total_orders: number;
+  average_order_value: number;
+  top_performing_campaigns: Campaign[];
+}
+
+// Interface pour les recommandations de campagne
+export interface CampaignRecommendations {
+  existing_articles: LinkOpportunity[];
+  new_articles: LinkOpportunity[];
+  total_opportunities: number;
+  average_price: number;
+  price_range: {
+    min: number;
+    max: number;
+  };
+}
+
+// Interface pour les filtres de campagne
+export interface CampaignFilterOptions {
+  status?: 'draft' | 'pending_editor_approval' | 'approved' | 'rejected' | 'completed';
+  language?: string;
+  date_from?: string;
+  date_to?: string;
+  budget_min?: number;
+  budget_max?: number;
+  search?: string;
+  user_id?: string;
+}
+
+// ===== SYSTÈME DE MESSAGERIE =====
+
+export interface Conversation {
+  id: string;
+  purchase_request_id: string;
+  advertiser_id: string;
+  publisher_id: string;
+  subject?: string;
+  last_message_at: string;
+  is_active: boolean;
+  unread_count_advertiser: number;
+  unread_count_publisher: number;
+  created_at: string;
+  updated_at: string;
+  
+  // Relations
+  purchase_request?: LinkPurchaseRequest;
+  advertiser?: User;
+  publisher?: User;
+}
+
+export interface ConversationMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  message_type: 'text' | 'system' | 'notification' | 'file' | 'link';
+  is_read: boolean;
+  read_at?: string;
+  attachments: any[];
+  related_purchase_request_id?: string;
+  created_at: string;
+  
+  // Relations
+  sender?: User;
+  receiver?: User;
+}
+
+export interface UserConversation {
+  conversation_id: string;
+  purchase_request_id: string;
+  other_user_id: string;
+  subject?: string;
+  last_message_at: string;
+  unread_count: number;
+  anchor_text: string;
+  target_url: string;
+  purchase_status: string;
+  last_message_content?: string;
+}
+
+export interface CreateMessageData {
+  conversation_id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  message_type?: 'text' | 'system' | 'notification' | 'file' | 'link';
+  attachments?: any[];
+  related_purchase_request_id?: string;
 }

@@ -6,6 +6,19 @@ import UserDashboard from '../components/User/UserDashboard';
 import UserProfile from '../components/User/UserProfile';
 import UserWebsitesPage from './UserWebsitesPage';
 import UserLinkListingsPage from './UserLinkListingsPage';
+import CampaignDashboard from '../components/User/CampaignDashboard';
+import CampaignForm from '../components/User/CampaignForm';
+import CampaignDetails from '../components/User/CampaignDetails';
+import CampaignEditForm from '../components/User/CampaignEditForm';
+import BalanceManager from '../components/User/BalanceManager';
+import PurchaseRequests from '../components/User/PurchaseRequests';
+import MessagesList from '../components/User/MessagesList';
+import ConversationDetail from '../components/User/ConversationDetail';
+import DisputesList from '../components/User/DisputesList';
+import CreateDisputeForm from '../components/User/CreateDisputeForm';
+import DisputeDetail from '../components/User/DisputeDetail';
+import DisputeMessages from '../components/User/DisputeMessages';
+import PurchaseHistory from '../components/User/PurchaseHistory';
 
 const useUserAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(null);
@@ -59,7 +72,55 @@ const UserDashboardPage: React.FC = () => {
         </ProtectedRoute>
       } />
       
-      {/* Routes pour les éditeurs (publishers) */}
+      {/* Routes pour les campagnes (annonceurs) */}
+      <Route path="/campaigns" element={
+        <ProtectedRoute>
+          <CampaignDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/campaigns/new" element={
+        <ProtectedRoute>
+          <CampaignForm />
+        </ProtectedRoute>
+      } />
+      <Route path="/campaigns/:id" element={
+        <ProtectedRoute>
+          <CampaignDetails />
+        </ProtectedRoute>
+      } />
+      <Route path="/campaigns/:id/edit" element={
+        <ProtectedRoute>
+          <CampaignEditForm />
+        </ProtectedRoute>
+      } />
+      
+      {/* Route pour la gestion du solde */}
+      <Route path="/balance" element={
+        <ProtectedRoute>
+          <BalanceManager />
+        </ProtectedRoute>
+      } />
+      
+      {/* Route pour les demandes d'achat */}
+      <Route path="/purchase-requests" element={
+        <ProtectedRoute>
+          <PurchaseRequests />
+        </ProtectedRoute>
+      } />
+      
+      {/* Routes pour le système de messagerie */}
+      <Route path="/messages" element={
+        <ProtectedRoute>
+          <MessagesList />
+        </ProtectedRoute>
+      } />
+      <Route path="/messages/:conversationId" element={
+        <ProtectedRoute>
+          <ConversationDetail />
+        </ProtectedRoute>
+      } />
+      
+      {/* Routes pour les sites web (éditeurs) */}
       <Route path="/websites" element={
         <ProtectedRoute>
           <UserWebsitesPage />
@@ -67,12 +128,16 @@ const UserDashboardPage: React.FC = () => {
       } />
       <Route path="/websites/new" element={
         <ProtectedRoute>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Ajouter un Site Web</h1>
-            <p className="text-gray-600">Formulaire d'ajout de site web (à implémenter)</p>
-          </div>
+          <UserWebsitesPage />
         </ProtectedRoute>
       } />
+      <Route path="/websites/:id" element={
+        <ProtectedRoute>
+          <UserWebsitesPage />
+        </ProtectedRoute>
+      } />
+      
+      {/* Routes pour les annonces de liens (éditeurs) */}
       <Route path="/link-listings" element={
         <ProtectedRoute>
           <UserLinkListingsPage />
@@ -80,40 +145,45 @@ const UserDashboardPage: React.FC = () => {
       } />
       <Route path="/link-listings/new" element={
         <ProtectedRoute>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Créer une Annonce</h1>
-            <p className="text-gray-600">Formulaire de création d'annonce (à implémenter)</p>
-          </div>
+          <UserLinkListingsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/link-listings/:id" element={
+        <ProtectedRoute>
+          <UserLinkListingsPage />
+        </ProtectedRoute>
+      } />
+      
+      {/* Routes pour les disputes */}
+      <Route path="/disputes" element={
+        <ProtectedRoute>
+          <DisputesList />
+        </ProtectedRoute>
+      } />
+      <Route path="/disputes/new" element={
+        <ProtectedRoute>
+          <CreateDisputeForm />
+        </ProtectedRoute>
+      } />
+      <Route path="/disputes/:id" element={
+        <ProtectedRoute>
+          <DisputeDetail />
+        </ProtectedRoute>
+      } />
+      <Route path="/disputes/:id/messages" element={
+        <ProtectedRoute>
+          <DisputeMessages />
         </ProtectedRoute>
       } />
       
       {/* Routes pour les annonceurs (advertisers) */}
       <Route path="/purchases" element={
         <ProtectedRoute>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Mes Achats</h1>
-            <p className="text-gray-600">Historique de vos achats de liens (à implémenter)</p>
-          </div>
-        </ProtectedRoute>
-      } />
-      <Route path="/purchase-requests" element={
-        <ProtectedRoute>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Mes Demandes d'Achat</h1>
-            <p className="text-gray-600">Suivi de vos demandes d'achat (à implémenter)</p>
-          </div>
+          <PurchaseHistory />
         </ProtectedRoute>
       } />
       
       {/* Routes communes */}
-      <Route path="/messages" element={
-        <ProtectedRoute>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Messages</h1>
-            <p className="text-gray-600">Système de messagerie (à implémenter)</p>
-          </div>
-        </ProtectedRoute>
-      } />
       <Route path="/notifications" element={
         <ProtectedRoute>
           <div className="p-6">

@@ -7,7 +7,10 @@ import {
   Menu, 
   X, 
   LogIn, 
-  Link as LinkIcon 
+  Link as LinkIcon,
+  ShoppingCart,
+  AlertTriangle,
+  MessageCircle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import AuthModal from '../Auth/AuthModal';
@@ -27,7 +30,6 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
   const navigation = [
     { name: 'ACHETER DES LIENS', href: '/liens' },
     { name: 'VENDRE DES LIENS', href: '/vendre-liens' },
-    { name: 'SITES WEB', href: '/sites-web' },
     { name: 'BLOG', href: '/blog' },
   ];
 
@@ -113,6 +115,26 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
 
           {/* User Menu */}
           <div className="flex items-center space-x-4">
+            {/* Cart Button */}
+            <Link
+              to="/panier"
+              className="relative text-gray-700 hover:text-blue-600 transition-colors"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              {/* Cart Badge */}
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {(() => {
+                  try {
+                    const cart = localStorage.getItem('cart');
+                    const cartItems = cart ? JSON.parse(cart) : [];
+                    return cartItems.length;
+                  } catch {
+                    return 0;
+                  }
+                })()}
+              </span>
+            </Link>
+            
             {user ? (
               <div className="relative">
                 <button
@@ -138,6 +160,22 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Mon Profil
+                    </Link>
+                    <Link
+                      to="/dashboard/messages"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Mes Messages
+                    </Link>
+                    <Link
+                      to="/dashboard/disputes"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      Mes Disputes
                     </Link>
                     {user.user_metadata?.role === 'admin' && (
                       <Link

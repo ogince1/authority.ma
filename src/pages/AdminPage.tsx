@@ -4,6 +4,11 @@ import { getCurrentUser, isAdmin } from '../lib/supabase';
 import AdminLayout from '../components/Admin/AdminLayout';
 import AdminLogin from '../components/Admin/AdminLogin';
 import AdminDashboard from '../components/Admin/AdminDashboard';
+import UsersManagement from '../components/Admin/UsersManagement';
+import DisputesManagement from '../components/Admin/DisputesManagement';
+import TransactionsManagement from '../components/Admin/TransactionsManagement';
+import WebsitesManagement from '../components/Admin/WebsitesManagement';
+import PlatformSettings from '../components/Admin/PlatformSettings';
 import BlogList from '../components/Admin/BlogList';
 import BlogForm from '../components/Admin/BlogForm';
 import BlogFormWrapper from '../components/Admin/BlogFormWrapper';
@@ -66,50 +71,28 @@ const AdminPage: React.FC = () => {
       {/* Gestion des sites web */}
       <Route path="/websites" element={
         <ProtectedRoute>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Gestion des Sites Web</h1>
-            <p className="text-gray-600">Modération et gestion des sites web (à implémenter)</p>
-          </div>
+          <WebsitesManagement />
         </ProtectedRoute>
       } />
       
-      {/* Gestion des annonces de liens */}
-      <Route path="/link-listings" element={
+      {/* Gestion des disputes */}
+      <Route path="/disputes" element={
         <ProtectedRoute>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Gestion des Annonces</h1>
-            <p className="text-gray-600">Modération des annonces de liens (à implémenter)</p>
-          </div>
-        </ProtectedRoute>
-      } />
-      
-      {/* Gestion des demandes d'achat */}
-      <Route path="/purchase-requests" element={
-        <ProtectedRoute>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Demandes d'Achat</h1>
-            <p className="text-gray-600">Suivi des demandes d'achat (à implémenter)</p>
-          </div>
+          <DisputesManagement />
         </ProtectedRoute>
       } />
       
       {/* Gestion des transactions */}
       <Route path="/transactions" element={
         <ProtectedRoute>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Transactions</h1>
-            <p className="text-gray-600">Gestion des transactions financières (à implémenter)</p>
-          </div>
+          <TransactionsManagement />
         </ProtectedRoute>
       } />
       
       {/* Gestion des utilisateurs */}
       <Route path="/users" element={
         <ProtectedRoute>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Utilisateurs</h1>
-            <p className="text-gray-600">Gestion des utilisateurs (à implémenter)</p>
-          </div>
+          <UsersManagement />
         </ProtectedRoute>
       } />
       
@@ -160,10 +143,7 @@ const AdminPage: React.FC = () => {
       {/* Paramètres */}
       <Route path="/settings" element={
         <ProtectedRoute>
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Paramètres</h1>
-            <p className="text-gray-600">Configuration de la plateforme (à implémenter)</p>
-          </div>
+          <PlatformSettings />
         </ProtectedRoute>
       } />
     </Routes>
