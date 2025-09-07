@@ -46,13 +46,7 @@ const LinkListingForm: React.FC<LinkListingFormProps> = ({
     currency: 'MAD',
     minimum_contract_duration: 1,
     max_links_per_page: 1,
-    allowed_niches: [],
-    forbidden_keywords: [],
-    content_requirements: '',
     status: 'active',
-    meta_title: '',
-    meta_description: '',
-    slug: '',
     images: [],
     tags: []
   });
@@ -74,13 +68,7 @@ const LinkListingForm: React.FC<LinkListingFormProps> = ({
         currency: listing.currency,
         minimum_contract_duration: listing.minimum_contract_duration,
         max_links_per_page: listing.max_links_per_page || 1,
-        allowed_niches: listing.allowed_niches as any,
-        forbidden_keywords: listing.forbidden_keywords,
-        content_requirements: listing.content_requirements || '',
         status: listing.status as any,
-        meta_title: listing.meta_title || '',
-        meta_description: listing.meta_description || '',
-        slug: listing.slug,
         images: listing.images,
         tags: listing.tags
       });
@@ -106,32 +94,7 @@ const LinkListingForm: React.FC<LinkListingFormProps> = ({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleNicheChange = (niche: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      allowed_niches: checked 
-        ? [...prev.allowed_niches, niche as any]
-        : prev.allowed_niches.filter(n => n !== niche)
-    }));
-  };
 
-  const handleKeywordChange = (keyword: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      forbidden_keywords: checked 
-        ? [...prev.forbidden_keywords, keyword]
-        : prev.forbidden_keywords.filter(k => k !== keyword)
-    }));
-  };
-
-  const generateSlug = (title: string) => {
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,10 +107,6 @@ const LinkListingForm: React.FC<LinkListingFormProps> = ({
         return;
       }
 
-      // Générer le slug si vide
-      if (!formData.slug) {
-        formData.slug = generateSlug(formData.title);
-      }
 
       let result: LinkListing;
 
@@ -398,131 +357,7 @@ const LinkListingForm: React.FC<LinkListingFormProps> = ({
             </div>
           </motion.div>
 
-          {/* Restrictions et conditions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-          >
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Target className="h-5 w-5 mr-2" />
-              Restrictions et conditions
-            </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Niches autorisées */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Niches autorisées
-                </label>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {['tech', 'business', 'finance', 'health', 'education', 'lifestyle', 'travel', 'food', 'sports', 'entertainment'].map(niche => (
-                    <label key={niche} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.allowed_niches.includes(niche as any)}
-                        onChange={(e) => handleNicheChange(niche, e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700 capitalize">{niche}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Mots-clés interdits */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mots-clés interdits
-                </label>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {['casino', 'porn', 'pharma', 'gambling', 'adult', 'drugs'].map(keyword => (
-                    <label key={keyword} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.forbidden_keywords.includes(keyword)}
-                        onChange={(e) => handleKeywordChange(keyword, e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">{keyword}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Exigences de contenu */}
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Exigences de contenu
-              </label>
-              <textarea
-                value={formData.content_requirements}
-                onChange={(e) => handleInputChange('content_requirements', e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Décrivez vos exigences de contenu..."
-              />
-            </div>
-          </motion.div>
-
-          {/* SEO et métadonnées */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-          >
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Globe className="h-5 w-5 mr-2" />
-              SEO et métadonnées
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Slug */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Slug URL
-                </label>
-                <input
-                  type="text"
-                  value={formData.slug}
-                  onChange={(e) => handleInputChange('slug', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="lien-dofollow-header-techblog"
-                />
-              </div>
-
-              {/* Meta title */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Meta title
-                </label>
-                <input
-                  type="text"
-                  value={formData.meta_title}
-                  onChange={(e) => handleInputChange('meta_title', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Lien Dofollow Header TechBlog"
-                />
-              </div>
-
-              {/* Meta description */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Meta description
-                </label>
-                <textarea
-                  value={formData.meta_description}
-                  onChange={(e) => handleInputChange('meta_description', e.target.value)}
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Description SEO de votre annonce..."
-                />
-              </div>
-            </div>
-          </motion.div>
 
           {/* Actions */}
           <motion.div

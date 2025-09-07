@@ -19,6 +19,7 @@ import CreateDisputeForm from '../components/User/CreateDisputeForm';
 import DisputeDetail from '../components/User/DisputeDetail';
 import DisputeMessages from '../components/User/DisputeMessages';
 import PurchaseHistory from '../components/User/PurchaseHistory';
+import QuickBuyPage from '../components/User/QuickBuyPage';
 
 const useUserAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(null);
@@ -69,6 +70,13 @@ const UserDashboardPage: React.FC = () => {
       <Route path="/profile" element={
         <ProtectedRoute>
           <UserProfile />
+        </ProtectedRoute>
+      } />
+      
+      {/* Route pour l'achat rapide (annonceurs) */}
+      <Route path="/quick-buy" element={
+        <ProtectedRoute>
+          <QuickBuyPage />
         </ProtectedRoute>
       } />
       

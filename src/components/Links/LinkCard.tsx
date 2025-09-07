@@ -185,18 +185,6 @@ const LinkCard: React.FC<LinkCardProps> = ({ listing, onEdit, onDelete }) => {
             <span className="text-gray-500">Texte d'ancrage:</span>
             <span className="font-medium text-gray-900">{listing.anchor_text}</span>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Niches autorisées:</span>
-            <span className="font-medium text-gray-900">{listing.allowed_niches.length}</span>
-          </div>
-          {listing.content_requirements && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Exigences:</span>
-              <span className="font-medium text-gray-900 line-clamp-1 max-w-32">
-                {listing.content_requirements}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Tags */}
@@ -223,7 +211,7 @@ const LinkCard: React.FC<LinkCardProps> = ({ listing, onEdit, onDelete }) => {
         {/* Actions */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <Link
-            to={`/lien/${listing.slug}`}
+            to={`/lien/${listing.id}`}
             className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center space-x-1"
           >
             <Eye className="h-3 w-3" />

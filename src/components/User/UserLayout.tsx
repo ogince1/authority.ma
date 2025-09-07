@@ -20,7 +20,8 @@ import {
   Users,
   Wallet,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { signOut, getCurrentUser, getCurrentUserProfile, getUserBalance } from '../../lib/supabase';
@@ -108,6 +109,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
       case 'advertiser':
         return [
           { name: 'Tableau de Bord', href: '/dashboard', icon: LayoutDashboard },
+          { name: 'Achat Rapide', href: '/dashboard/quick-buy', icon: Zap },
           { name: 'Mes Campagnes', href: '/dashboard/campaigns', icon: Target },
           { name: 'Mes Achats', href: '/dashboard/purchases', icon: ShoppingCart },
           { name: 'Mes Demandes', href: '/dashboard/purchase-requests', icon: FileText },

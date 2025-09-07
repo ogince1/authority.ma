@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LinkListing, Website } from '../types';
-import { getLinkListingBySlug, getWebsiteById } from '../lib/supabase';
+import { getLinkListingById, getWebsiteById } from '../lib/supabase';
 import Header from '../components/Layout/Header';
 import Footer from '../components/Layout/Footer';
 import SEOHead from '../components/SEO/SEOHead';
@@ -42,7 +42,7 @@ const LinkDetailPage: React.FC = () => {
       
       setLoading(true);
       try {
-        const linkData = await getLinkListingBySlug(slug);
+        const linkData = await getLinkListingById(slug);
         if (linkData) {
           // Fetch website data if available
           if (linkData.website_id) {
@@ -234,18 +234,6 @@ const LinkDetailPage: React.FC = () => {
                     </div>
                     <div className="text-xs text-gray-500">Liens/page</div>
                   </div>
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <div className="text-lg font-bold text-gray-900">
-                      {link.allowed_niches?.length || 0}
-                    </div>
-                    <div className="text-xs text-gray-500">Niches autorisées</div>
-                  </div>
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <div className="text-lg font-bold text-gray-900">
-                      {link.forbidden_keywords?.length || 0}
-                    </div>
-                    <div className="text-xs text-gray-500">Mots-clés interdits</div>
-                  </div>
                 </div>
 
                 {/* Détails du lien */}
@@ -268,59 +256,8 @@ const LinkDetailPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Restrictions</h3>
-                    <div className="space-y-3">
-                      {link.allowed_niches && link.allowed_niches.length > 0 && (
-                        <div>
-                          <div className="text-sm font-medium text-gray-700 mb-2">Niches autorisées:</div>
-                          <div className="flex flex-wrap gap-1">
-                            {link.allowed_niches.map((niche, index) => (
-                              <span
-                                key={index}
-                                className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
-                              >
-                                {niche}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {link.forbidden_keywords && link.forbidden_keywords.length > 0 && (
-                        <div>
-                          <div className="text-sm font-medium text-gray-700 mb-2">Mots-clés interdits:</div>
-                          <div className="flex flex-wrap gap-1">
-                            {link.forbidden_keywords.map((keyword, index) => (
-                              <span
-                                key={index}
-                                className="px-2 py-1 bg-red-50 text-red-700 text-xs rounded-full"
-                              >
-                                {keyword}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </div>
 
-                {link.content_requirements && (
-                  <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
-                    <div className="flex items-start space-x-2">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                      <div>
-                        <div className="text-sm font-medium text-yellow-800 mb-1">
-                          Exigences de contenu:
-                        </div>
-                        <div className="text-sm text-yellow-700">
-                          {link.content_requirements}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Informations du site web */}

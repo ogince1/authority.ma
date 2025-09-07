@@ -395,9 +395,6 @@ export const getLinkListings = async (filters?: LinkListingFilterOptions): Promi
     if (filters?.search) {
       query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
     }
-    if (filters?.allowed_niches && filters.allowed_niches.length > 0) {
-      query = query.overlaps('allowed_niches', filters.allowed_niches);
-    }
     if (filters?.status) {
       query = query.eq('status', filters.status);
     }
@@ -417,30 +414,6 @@ export const getLinkListings = async (filters?: LinkListingFilterOptions): Promi
   }
 };
 
-export const getLinkListingBySlug = async (slug: string): Promise<LinkListing | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('link_listings')
-      .select(`
-        *,
-        website:websites(*)
-      `)
-      .eq('slug', slug)
-      .eq('status', 'active')
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error fetching link listing by slug:', error);
-    throw error;
-  }
-};
-
 export const getLinkListingById = async (id: string): Promise<LinkListing | null> => {
   try {
     const { data, error } = await supabase
@@ -450,6 +423,7 @@ export const getLinkListingById = async (id: string): Promise<LinkListing | null
         website:websites(*)
       `)
       .eq('id', id)
+      .eq('status', 'active')
       .single();
 
     if (error) {
@@ -463,6 +437,7 @@ export const getLinkListingById = async (id: string): Promise<LinkListing | null
     throw error;
   }
 };
+
 
 export const createLinkListing = async (listingData: CreateLinkListingData): Promise<LinkListing> => {
   try {

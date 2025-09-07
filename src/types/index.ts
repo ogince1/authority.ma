@@ -18,13 +18,8 @@ export type OwnerStatus = 'professionnel' | 'particulier' | 'entreprise' | 'agen
 // Interface pour les métriques du site
 export interface WebsiteMetrics {
   monthly_traffic?: number; // Trafic mensuel
-  domain_authority?: number; // Autorité du domaine (0-100)
-  page_authority?: number; // Autorité de la page (0-100)
-  backlinks_count?: number; // Nombre de backlinks
+  domain_authority?: number; // Trust Flow (0-100) - renommé pour correspondre au formulaire
   organic_keywords?: number; // Mots-clés organiques
-  alexa_rank?: number; // Classement Alexa
-  google_indexed_pages?: number; // Pages indexées par Google
-  social_media_followers?: Record<string, number>; // Followers réseaux sociaux
 }
 
 // Interface pour un site web (éditeur)
@@ -34,24 +29,13 @@ export interface Website {
   description: string;
   url: string;
   category: WebsiteCategory;
-  niche: WebsiteNiche;
   owner_status: OwnerStatus;
   
   // Métriques du site
   metrics?: WebsiteMetrics;
   
-  // Informations de contact
-  contact_info: {
-    name: string;
-    email: string;
-    phone?: string;
-    whatsapp?: string;
-    website?: string;
-  };
-  
   // Images et médias
   logo?: string;
-  screenshots: string[];
   
   // Informations SEO
   meta_title?: string;
@@ -69,7 +53,6 @@ export interface Website {
   // Champs spécifiques aux liens
   available_link_spots: number; // Nombre d'emplacements disponibles
   average_response_time?: number; // Temps de réponse moyen en heures
-  payment_methods: string[]; // Méthodes de paiement acceptées
   languages: string[]; // Langues du site
   content_quality: 'excellent' | 'good' | 'average' | 'poor'; // Qualité du contenu
 }
@@ -93,11 +76,6 @@ export interface LinkListing {
   minimum_contract_duration: number; // Durée minimale en mois
   max_links_per_page?: number; // Nombre max de liens par page
   
-  // Restrictions et conditions
-  allowed_niches: WebsiteNiche[]; // Niches autorisées
-  forbidden_keywords: string[]; // Mots-clés interdits
-  content_requirements?: string; // Exigences de contenu
-  
   // Statut
   status: 'active' | 'sold' | 'pending' | 'inactive';
   
@@ -105,11 +83,6 @@ export interface LinkListing {
   user_id?: string;
   created_at: string;
   updated_at: string;
-  
-  // Métadonnées
-  meta_title?: string;
-  meta_description?: string;
-  slug: string;
   
   // Images
   images: string[];

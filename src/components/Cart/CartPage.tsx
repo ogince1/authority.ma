@@ -283,16 +283,10 @@ const CartPage: React.FC = () => {
                   position: 'content',
                   minimum_contract_duration: 1,
                   max_links_per_page: 1, // Ajout du champ requis
-                  allowed_niches: [item.listing.category || 'General'],
-                  forbidden_keywords: [],
-                  content_requirements: '', // Ajout du champ requis
                   status: 'active',
                   user_id: website.user_id, // Utiliser le vrai propriétaire du website
                   website_id: item.listing.id,
                   anchor_text: item.anchorText,
-                  meta_title: item.listing.title,
-                  meta_description: `Nouveau lien sur ${item.listing.title}`,
-                  slug: item.listing.id,
                   images: [],
                   tags: [item.listing.category || 'General'],
                   created_at: new Date().toISOString(),

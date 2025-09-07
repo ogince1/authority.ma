@@ -30,28 +30,15 @@ interface FormData {
   description: string;
   url: string;
   category: WebsiteCategory;
-  niche: WebsiteNiche;
   owner_status: OwnerStatus;
   available_link_spots: number;
   average_response_time: number;
   content_quality: 'excellent' | 'good' | 'average' | 'poor';
   languages: string[];
-  payment_methods: string[];
-  contact_info: {
-    name: string;
-    email: string;
-    phone: string;
-    whatsapp: string;
-    website: string;
-  };
   metrics: {
     monthly_traffic: number;
     domain_authority: number;
-    page_authority: number;
-    backlinks_count: number;
     organic_keywords: number;
-    alexa_rank: number;
-    google_indexed_pages: number;
   };
 }
 
@@ -64,7 +51,6 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
   const [loading, setLoading] = React.useState(false);
   const [uploadingImages, setUploadingImages] = React.useState(false);
   const [logo, setLogo] = React.useState<string>(website?.logo || '');
-  const [screenshots, setScreenshots] = React.useState<string[]>(website?.screenshots || []);
 
   const {
     register,
@@ -79,34 +65,20 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
       description: website?.description || '',
       url: website?.url || '',
       category: website?.category || 'blog',
-      niche: website?.niche || 'lifestyle',
       owner_status: website?.owner_status || 'particulier',
       available_link_spots: website?.available_link_spots || 1,
       average_response_time: website?.average_response_time || 24,
       content_quality: website?.content_quality || 'good',
       languages: website?.languages || ['Français'],
-      payment_methods: website?.payment_methods || ['Virement bancaire'],
-      contact_info: {
-        name: website?.contact_info?.name || '',
-        email: website?.contact_info?.email || '',
-        phone: website?.contact_info?.phone || '',
-        whatsapp: website?.contact_info?.whatsapp || '',
-        website: website?.contact_info?.website || ''
-      },
       metrics: {
         monthly_traffic: website?.metrics?.monthly_traffic || 0,
         domain_authority: website?.metrics?.domain_authority || 0,
-        page_authority: website?.metrics?.page_authority || 0,
-        backlinks_count: website?.metrics?.backlinks_count || 0,
-        organic_keywords: website?.metrics?.organic_keywords || 0,
-        alexa_rank: website?.metrics?.alexa_rank || 0,
-        google_indexed_pages: website?.metrics?.google_indexed_pages || 0
+        organic_keywords: website?.metrics?.organic_keywords || 0
       }
     }
   });
 
   const watchedLanguages = watch('languages');
-  const watchedPaymentMethods = watch('payment_methods');
 
   const categories: { value: WebsiteCategory; label: string }[] = [
     { value: 'blog', label: 'Blog' },
@@ -127,28 +99,6 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
     { value: 'economie', label: 'Économie' }
   ];
 
-  const niches: { value: WebsiteNiche; label: string }[] = [
-    { value: 'immobilier', label: 'Immobilier' },
-    { value: 'sante', label: 'Santé' },
-    { value: 'beaute', label: 'Beauté' },
-    { value: 'mode', label: 'Mode' },
-    { value: 'tech', label: 'Technologie' },
-    { value: 'finance', label: 'Finance' },
-    { value: 'education', label: 'Éducation' },
-    { value: 'voyage', label: 'Voyage' },
-    { value: 'cuisine', label: 'Cuisine' },
-    { value: 'sport', label: 'Sport' },
-    { value: 'automobile', label: 'Automobile' },
-    { value: 'lifestyle', label: 'Lifestyle' },
-    { value: 'business', label: 'Business' },
-    { value: 'actualites', label: 'Actualités' },
-    { value: 'culture', label: 'Culture' },
-    { value: 'politique', label: 'Politique' },
-    { value: 'economie', label: 'Économie' },
-    { value: 'art', label: 'Art' },
-    { value: 'musique', label: 'Musique' },
-    { value: 'cinema', label: 'Cinéma' }
-  ];
 
   const ownerStatuses: { value: OwnerStatus; label: string }[] = [
     { value: 'particulier', label: 'Particulier' },
@@ -165,14 +115,6 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
   ];
 
   const commonLanguages = ['Français', 'Anglais', 'Arabe', 'Espagnol', 'Allemand', 'Italien'];
-  const commonPaymentMethods = [
-    'Virement bancaire',
-    'PayPal',
-    'Stripe',
-    'Carte bancaire',
-    'Chèque',
-    'Espèces'
-  ];
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -191,26 +133,6 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
     }
   };
 
-  const handleScreenshotsUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    setUploadingImages(true);
-    try {
-      const uploadedUrls = await uploadMultipleImages(files, 'website-screenshots');
-      setScreenshots(prev => [...prev, ...uploadedUrls]);
-      toast.success(`${uploadedUrls.length} capture(s) téléchargée(s) avec succès`);
-    } catch (error) {
-      console.error('Error uploading screenshots:', error);
-      toast.error('Erreur lors du téléchargement des captures');
-    } finally {
-      setUploadingImages(false);
-    }
-  };
-
-  const removeScreenshot = (index: number) => {
-    setScreenshots(prev => prev.filter((_, i) => i !== index));
-  };
 
   const addLanguage = (language: string) => {
     if (!watchedLanguages.includes(language)) {
@@ -222,15 +144,6 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
     setValue('languages', watchedLanguages.filter(l => l !== language));
   };
 
-  const addPaymentMethod = (method: string) => {
-    if (!watchedPaymentMethods.includes(method)) {
-      setValue('payment_methods', [...watchedPaymentMethods, method]);
-    }
-  };
-
-  const removePaymentMethod = (method: string) => {
-    setValue('payment_methods', watchedPaymentMethods.filter(m => m !== method));
-  };
 
   const generateSlug = (title: string) => {
     return title
@@ -246,7 +159,6 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
         ...data,
         slug: generateSlug(data.title),
         logo: logo || undefined,
-        screenshots,
         status: 'pending_approval',
         meta_title: data.title,
         meta_description: data.description.substring(0, 160)
@@ -347,24 +259,6 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Niche *
-                </label>
-                <select
-                  {...register('niche', { required: 'La niche est requise' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {niches.map(niche => (
-                    <option key={niche.value} value={niche.value}>
-                      {niche.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.niche && (
-                  <p className="text-red-600 text-sm mt-1">{errors.niche.message}</p>
-                )}
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -469,7 +363,7 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
           {/* Métriques SEO */}
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Métriques SEO</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Trafic mensuel
@@ -485,7 +379,7 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Domain Authority (0-100)
+                  Trust Flow
                 </label>
                 <input
                   {...register('metrics.domain_authority', { min: 0, max: 100 })}
@@ -499,33 +393,6 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Page Authority (0-100)
-                </label>
-                <input
-                  {...register('metrics.page_authority', { min: 0, max: 100 })}
-                  type="number"
-                  min="0"
-                  max="100"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre de backlinks
-                </label>
-                <input
-                  {...register('metrics.backlinks_count', { min: 0 })}
-                  type="number"
-                  min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="1000"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Mots-clés organiques
                 </label>
                 <input
@@ -534,19 +401,6 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
                   min="0"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Classement Alexa
-                </label>
-                <input
-                  {...register('metrics.alexa_rank', { min: 0 })}
-                  type="number"
-                  min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="100000"
                 />
               </div>
             </div>
@@ -588,119 +442,7 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
             </div>
           </div>
 
-          {/* Méthodes de paiement */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Méthodes de paiement acceptées</h2>
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                {watchedPaymentMethods.map((method, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm flex items-center space-x-2"
-                  >
-                    <span>{method}</span>
-                    <button
-                      type="button"
-                      onClick={() => removePaymentMethod(method)}
-                      className="text-green-600 hover:text-green-800"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {commonPaymentMethods.filter(method => !watchedPaymentMethods.includes(method)).map(method => (
-                  <button
-                    key={method}
-                    type="button"
-                    onClick={() => addPaymentMethod(method)}
-                    className="px-3 py-1 border border-gray-300 text-gray-700 rounded-full text-sm hover:bg-gray-50"
-                  >
-                    + {method}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
 
-          {/* Contact */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Informations de contact</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom complet *
-                </label>
-                <input
-                  {...register('contact_info.name', { required: 'Le nom est requis' })}
-                  type="text"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Votre nom complet"
-                />
-                {errors.contact_info?.name && (
-                  <p className="text-red-600 text-sm mt-1">{errors.contact_info.name.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email *
-                </label>
-                <input
-                  {...register('contact_info.email', { 
-                    required: 'L\'email est requis',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Email invalide'
-                    }
-                  })}
-                  type="email"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="votre@email.com"
-                />
-                {errors.contact_info?.email && (
-                  <p className="text-red-600 text-sm mt-1">{errors.contact_info.email.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Téléphone
-                </label>
-                <input
-                  {...register('contact_info.phone')}
-                  type="tel"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="+212 6 12 34 56 78"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  WhatsApp
-                </label>
-                <input
-                  {...register('contact_info.whatsapp')}
-                  type="tel"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="+212 6 12 34 56 78"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Site web personnel
-                </label>
-                <input
-                  {...register('contact_info.website')}
-                  type="url"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://votresite.com"
-                />
-              </div>
-            </div>
-          </div>
 
           {/* Images */}
           <div>
@@ -739,52 +481,6 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
               </div>
             </div>
 
-            {/* Screenshots */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Captures d'écran du site
-              </label>
-              <div className="space-y-4">
-                {screenshots.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {screenshots.map((screenshot, index) => (
-                      <div key={index} className="relative">
-                        <img 
-                          src={screenshot} 
-                          alt={`Screenshot ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeScreenshot(index)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleScreenshotsUpload}
-                    disabled={uploadingImages}
-                    className="hidden"
-                    id="screenshots-upload"
-                  />
-                  <label
-                    htmlFor="screenshots-upload"
-                    className="cursor-pointer bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    <span>{uploadingImages ? 'Téléchargement...' : 'Ajouter des captures d\'écran'}</span>
-                  </label>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Actions */}

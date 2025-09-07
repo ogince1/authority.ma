@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Website, LinkListing } from '../types';
-import { getWebsiteBySlug, getLinkListings } from '../lib/supabase';
+import { getWebsiteById, getLinkListings } from '../lib/supabase';
 import Header from '../components/Layout/Header';
 import Footer from '../components/Layout/Footer';
 import SEOHead from '../components/SEO/SEOHead';
@@ -46,7 +46,7 @@ const WebsiteDetailPage: React.FC = () => {
       
       setLoading(true);
       try {
-        const websiteData = await getWebsiteBySlug(slug);
+        const websiteData = await getWebsiteById(slug);
         if (websiteData) {
           setWebsite(websiteData);
           

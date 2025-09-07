@@ -183,8 +183,6 @@ const CampaignWizard: React.FC = () => {
         link_type: 'dofollow' as any,
         position: 'content' as any,
         minimum_contract_duration: 1,
-        allowed_niches: [opportunity.theme as any],
-        forbidden_keywords: [],
         status: 'active',
         user_id: 'db521baa-5713-496f-84f2-4a635b9e54a4',
         website_id: opportunity.id,
