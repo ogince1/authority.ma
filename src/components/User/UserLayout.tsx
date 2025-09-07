@@ -18,7 +18,9 @@ import {
   Eye,
   ShoppingCart,
   Users,
-  Wallet
+  Wallet,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { signOut, getCurrentUser, getCurrentUserProfile, getUserBalance } from '../../lib/supabase';
@@ -33,6 +35,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [user, setUser] = React.useState<any>(null);
   const [userProfile, setUserProfile] = React.useState<any>(null);
   const [balance, setBalance] = React.useState<number>(0);
@@ -154,26 +157,52 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform ${
+      <div className={`fixed inset-y-0 left-0 z-50 bg-white shadow-lg transform ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="flex items-center">
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-700 mr-0.5">
-                Authority
+      } transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+        sidebarCollapsed ? 'w-16' : 'w-64'
+      }`}>
+        <div className={`flex items-center justify-between h-16 border-b border-gray-200 ${
+          sidebarCollapsed ? 'px-3' : 'px-6'
+        }`}>
+          {!sidebarCollapsed && (
+            <Link to="/" className="flex items-center space-x-2">
+              <div className="flex items-center">
+                <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-700 mr-0.5">
+                  Back
+                </div>
+                <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-600 to-gray-700">
+                  .ma
+                </div>
               </div>
-              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-600 to-gray-700">
-                .ma
+            </Link>
+          )}
+          {sidebarCollapsed && (
+            <Link to="/" className="flex items-center justify-center w-full">
+              <div className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-700">
+                B
               </div>
-            </div>
-          </Link>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1 rounded-md hover:bg-gray-100"
-          >
-            <X className="h-5 w-5" />
-          </button>
+            </Link>
+          )}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden lg:block p-1 rounded-md hover:bg-gray-100"
+              title={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+            >
+              {sidebarCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronLeft className="h-4 w-4" />
+              )}
+            </button>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-1 rounded-md hover:bg-gray-100"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         <nav className="mt-6 px-3">
@@ -182,35 +211,47 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`group flex items-center text-sm font-medium rounded-md transition-colors ${
+                  sidebarCollapsed ? 'px-3 py-3 justify-center' : 'px-3 py-2'
+                } ${
                   isActive(item.href, item.name)
                     ? 'bg-blue-100 text-blue-700'
                     : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                 }`}
                 onClick={() => setSidebarOpen(false)}
+                title={sidebarCollapsed ? item.name : undefined}
               >
-                <item.icon className={`mr-3 h-5 w-5 ${
+                <item.icon className={`h-5 w-5 ${
+                  sidebarCollapsed ? '' : 'mr-3'
+                } ${
                   isActive(item.href, item.name) ? 'text-blue-500' : 'text-gray-400'
                 }`} />
-                {item.name}
+                {!sidebarCollapsed && item.name}
               </Link>
             ))}
           </div>
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        <div className={`absolute bottom-0 left-0 right-0 border-t border-gray-200 ${
+          sidebarCollapsed ? 'p-2' : 'p-4'
+        }`}>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 rounded-md hover:bg-red-50 transition-colors"
+            className={`w-full flex items-center text-sm font-medium text-red-600 rounded-md hover:bg-red-50 transition-colors ${
+              sidebarCollapsed ? 'px-3 py-3 justify-center' : 'px-3 py-2'
+            }`}
+            title={sidebarCollapsed ? 'Déconnexion' : undefined}
           >
-            <LogOut className="mr-3 h-5 w-5" />
-            Déconnexion
+            <LogOut className={`h-5 w-5 ${sidebarCollapsed ? '' : 'mr-3'}`} />
+            {!sidebarCollapsed && 'Déconnexion'}
           </button>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
+        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+      }`}>
         {/* Top bar */}
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between h-16 px-6">

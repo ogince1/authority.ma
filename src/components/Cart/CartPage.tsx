@@ -24,6 +24,10 @@ interface CartItem {
   anchorText: string;
   targetUrl: string;
   isVirtual?: boolean;
+  // Options de contenu pour les nouveaux articles
+  contentOption?: 'platform' | 'custom';
+  customContent?: string;
+  platformContentPrice?: number;
 }
 
 const CartPage: React.FC = () => {
@@ -107,9 +111,23 @@ const CartPage: React.FC = () => {
     localStorage.setItem('cart', JSON.stringify(updatedItems));
   };
 
+  const updateContentOption = (index: number, option: 'platform' | 'custom', customContent?: string) => {
+    const updatedItems = [...cartItems];
+    updatedItems[index] = { 
+      ...updatedItems[index], 
+      contentOption: option,
+      customContent: customContent || '',
+      platformContentPrice: option === 'platform' ? 250 : 0
+    };
+    setCartItems(updatedItems);
+    localStorage.setItem('cart', JSON.stringify(updatedItems));
+  };
+
   const calculateTotal = () => {
     return cartItems.reduce((total, item) => {
-      return total + (item.listing.price * item.quantity);
+      const basePrice = item.listing.price * item.quantity;
+      const contentPrice = (item.isVirtual && item.contentOption === 'platform') ? (item.platformContentPrice || 0) * item.quantity : 0;
+      return total + basePrice + contentPrice;
     }, 0);
   };
 
@@ -117,6 +135,20 @@ const CartPage: React.FC = () => {
     if (cartItems.length === 0) {
       toast.error('Votre panier est vide');
       return;
+    }
+
+    // Validation des options de contenu pour les nouveaux articles
+    for (const item of cartItems) {
+      if (item.isVirtual) {
+        if (!item.contentOption) {
+          toast.error('Veuillez sélectionner une option de contenu pour tous les nouveaux articles');
+          return;
+        }
+        if (item.contentOption === 'custom' && (!item.customContent || item.customContent.trim().length < 100)) {
+          toast.error('Le contenu personnalisé doit contenir au moins 100 caractères');
+          return;
+        }
+      }
     }
 
     // Procéder directement au paiement
@@ -285,7 +317,7 @@ const CartPage: React.FC = () => {
               publisher_id: listingToUse.user_id,
               target_url: item.targetUrl,
               anchor_text: item.anchorText,
-              proposed_price: item.listing.price * item.quantity,
+              proposed_price: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
               proposed_duration: 1,
               campaign_id: campaignId || undefined
             });
@@ -294,7 +326,7 @@ const CartPage: React.FC = () => {
             await createCreditTransaction({
               user_id: user.id,
               type: 'purchase',
-              amount: item.listing.price * item.quantity,
+              amount: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
               description: `Achat de nouveau lien: ${item.listing.title}`,
               payment_method: 'manual',
               related_purchase_request_id: purchaseRequest.id
@@ -351,7 +383,7 @@ const CartPage: React.FC = () => {
                 publisher_id: publisherId,
                 target_url: item.targetUrl,
                 anchor_text: item.anchorText,
-                proposed_price: item.listing.price * item.quantity,
+                proposed_price: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
                 proposed_duration: 1,
                 campaign_id: campaignId || undefined
               });
@@ -360,7 +392,7 @@ const CartPage: React.FC = () => {
               await createCreditTransaction({
                 user_id: user.id,
                 type: 'purchase',
-                amount: item.listing.price * item.quantity,
+                amount: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
                 description: `Achat de lien: ${item.listing.title}`,
                 payment_method: 'manual',
                 related_purchase_request_id: purchaseRequest.id
@@ -384,7 +416,7 @@ const CartPage: React.FC = () => {
               await createCreditTransaction({
                 user_id: user.id,
                 type: 'purchase',
-                amount: item.listing.price * item.quantity,
+                amount: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
                 description: `Achat d'opportunité: ${item.listing.title}`,
                 payment_method: 'manual'
               });
@@ -563,6 +595,78 @@ const CartPage: React.FC = () => {
                     />
                   </div>
 
+                  {/* Options de contenu pour les nouveaux articles */}
+                  {item.isVirtual && (
+                    <div className="border-t pt-4">
+                      <h4 className="text-sm font-medium text-gray-900 mb-3">Options de contenu</h4>
+                      
+                      <div className="space-y-3">
+                        {/* Option 1: Rédaction par la plateforme */}
+                        <div className="flex items-start space-x-3">
+                          <input
+                            type="radio"
+                            id={`platform-${index}`}
+                            name={`content-option-${index}`}
+                            checked={item.contentOption === 'platform'}
+                            onChange={() => updateContentOption(index, 'platform')}
+                            className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                          />
+                          <div className="flex-1">
+                            <label htmlFor={`platform-${index}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Rédaction par la plateforme
+                            </label>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Article de 800 mots rédigé par nos rédacteurs professionnels
+                            </p>
+                            <p className="text-sm font-semibold text-green-600 mt-1">
+                              +250 MAD par article
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Option 2: Contenu personnalisé */}
+                        <div className="flex items-start space-x-3">
+                          <input
+                            type="radio"
+                            id={`custom-${index}`}
+                            name={`content-option-${index}`}
+                            checked={item.contentOption === 'custom'}
+                            onChange={() => updateContentOption(index, 'custom')}
+                            className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                          />
+                          <div className="flex-1">
+                            <label htmlFor={`custom-${index}`} className="text-sm font-medium text-gray-700 cursor-pointer">
+                              Fournir mon propre contenu
+                            </label>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Vous rédigez l'article vous-même
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Champ de contenu personnalisé */}
+                        {item.contentOption === 'custom' && (
+                          <div className="mt-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Votre contenu *
+                            </label>
+                            <textarea
+                              value={item.customContent || ''}
+                              onChange={(e) => updateContentOption(index, 'custom', e.target.value)}
+                              required
+                              rows={6}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Rédigez votre article ici (minimum 300 mots recommandé)..."
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              Longueur actuelle: {(item.customContent || '').length} caractères
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <button
@@ -585,7 +689,17 @@ const CartPage: React.FC = () => {
                     <div className="text-right">
                       <p className="text-lg font-semibold text-gray-900">
                         {(item.listing.price * item.quantity).toLocaleString()} MAD
+                        {item.isVirtual && item.contentOption === 'platform' && (
+                          <span className="text-sm text-green-600 ml-2">
+                            +{(item.platformContentPrice || 0) * item.quantity} MAD (rédaction)
+                          </span>
+                        )}
                       </p>
+                      {item.isVirtual && item.contentOption === 'platform' && (
+                        <p className="text-sm text-gray-500">
+                          Total: {((item.listing.price + (item.platformContentPrice || 0)) * item.quantity).toLocaleString()} MAD
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

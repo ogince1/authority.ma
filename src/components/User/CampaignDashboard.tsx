@@ -258,28 +258,7 @@ const CampaignDashboard: React.FC = () => {
                   Campagne
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  URL
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Lng
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Trafic
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  MC
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  DR
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  TF
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  CF
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Budget
+                  Budget (utilisé)
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Commandes
@@ -295,7 +274,7 @@ const CampaignDashboard: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredCampaigns.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                     <div className="flex flex-col items-center">
                       <Target className="w-12 h-12 text-gray-300 mb-4" />
                       <p className="text-lg font-medium">Aucune campagne trouvée</p>
@@ -328,57 +307,18 @@ const CampaignDashboard: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
-                        {campaign.urls[0] || 'Aucune URL'}
-                      </div>
-                      {campaign.urls.length > 1 && (
-                        <div className="text-xs text-gray-500">
-                          +{campaign.urls.length - 1} autres
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {campaign.language}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.extracted_metrics?.traffic?.toLocaleString() || '0'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.extracted_metrics?.mc?.toLocaleString() || '0'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.extracted_metrics?.dr || '0'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.extracted_metrics?.tf || '0'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.extracted_metrics?.cf || '0'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {campaign.budget.toLocaleString()} MAD
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {campaign.total_spent.toLocaleString()} utilisés
+                        {campaign.total_spent.toLocaleString()} MAD
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {campaign.total_orders}
+                      {campaign.total_orders} liens
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(campaign.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
-                        <Link
-                          to={`/dashboard/campaigns/${campaign.id}`}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Link>
                         <Link
                           to={`/dashboard/campaigns/${campaign.id}/edit`}
                           className="text-gray-600 hover:text-gray-900"
@@ -407,4 +347,4 @@ const CampaignDashboard: React.FC = () => {
   );
 };
 
-export default CampaignDashboard; 
+export default CampaignDashboard;

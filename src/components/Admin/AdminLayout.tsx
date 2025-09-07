@@ -4,7 +4,6 @@ import {
   LayoutDashboard, 
   FolderOpen, 
   FileText,
-  MessageSquare, 
   Users, 
   Settings,
   Award,
@@ -14,7 +13,6 @@ import {
   TrendingUp,
   AlertTriangle
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 interface AdminLayoutProps {
   children: React.ReactNode;

@@ -1379,7 +1379,56 @@ export const getCampaigns = async (filters?: CampaignFilterOptions): Promise<Cam
     const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Calculer les vraies valeurs de total_spent et total_orders pour chaque campagne
+    const campaignsWithRealData = await Promise.all(
+      (data || []).map(async (campaign) => {
+        try {
+          // Récupérer les commandes de cette campagne
+          const orders = await getCampaignOrders(campaign.id);
+          
+          // Récupérer les demandes d'achat de cette campagne
+          const { data: requests, error: requestsError } = await supabase
+            .from('link_purchase_requests')
+            .select('*')
+            .eq('campaign_id', campaign.id);
+          
+          if (requestsError) {
+            console.error(`Error fetching purchase requests for campaign ${campaign.id}:`, requestsError);
+          }
+          
+          // Calculer le montant réel dépensé (commandes terminées + demandes acceptées)
+          const completedOrdersSpent = orders
+            .filter(o => o.status === 'completed')
+            .reduce((sum, order) => sum + (order.total_price || 0), 0);
+          
+          const acceptedRequestsSpent = (requests || [])
+            .filter(r => r.status === 'accepted')
+            .reduce((sum, request) => sum + (request.proposed_price || 0), 0);
+          
+          const realTotalSpent = completedOrdersSpent + acceptedRequestsSpent;
+          
+          // Calculer le nombre réel de commandes (commandes + demandes)
+          const realTotalOrders = orders.length + (requests || []).length;
+          
+          return {
+            ...campaign,
+            total_spent: realTotalSpent,
+            total_orders: realTotalOrders
+          };
+        } catch (error) {
+          console.error(`Error calculating real data for campaign ${campaign.id}:`, error);
+          // En cas d'erreur, retourner les valeurs par défaut
+          return {
+            ...campaign,
+            total_spent: 0,
+            total_orders: 0
+          };
+        }
+      })
+    );
+    
+    return campaignsWithRealData;
   } catch (error) {
     console.error('Error fetching campaigns:', error);
     throw error;
@@ -1399,7 +1448,49 @@ export const getCampaignById = async (id: string): Promise<Campaign | null> => {
       throw error;
     }
 
-    return data;
+    if (!data) return null;
+    
+    // Calculer les vraies valeurs de total_spent et total_orders
+    try {
+      const orders = await getCampaignOrders(id);
+      
+      // Récupérer les demandes d'achat de cette campagne
+      const { data: requests, error: requestsError } = await supabase
+        .from('link_purchase_requests')
+        .select('*')
+        .eq('campaign_id', id);
+      
+      if (requestsError) {
+        console.error(`Error fetching purchase requests for campaign ${id}:`, requestsError);
+      }
+      
+      // Calculer le montant réel dépensé (commandes terminées + demandes acceptées)
+      const completedOrdersSpent = orders
+        .filter(o => o.status === 'completed')
+        .reduce((sum, order) => sum + (order.total_price || 0), 0);
+      
+      const acceptedRequestsSpent = (requests || [])
+        .filter(r => r.status === 'accepted')
+        .reduce((sum, request) => sum + (request.proposed_price || 0), 0);
+      
+      const realTotalSpent = completedOrdersSpent + acceptedRequestsSpent;
+      
+      // Calculer le nombre réel de commandes (commandes + demandes)
+      const realTotalOrders = orders.length + (requests || []).length;
+      
+      return {
+        ...data,
+        total_spent: realTotalSpent,
+        total_orders: realTotalOrders
+      };
+    } catch (calcError) {
+      console.error(`Error calculating real data for campaign ${id}:`, calcError);
+      return {
+        ...data,
+        total_spent: 0,
+        total_orders: 0
+      };
+    }
   } catch (error) {
     console.error('Error fetching campaign by id:', error);
     throw error;

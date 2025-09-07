@@ -12,16 +12,16 @@ import {
   TrendingUp,
   DollarSign,
   Calendar,
-  ShoppingCart,
   Target,
-  Award,
   Clock,
   ExternalLink,
-  Info
+  Info,
+  Activity,
+  XCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Campaign, CreateCampaignData, LinkOpportunity, LinkQualityType } from '../../types';
-import { getCampaignById, updateCampaign, deleteCampaign, getLinkRecommendations } from '../../lib/supabase';
+import { Campaign, CreateCampaignData } from '../../types';
+import { getCampaignById, updateCampaign, deleteCampaign, getCampaignOrders, getLinkPurchaseRequests } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 
 const CampaignEditForm: React.FC = () => {
@@ -37,44 +37,22 @@ const CampaignEditForm: React.FC = () => {
     language: 'Français',
     budget: 0
   });
-  const [recommendations, setRecommendations] = React.useState<any>(null);
-  const [activeTab, setActiveTab] = React.useState<'existing' | 'new'>('existing');
-  const [filters, setFilters] = React.useState({
-    price_min: '',
-    price_max: '',
-    dr_min: '',
-    tf_min: '',
-    type: '',
-    ps_min: ''
-  });
-  const [searchTerm, setSearchTerm] = React.useState('');
-  // Ajout d'un state pour les IDs du panier
-  const [cartIds, setCartIds] = React.useState<string[]>([]);
-
-  // Charger les IDs du panier au montage
-  React.useEffect(() => {
-    const currentCart = localStorage.getItem('cart');
-    const cartItems = currentCart ? JSON.parse(currentCart) : [];
-    setCartIds(cartItems.map((item: any) => item.listing?.id));
-    // Mettre à jour si le panier change
-    const updateCart = () => {
-      const updatedCart = localStorage.getItem('cart');
-      const updatedItems = updatedCart ? JSON.parse(updatedCart) : [];
-      setCartIds(updatedItems.map((item: any) => item.listing?.id));
-    };
-    window.addEventListener('storage', updateCart);
-    return () => window.removeEventListener('storage', updateCart);
-  }, []);
+  const [purchasedLinks, setPurchasedLinks] = React.useState<any[]>([]);
+  const [purchaseRequests, setPurchaseRequests] = React.useState<any[]>([]);
+  const [loadingLinks, setLoadingLinks] = React.useState(true);
 
   React.useEffect(() => {
     if (id) {
       fetchCampaign();
-      fetchRecommendations();
-      
-      // Sauvegarder l'ID de campagne dans localStorage pour le panier
-      localStorage.setItem('current_campaign_id', id);
     }
   }, [id]);
+
+  // Charger les liens achetés après que la campagne soit chargée
+  React.useEffect(() => {
+    if (campaign) {
+      fetchPurchasedLinks();
+    }
+  }, [campaign]);
 
   const fetchCampaign = async () => {
     try {
@@ -102,6 +80,29 @@ const CampaignEditForm: React.FC = () => {
       navigate('/dashboard/campaigns');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPurchasedLinks = async () => {
+    if (!id || !campaign) return;
+    
+    try {
+      setLoadingLinks(true);
+      
+      // Récupérer les commandes de la campagne
+      const orders = await getCampaignOrders(id);
+      setPurchasedLinks(orders);
+      
+      // Récupérer les demandes d'achat en attente
+      const requests = await getLinkPurchaseRequests({ user_id: campaign.user_id });
+      const campaignRequests = requests.filter(req => req.campaign_id === id);
+      setPurchaseRequests(campaignRequests);
+      
+    } catch (error) {
+      console.error('Error fetching purchased links:', error);
+      toast.error('Erreur lors du chargement des liens achetés');
+    } finally {
+      setLoadingLinks(false);
     }
   };
 
@@ -194,195 +195,47 @@ const CampaignEditForm: React.FC = () => {
     }
   };
 
-  const getQualityBadge = (type: LinkQualityType) => {
-    const config = {
-      bronze: { color: 'bg-amber-100 text-amber-800', icon: '🥉' },
-      silver: { color: 'bg-gray-100 text-gray-800', icon: '🥈' },
-      gold: { color: 'bg-yellow-100 text-yellow-800', icon: '🥇' }
-    };
 
-    const configItem = config[type];
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${configItem.color}`}>
-        <span className="mr-1">{configItem.icon}</span>
-        {type.charAt(0).toUpperCase() + type.slice(1)}
-      </span>
-    );
-  };
-
-  const getProximityScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600';
-    if (score >= 80) return 'text-blue-600';
-    if (score >= 70) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getTrustFlowColor = (tf: number) => {
-    if (tf >= 40) return 'bg-green-100 text-green-800';
-    if (tf >= 20) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
-  };
-
-  const handleAddToCart = (opportunity: LinkOpportunity, type: 'existing' | 'new') => {
-    try {
-      // Créer un objet listing compatible avec LinkListing pour les deux types
-      const listing: any = {
-        id: opportunity.id,
-        title: type === 'existing' ? opportunity.existing_article?.title : opportunity.site_name,
-        target_url: type === 'existing' ? opportunity.existing_article?.url : opportunity.site_url,
-        price: opportunity.price,
-        currency: opportunity.currency || 'MAD',
-        link_type: 'dofollow' as any,
-        position: 'content' as any,
-        minimum_contract_duration: 1,
-        allowed_niches: [opportunity.theme as any],
-        forbidden_keywords: [],
-        status: 'active',
-        user_id: 'db521baa-5713-496f-84f2-4a635b9e54a4', // Utiliser un éditeur valide par défaut
-        website_id: opportunity.id,
-        description: type === 'existing' 
-          ? `Lien existant - ${opportunity.site_name}`
-          : `Nouveau lien - ${opportunity.site_name}`,
-        anchor_text: '',
-        meta_title: opportunity.site_name,
-        meta_description: `Lien de qualité ${opportunity.quality_type} sur ${opportunity.site_name}`,
-        slug: opportunity.id,
-        images: [],
-        tags: [opportunity.theme, opportunity.quality_type],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      // Récupérer le panier actuel
-      const currentCart = localStorage.getItem('cart');
-      const cartItems = currentCart ? JSON.parse(currentCart) : [];
-
-      // Vérifier si l'item existe déjà
-      const existingItemIndex = cartItems.findIndex((item: any) => item.listing?.id === opportunity.id);
-      
-      if (existingItemIndex >= 0) {
-        // Incrémenter la quantité
-        cartItems[existingItemIndex].quantity = (cartItems[existingItemIndex].quantity || 1) + 1;
-        toast.success('Quantité mise à jour dans le panier !');
-      } else {
-        // Ajouter un nouvel item avec la structure attendue
-        cartItems.push({
-          listing: listing,
-          quantity: 1,
-          anchorText: '',
-          targetUrl: listing.target_url,
-          isVirtual: type === 'new' // Marquer comme virtuel si c'est un nouveau article
-        });
-        toast.success('Ajouté au panier !');
-      }
-
-      // Sauvegarder le panier
-      localStorage.setItem('cart', JSON.stringify(cartItems));
-      
-      // Forcer le re-render du badge du panier dans le header
-      window.dispatchEvent(new Event('storage'));
-      
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.error('Erreur lors de l\'ajout au panier');
-    }
-  };
-
-  const filterOpportunities = (opportunities: LinkOpportunity[], type: 'existing' | 'new') => {
-    return opportunities.filter(opportunity => {
-      // Filtre par prix
-      if (filters.price_min && opportunity.price < parseFloat(filters.price_min)) return false;
-      if (filters.price_max && opportunity.price > parseFloat(filters.price_max)) return false;
-      
-      // Filtre par DR
-      if (filters.dr_min && (opportunity.site_metrics.dr || 0) < parseFloat(filters.dr_min)) return false;
-      
-      // Filtre par TF
-      if (filters.tf_min && (opportunity.site_metrics.tf || 0) < parseFloat(filters.tf_min)) return false;
-      
-      // Filtre par PS
-      if (filters.ps_min && (opportunity.site_metrics.ps || 0) < parseFloat(filters.ps_min)) return false;
-      
-      // Filtre par type de qualité
-      if (filters.type && opportunity.quality_type !== filters.type) return false;
-      
-      // Filtre par recherche
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        const title = type === 'existing' ? opportunity.existing_article?.title : opportunity.site_name;
-        const url = type === 'existing' ? opportunity.existing_article?.url : opportunity.site_url;
-        const theme = opportunity.theme;
-        
-        if (!title?.toLowerCase().includes(searchLower) && 
-            !url?.toLowerCase().includes(searchLower) && 
-            !theme?.toLowerCase().includes(searchLower)) {
-          return false;
-        }
-      }
-      
-      return true;
-    });
-  };
-
-  const fetchRecommendations = async () => {
-    if (!id) return;
-    
-    try {
-      const data = await getLinkRecommendations(id, {});
-      setRecommendations(data);
-    } catch (error) {
-      console.error('Error fetching recommendations:', error);
-      toast.error('Erreur lors du chargement des recommandations');
-    }
-  };
-
-  const OpportunityRow: React.FC<{ opportunity: LinkOpportunity; type: 'existing' | 'new' }> = ({ opportunity, type }) => {
-    const isInCart = cartIds.includes(opportunity.id);
-    return (
-      <tr className={`border-b border-gray-200 ${isInCart ? 'bg-gray-100 opacity-60 cursor-not-allowed' : 'hover:bg-gray-50'}`}>
-        <td className="px-4 py-3 text-sm">
-          <div className="max-w-xs">
-            <div className="font-medium text-gray-900 truncate">
-              {type === 'existing' ? opportunity.existing_article?.title : opportunity.site_name}
-            </div>
-            <div className="text-xs text-gray-500 truncate">
-              {type === 'existing' ? opportunity.existing_article?.url : opportunity.site_url}
-            </div>
-          </div>
-        </td>
-        <td className="px-4 py-3 text-sm">
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getTrustFlowColor(opportunity.site_metrics.tf || 0)}`}>
-            {opportunity.site_metrics.tf || 0}
+  const getLinkStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Terminé
           </span>
-        </td>
-        <td className="px-4 py-3 text-sm text-gray-600">
-          {opportunity.site_name}
-        </td>
-        <td className="px-4 py-3 text-sm text-gray-600">
-          {opportunity.theme}
-        </td>
-        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-          {opportunity.price} MAD
-        </td>
-        <td className="px-4 py-3 text-sm">
-          <div className="flex items-center space-x-2">
-            <button className="text-gray-400 hover:text-gray-600">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-            <button 
-              onClick={() => handleAddToCart(opportunity, type)}
-              className={`text-blue-600 hover:text-blue-800 ${isInCart ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={isInCart}
-            >
-              <ShoppingCart className="w-4 h-4" />
-            </button>
-          </div>
-        </td>
-      </tr>
-    );
+        );
+      case 'pending':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            <Clock className="w-3 h-3 mr-1" />
+            En attente
+          </span>
+        );
+      case 'in_progress':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <Activity className="w-3 h-3 mr-1" />
+            En cours
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <XCircle className="w-3 h-3 mr-1" />
+            Annulé
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            <Info className="w-3 h-3 mr-1" />
+            {status}
+          </span>
+        );
+    }
   };
+
 
   if (loading) {
     return (
@@ -668,185 +521,170 @@ const CampaignEditForm: React.FC = () => {
           </div>
         </form>
 
-        {/* Section des recommandations */}
-        {recommendations && (
-          <div className="mt-8">
-            <div className="border-t border-gray-200 pt-8">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">Recommandations de liens</h2>
-                  <p className="text-gray-600">
-                    Opportunités de liens basées sur l'analyse de vos URLs
-                  </p>
+        {/* Section des liens achetés */}
+        <div className="mt-8">
+          <div className="border-t border-gray-200 pt-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Liens achetés</h2>
+                <p className="text-gray-600">
+                  Suivi des liens achetés pour cette campagne
+                </p>
+              </div>
+            </div>
+
+            {/* Statistiques des liens achetés */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="text-sm font-medium text-blue-900">Total Liens</div>
+                <div className="text-2xl font-bold text-blue-900">{purchasedLinks.length + purchaseRequests.length}</div>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="text-sm font-medium text-green-900">Terminés</div>
+                <div className="text-2xl font-bold text-green-900">
+                  {purchasedLinks.filter(link => link.status === 'completed').length}
                 </div>
               </div>
-
-              {/* Statistiques */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="text-sm font-medium text-blue-900">Total Opportunités</div>
-                  <div className="text-2xl font-bold text-blue-900">{recommendations.total_opportunities}</div>
-                </div>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="text-sm font-medium text-green-900">Prix Moyen</div>
-                  <div className="text-2xl font-bold text-green-900">{recommendations.average_price?.toFixed(0)} MAD</div>
-                </div>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <div className="text-sm font-medium text-purple-900">Prix Min-Max</div>
-                  <div className="text-2xl font-bold text-purple-900">
-                    {recommendations.price_range?.min}-{recommendations.price_range?.max} MAD
-                  </div>
-                </div>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <div className="text-sm font-medium text-yellow-900">Articles Existants</div>
-                  <div className="text-2xl font-bold text-yellow-900">{recommendations.existing_articles?.length || 0}</div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="text-sm font-medium text-yellow-900">En attente</div>
+                <div className="text-2xl font-bold text-yellow-900">
+                  {purchaseRequests.filter(req => req.status === 'pending').length}
                 </div>
               </div>
-
-              {/* Filtres intelligents */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Prix Min</label>
-                    <input
-                      type="number"
-                      value={filters.price_min}
-                      onChange={(e) => setFilters({ ...filters, price_min: e.target.value })}
-                      placeholder="0"
-                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Prix Max</label>
-                    <input
-                      type="number"
-                      value={filters.price_max}
-                      onChange={(e) => setFilters({ ...filters, price_max: e.target.value })}
-                      placeholder="1000"
-                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">DR Min</label>
-                    <input
-                      type="number"
-                      value={filters.dr_min}
-                      onChange={(e) => setFilters({ ...filters, dr_min: e.target.value })}
-                      placeholder="0"
-                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">TF Min</label>
-                    <input
-                      type="number"
-                      value={filters.tf_min}
-                      onChange={(e) => setFilters({ ...filters, tf_min: e.target.value })}
-                      placeholder="0"
-                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">PS Min</label>
-                    <input
-                      type="number"
-                      value={filters.ps_min}
-                      onChange={(e) => setFilters({ ...filters, ps_min: e.target.value })}
-                      placeholder="0"
-                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Qualité</label>
-                    <select
-                      value={filters.type}
-                      onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="">Toutes</option>
-                      <option value="bronze">Bronze</option>
-                      <option value="silver">Silver</option>
-                      <option value="gold">Gold</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Recherche</label>
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Rechercher par titre, URL ou thème..."
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                  />
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="text-sm font-medium text-purple-900">En cours</div>
+                <div className="text-2xl font-bold text-purple-900">
+                  {purchasedLinks.filter(link => link.status === 'in_progress').length}
                 </div>
               </div>
+            </div>
 
-              {/* Onglets */}
-              <div className="border-b border-gray-200 mb-6">
-                <nav className="-mb-px flex space-x-8">
-                  <button
-                    onClick={() => setActiveTab('existing')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'existing'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    Articles Existants ({recommendations.existing_articles?.length || 0})
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('new')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'new'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    Nouveaux Articles ({recommendations.new_articles?.length || 0})
-                  </button>
-                </nav>
+            {/* Tableau des liens achetés */}
+            {loadingLinks ? (
+              <div className="bg-white rounded-lg shadow-sm p-8 animate-pulse">
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-12 bg-gray-200 rounded"></div>
+                  ))}
+                </div>
               </div>
-
-              {/* Tableau des opportunités */}
+            ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 bg-white rounded-lg shadow-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Titre</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TF</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thème</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cmd</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Lien
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Site
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Prix
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Statut
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {activeTab === 'existing' ? (
-                      filterOpportunities(recommendations.existing_articles || [], 'existing').map((opportunity: LinkOpportunity, index: number) => (
-                        <OpportunityRow key={opportunity.id} opportunity={opportunity} type="existing" />
-                      ))
+                    {purchasedLinks.length === 0 && purchaseRequests.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                          <div className="flex flex-col items-center">
+                            <Target className="w-12 h-12 text-gray-300 mb-4" />
+                            <p className="text-lg font-medium">Aucun lien acheté</p>
+                            <p className="text-sm">Cette campagne n'a pas encore de liens achetés</p>
+                          </div>
+                        </td>
+                      </tr>
                     ) : (
-                      filterOpportunities(recommendations.new_articles || [], 'new').map((opportunity: LinkOpportunity, index: number) => (
-                        <OpportunityRow key={opportunity.id} opportunity={opportunity} type="new" />
-                      ))
+                      <>
+                        {/* Liens terminés */}
+                        {purchasedLinks.map((link, index) => (
+                          <tr key={`purchased-${link.id}`} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="max-w-xs">
+                                <div className="text-sm font-medium text-gray-900 truncate">
+                                  {link.link_listing?.title || 'Lien sans titre'}
+                                </div>
+                                <div className="text-xs text-gray-500 truncate">
+                                  {link.link_listing?.target_url || link.target_url}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                              {link.link_listing?.website?.name || 'Site inconnu'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {link.amount || link.link_listing?.price || 0} MAD
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {getLinkStatusBadge(link.status)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(link.created_at).toLocaleDateString('fr-FR')}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => window.open(link.link_listing?.target_url || link.target_url, '_blank')}
+                                  className="text-blue-600 hover:text-blue-800"
+                                  title="Voir le lien"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        
+                        {/* Demandes en attente */}
+                        {purchaseRequests.map((request, index) => (
+                          <tr key={`request-${request.id}`} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="max-w-xs">
+                                <div className="text-sm font-medium text-gray-900 truncate">
+                                  {request.link_listing?.title || 'Demande de lien'}
+                                </div>
+                                <div className="text-xs text-gray-500 truncate">
+                                  {request.target_url}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                              {request.link_listing?.website?.name || 'Site inconnu'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {request.proposed_price} MAD
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {getLinkStatusBadge(request.status)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(request.created_at).toLocaleDateString('fr-FR')}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs text-gray-500">En attente de validation</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </>
                     )}
                   </tbody>
                 </table>
               </div>
-            </div>
+            )}
           </div>
-        )}
-        {recommendations && (
-          <div className="mt-8 flex justify-end">
-            <button
-              onClick={() => navigate('/panier')}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow"
-            >
-              Confirmer la campagne et passer au panier
-            </button>
-          </div>
-        )}
+        </div>
       </motion.div>
     </div>
   );
