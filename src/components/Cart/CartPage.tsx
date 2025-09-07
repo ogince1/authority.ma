@@ -331,8 +331,19 @@ const CartPage: React.FC = () => {
               // C'est un vrai lien existant, créer une LinkPurchaseRequest
               console.log('Creating LinkPurchaseRequest for real link');
               
-              // Récupérer le vrai publisher_id depuis le lien lui-même
-              const publisherId = item.listing.user_id; // L'éditeur est le propriétaire du lien
+              // Récupérer le vrai propriétaire du listing depuis la base de données
+              const { data: listing, error: listingError } = await supabase
+                .from('link_listings')
+                .select('user_id')
+                .eq('id', item.listing.id)
+                .single();
+              
+              if (listingError) {
+                console.error('Error fetching listing owner:', listingError);
+                throw new Error('Erreur lors de la récupération du propriétaire du listing');
+              }
+              
+              const publisherId = listing.user_id; // Utiliser le vrai propriétaire
               
               const purchaseRequest = await createLinkPurchaseRequest({
                 link_listing_id: item.listing.id,
@@ -355,7 +366,17 @@ const CartPage: React.FC = () => {
                 related_purchase_request_id: purchaseRequest.id
               });
               
-              console.log('LinkPurchaseRequest and CreditTransaction created successfully');
+              // Créer une notification pour l'éditeur
+              await createNotification({
+                user_id: publisherId,
+                title: 'Nouvelle demande de lien reçue',
+                message: `Vous avez reçu une nouvelle demande d'achat de lien pour "${item.listing.title}" de la part d'un annonceur.`,
+                type: 'info',
+                action_url: `/dashboard/purchase-requests`,
+                action_type: 'link_purchase'
+              });
+              
+              console.log('LinkPurchaseRequest, CreditTransaction and Notification created successfully');
             } else {
               // C'est une opportunité simulée, créer seulement la transaction de crédit
               console.log('Creating CreditTransaction for simulated opportunity');
@@ -378,7 +399,7 @@ const CartPage: React.FC = () => {
       }
 
       
-      // Mettre à jour le statut de la campagne et créer les notifications
+      // Mettre à jour le statut de la campagne
       if (campaignId) {
         try {
           // Mettre à jour le statut de la campagne en "active" directement via Supabase
@@ -393,64 +414,9 @@ const CartPage: React.FC = () => {
             console.log('Campaign status updated to approved');
           }
           
-          // Créer des demandes d'achat et des notifications pour les éditeurs
-          for (const item of cartItems) {
-            try {
-              // Déterminer l'ID de l'éditeur
-              let publisherId = null;
-              
-              // Récupérer le vrai propriétaire du listing depuis la base de données
-              const { data: listing, error: listingError } = await supabase
-                .from('link_listings')
-                .select('user_id')
-                .eq('id', item.listing.id)
-                .single();
-              
-              if (listingError) {
-                console.error('Error fetching listing owner:', listingError);
-                // Fallback: utiliser le user_id du listing si disponible
-                publisherId = item.listing.user_id || 'db521baa-5713-496f-84f2-4a635b9e54a4';
-              } else {
-                publisherId = listing.user_id;
-              }
-              
-              if (publisherId) {
-                // Créer une vraie demande d'achat de lien
-                await createLinkPurchaseRequest({
-                  link_listing_id: item.listing.id,
-                  user_id: user.id, // ID de l'annonceur
-                  publisher_id: publisherId, // ID de l'éditeur
-                  target_url: item.targetUrl,
-                  anchor_text: item.anchorText,
-                  message: `Demande d'achat de lien pour la campagne "${campaignId}"`,
-                  proposed_price: item.listing.price || 500,
-                  proposed_duration: 12 // 12 mois par défaut
-                });
-                console.log('Purchase request created for publisher:', publisherId);
-                
-                // Créer aussi une notification
-                await createNotification({
-                  user_id: publisherId,
-                  title: 'Nouvelle demande de lien reçue',
-                  message: `Vous avez reçu une nouvelle demande d'achat de lien pour "${item.listing.title}" de la part d'un annonceur.`,
-                  type: 'info',
-                  action_url: `/dashboard/purchase-requests`,
-                  action_type: 'link_purchase'
-                });
-                console.log('Notification created for publisher:', publisherId);
-              } else {
-                console.log('No publisher ID found for item:', item.listing.id);
-              }
-            } catch (error) {
-              console.error('Error creating purchase request or notification for publisher:', error);
-              // Ne pas bloquer le processus si ça échoue
-            }
-          }
-          
           toast.success('Campagne activée avec succès !');
         } catch (error) {
-          console.error('Error updating campaign status or creating notifications:', error);
-          // Ne pas bloquer le processus si cette étape échoue
+          console.error('Error updating campaign status:', error);
           toast.error('Achats traités mais erreur lors de l\'activation de la campagne');
         }
       }
