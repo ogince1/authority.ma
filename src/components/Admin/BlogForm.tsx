@@ -12,9 +12,11 @@ import {
   Hash
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import MDEditor from '@uiw/react-md-editor';
 import { CreateBlogPostData, BlogPost } from '../../types';
 import { createBlogPost, updateBlogPost } from '../../lib/supabase';
 import toast from 'react-hot-toast';
+import '../../styles/markdown-editor.css';
 
 interface BlogFormProps {
   post?: BlogPost;
@@ -29,6 +31,7 @@ interface FormData extends Omit<CreateBlogPostData, 'tags' | 'images'> {
 const BlogForm: React.FC<BlogFormProps> = ({ post, isEdit = false }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
+  const [content, setContent] = React.useState(post?.content || '');
 
   const {
     register,
@@ -70,7 +73,7 @@ const BlogForm: React.FC<BlogFormProps> = ({ post, isEdit = false }) => {
         title: data.title,
         slug: data.slug || generateSlug(data.title),
         excerpt: data.excerpt,
-        content: data.content,
+        content: content,
         featured_image: data.featured_image || undefined,
         images: data.images_text.split('\n').map(i => i.trim()).filter(i => i),
         category: data.category,
@@ -228,15 +231,24 @@ const BlogForm: React.FC<BlogFormProps> = ({ post, isEdit = false }) => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Contenu *
               </label>
-              <textarea
-                {...register('content', { required: 'Le contenu est requis' })}
-                rows={12}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                placeholder="Contenu complet de l'article en markdown ou HTML..."
-              />
-              {errors.content && (
-                <p className="mt-1 text-sm text-red-600">{errors.content.message}</p>
+              <div className="border border-gray-300 rounded-lg overflow-hidden">
+                <MDEditor
+                  value={content}
+                  onChange={(val) => setContent(val || '')}
+                  height={400}
+                  data-color-mode="light"
+                  textareaProps={{
+                    placeholder: 'Écrivez votre article en Markdown...\n\n## Exemples de formatage:\n\n**Texte en gras**\n*Texte en italique*\n\n[Lien](https://example.com)\n\n![Image](https://example.com/image.jpg)\n\n- Liste à puces\n- Élément 2\n\n1. Liste numérotée\n2. Élément 2\n\n```\nCode block\n```\n\n> Citation\n\n---\n\n### Sous-titre'
+                  }}
+                />
+              </div>
+              {!content && (
+                <p className="mt-1 text-sm text-red-600">Le contenu est requis</p>
               )}
+              <div className="mt-2 text-xs text-gray-500">
+                💡 <strong>Astuce :</strong> Utilisez la syntaxe Markdown pour formater votre contenu. 
+                La prévisualisation s'affiche en temps réel à droite.
+              </div>
             </div>
           </div>
 

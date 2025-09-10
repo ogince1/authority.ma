@@ -16,6 +16,7 @@ import { getBlogPostBySlug } from '../lib/supabase';
 import Header from '../components/Layout/Header';
 import Footer from '../components/Layout/Footer';
 import SEOHead from '../components/SEO/SEOHead';
+import MarkdownRenderer from '../components/Blog/MarkdownRenderer';
 
 const BlogPostPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -182,10 +183,7 @@ const BlogPostPage: React.FC = () => {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="prose prose-lg max-w-none mb-8"
           >
-            <div 
-              className="text-gray-700 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }}
-            />
+            <MarkdownRenderer content={post.content} />
           </motion.div>
 
           {/* Tags */}
