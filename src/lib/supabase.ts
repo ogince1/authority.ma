@@ -486,12 +486,43 @@ export const updateLinkListing = async (id: string, listingData: Partial<CreateL
 
 export const deleteLinkListing = async (id: string): Promise<void> => {
   try {
-    const { error } = await supabase
-      .from('link_listings')
-      .delete()
-      .eq('id', id);
+    // Vérifier s'il y a des demandes d'achat liées à ce lien
+    const { data: purchaseRequests, error: requestsError } = await supabase
+      .from('link_purchase_requests')
+      .select('id, status')
+      .eq('link_listing_id', id);
 
-    if (error) throw error;
+    if (requestsError) {
+      console.error('Error checking purchase requests:', requestsError);
+      throw requestsError;
+    }
+
+    // Si le lien a des demandes d'achat, marquer comme inactive au lieu de supprimer
+    if (purchaseRequests && purchaseRequests.length > 0) {
+      console.log(`Link has ${purchaseRequests.length} purchase requests, marking as inactive instead of deleting`);
+      
+      const { error: updateError } = await supabase
+        .from('link_listings')
+        .update({ 
+          status: 'inactive',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+      
+      console.log('Link marked as inactive successfully');
+    } else {
+      // Si pas de demandes d'achat, supprimer directement
+      const { error: deleteError } = await supabase
+        .from('link_listings')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+      
+      console.log('Link deleted successfully');
+    }
   } catch (error) {
     console.error('Error deleting link listing:', error);
     throw error;

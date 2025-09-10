@@ -57,11 +57,37 @@ const UserLinkListingsPage: React.FC = () => {
   };
 
   const handleDeleteListing = async (listingId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette annonce ?')) return;
+    // Récupérer les infos du lien à supprimer pour afficher des infos
+    const listingToDelete = linkListings.find(l => l.id === listingId);
+    if (!listingToDelete) {
+      toast.error('Lien non trouvé');
+      return;
+    }
+
+    // Vérifications préalables
+    if (listingToDelete.status === 'sold') {
+      toast.error('Impossible de supprimer un lien vendu');
+      return;
+    }
+
+    const confirmMessage = listingToDelete.status === 'active' 
+      ? 'Êtes-vous sûr de vouloir supprimer cette annonce ? Si elle a des demandes d\'achat, elle sera marquée comme inactive.'
+      : 'Êtes-vous sûr de vouloir supprimer cette annonce ?';
+
+    if (!confirm(confirmMessage)) return;
 
     try {
       await deleteLinkListing(listingId);
-      setLinkListings((prev: LinkListing[]) => prev.filter((l: LinkListing) => l.id !== listingId));
+      
+      // Mettre à jour la liste locale
+      setLinkListings((prev: LinkListing[]) => 
+        prev.map((l: LinkListing) => 
+          l.id === listingId 
+            ? { ...l, status: 'inactive' as const } // Marquer comme inactive si pas supprimé
+            : l
+        ).filter((l: LinkListing) => l.id !== listingId) // Ou supprimer complètement
+      );
+      
       toast.success('Annonce supprimée avec succès');
     } catch (error) {
       console.error('Error deleting link listing:', error);
