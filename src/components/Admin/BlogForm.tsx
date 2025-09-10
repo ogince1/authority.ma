@@ -46,9 +46,9 @@ const BlogForm: React.FC<BlogFormProps> = ({ post, isEdit = false }) => {
       excerpt: post.excerpt,
       content: post.content,
       featured_image: post.featured_image || '',
-      images_text: post.images.join('\n'),
+      images_text: (post.images || []).join('\n'),
       category: post.category,
-      tags_text: post.tags.join(', '),
+      tags_text: (post.tags || []).join(', '),
       status: post.status,
       meta_title: post.meta_title || '',
       meta_description: post.meta_description || ''

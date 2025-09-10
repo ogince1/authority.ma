@@ -65,7 +65,7 @@ const BlogCard: React.FC<BlogCardProps> = ({ post, index = 0 }) => {
         </p>
 
         {/* Tags */}
-        {post.tags.length > 0 && (
+        {post.tags && post.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-4">
             {post.tags.slice(0, 3).map((tag, tagIndex) => (
               <span
