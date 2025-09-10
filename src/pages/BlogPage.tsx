@@ -18,7 +18,7 @@ const BlogPage: React.FC = () => {
 
   React.useEffect(() => {
     // Track page view
-    trackPageView('/blog', 'Blog GoHaya - Actualités et Guides pour Entrepreneurs');
+    trackPageView('/blog', 'Blog - Actualités et Guides pour Entrepreneurs');
     
     fetchData();
   }, []);
@@ -72,7 +72,7 @@ const BlogPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <SEOHead 
-        title="Blog GoHaya - Actualités et Guides pour Entrepreneurs"
+        title="Blog - Actualités et Guides pour Entrepreneurs"
         description="Découvrez nos derniers articles sur l'entrepreneuriat, l'innovation et les projets digitaux. Conseils, guides et actualités pour entrepreneurs."
       />
       <Header />
@@ -88,9 +88,6 @@ const BlogPage: React.FC = () => {
           >
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
               Blog
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-blue-600">
-                {' '}GoHaya
-              </span>
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
               Découvrez nos derniers articles, guides et conseils pour entrepreneurs. 
