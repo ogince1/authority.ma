@@ -253,10 +253,11 @@ const CartPage: React.FC = () => {
               console.log('Using existing link listing:', existingListing.id);
               listingToUse = existingListing;
             } else {
-              // Le listing n'existe pas, le créer
-              console.log('Creating new link listing for new article');
+              // Pour les nouveaux articles, ne pas créer de link_listing
+              // Mais récupérer le publisher_id du website
+              console.log('New article - no link_listing creation needed');
               
-              // Récupérer le vrai propriétaire du website
+              // Récupérer le propriétaire du website pour le publisher_id
               const { data: website, error: websiteError } = await supabase
                 .from('websites')
                 .select('user_id')
@@ -268,40 +269,10 @@ const CartPage: React.FC = () => {
                 throw new Error('Erreur lors de la récupération du propriétaire du website');
               }
               
-              console.log('Website owner found:', website.user_id);
-              
-              const { data: newListing, error: listingError } = await supabase
-                .from('link_listings')
-                .insert([{
-                  id: item.listing.id, // Utiliser l'ID du website (UUID valide)
-                  title: item.listing.title,
-                  description: item.listing.description,
-                  target_url: item.targetUrl, // Corrigé: target_url au lieu de url
-                  price: item.listing.price,
-                  currency: item.listing.currency || 'MAD',
-                  link_type: 'dofollow',
-                  position: 'content',
-                  minimum_contract_duration: 1,
-                  max_links_per_page: 1, // Ajout du champ requis
-                  status: 'active',
-                  user_id: website.user_id, // Utiliser le vrai propriétaire du website
-                  website_id: item.listing.id,
-                  anchor_text: item.anchorText,
-                  images: [],
-                  tags: [item.listing.category || 'General'],
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString()
-                }])
-                .select()
-                .single();
-
-              if (listingError) {
-                console.error('Error creating link listing:', listingError);
-                throw new Error('Erreur lors de la création du listing');
-              }
-
-              console.log('Link listing created for new article:', newListing.id);
-              listingToUse = newListing;
+              listingToUse = { 
+                id: item.listing.id, // ID du website
+                user_id: website.user_id // Propriétaire du website
+              };
             }
 
             // Maintenant créer la demande d'achat avec le vrai link_listing_id
@@ -317,9 +288,9 @@ const CartPage: React.FC = () => {
             });
 
             // Créer la transaction de crédit
-            await createCreditTransaction({
-              user_id: user.id,
-              type: 'purchase',
+                         await createCreditTransaction({
+               user_id: user.id,
+               type: 'purchase',
               amount: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
               description: `Achat de nouveau lien: ${item.listing.title}`,
               payment_method: 'manual',

@@ -203,38 +203,25 @@ const QuickBuyPage: React.FC = () => {
       for (const item of cartItems) {
         const isVirtualLink = item.isVirtual;
         let publisherId: string;
+        let listingId: string;
 
         if (isVirtualLink) {
-          // Pour les nouveaux articles, utiliser l'éditeur de test
-          const { data: testPublisher } = await supabase
-            .from('users')
-            .select('id')
-            .eq('email', 'editeur@test.com')
+          // Pour les nouveaux articles, récupérer le publisher_id du website
+          const { data: website, error: websiteError } = await supabase
+            .from('websites')
+            .select('user_id')
+            .eq('id', item.listing.id)
             .single();
           
-          publisherId = testPublisher?.id || 'db521baa-5713-496f-84f2-4a635b9e54a4';
-
-          // Créer le listing pour le nouveau article
-          const { data: newListing, error: listingError } = await supabase
-            .from('link_listings')
-            .insert({
-              id: item.listing.id,
-              title: item.listing.site_name,
-              description: 'Nouvel article à créer',
-              target_url: item.targetUrl,
-              price: item.listing.price,
-              type: 'dofollow',
-              category: item.listing.theme,
-              user_id: publisherId,
-              max_links_per_page: 1,
-            })
-            .select()
-            .single();
-
-          if (listingError) {
-            console.error('Error creating listing:', listingError);
-            throw new Error('Erreur lors de la création du listing');
+          if (websiteError) {
+            console.error('Error fetching website owner:', websiteError);
+            throw new Error('Erreur lors de la récupération du propriétaire du website');
           }
+          
+          publisherId = website.user_id;
+          // Pour les nouveaux articles, ne pas créer de link_listing
+          // Utiliser directement l'ID du website comme référence
+          listingId = item.listing.id;
         } else {
           // Pour les articles existants, récupérer le publisher_id du listing
           const { data: existingListing } = await supabase
@@ -244,11 +231,12 @@ const QuickBuyPage: React.FC = () => {
             .single();
           
           publisherId = existingListing?.user_id || 'db521baa-5713-496f-84f2-4a635b9e54a4';
+          listingId = item.listing.id;
         }
 
         // Créer la demande d'achat
         const purchaseRequest = await createLinkPurchaseRequest({
-          link_listing_id: item.listing.id,
+          link_listing_id: listingId, // Utiliser l'ID du listing (nouveau ou existant)
           user_id: user.id,
           publisher_id: publisherId,
           target_url: item.targetUrl,
@@ -272,8 +260,9 @@ const QuickBuyPage: React.FC = () => {
           user_id: publisherId,
           title: 'Nouvelle demande d\'achat',
           message: `Demande d'achat pour "${item.listing.title}" de ${user.email}`,
-          type: 'purchase_request',
-          related_id: purchaseRequest.id
+          type: 'info', // Type valide selon la contrainte CHECK
+          action_url: `/dashboard/purchase-requests`,
+          action_type: 'link_purchase'
         });
       }
 
