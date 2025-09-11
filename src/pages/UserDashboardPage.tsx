@@ -6,6 +6,8 @@ import UserDashboard from '../components/User/UserDashboard';
 import UserProfile from '../components/User/UserProfile';
 import UserWebsitesPage from './UserWebsitesPage';
 import UserLinkListingsPage from './UserLinkListingsPage';
+import QuickBuyPage from '../components/User/QuickBuyPage';
+import AdvertiserServices from '../components/User/AdvertiserServices';
 import CampaignDashboard from '../components/User/CampaignDashboard';
 import CampaignForm from '../components/User/CampaignForm';
 import CampaignDetails from '../components/User/CampaignDetails';
@@ -19,7 +21,6 @@ import CreateDisputeForm from '../components/User/CreateDisputeForm';
 import DisputeDetail from '../components/User/DisputeDetail';
 import DisputeMessages from '../components/User/DisputeMessages';
 import PurchaseHistory from '../components/User/PurchaseHistory';
-import QuickBuyPage from '../components/User/QuickBuyPage';
 
 const useUserAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(null);
@@ -77,6 +78,13 @@ const UserDashboardPage: React.FC = () => {
       <Route path="/quick-buy" element={
         <ProtectedRoute>
           <QuickBuyPage />
+        </ProtectedRoute>
+      } />
+      
+      {/* Route pour les services (annonceurs) */}
+      <Route path="/services" element={
+        <ProtectedRoute>
+          <AdvertiserServices />
         </ProtectedRoute>
       } />
       

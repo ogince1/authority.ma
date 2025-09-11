@@ -1,7 +1,34 @@
 // Types pour la plateforme de vente de liens au Maroc
 
-// Types de sites web
-export type WebsiteCategory = 'blog' | 'ecommerce' | 'actualites' | 'lifestyle' | 'tech' | 'business' | 'sante' | 'education' | 'immobilier' | 'automobile' | 'voyage' | 'cuisine' | 'sport' | 'culture' | 'politique' | 'economie';
+// Types de sites web - Nouvelle catégorisation
+export type WebsiteCategory = 
+  | 'adults_only'
+  | 'arts_entertainment'
+  | 'auto_vehicles'
+  | 'beauty_fashion_lifestyle'
+  | 'business_consumer_services'
+  | 'community_society'
+  | 'computers_technology'
+  | 'finance_economy'
+  | 'food_drink'
+  | 'gambling'
+  | 'games'
+  | 'health_wellness'
+  | 'heavy_industry_engineering'
+  | 'hobbies_leisure'
+  | 'home_garden'
+  | 'jobs_career'
+  | 'law_government'
+  | 'news_media'
+  | 'pets_animals'
+  | 'reference_education'
+  | 'science_nature'
+  | 'science_education'
+  | 'shopping_deals'
+  | 'sports_fitness'
+  | 'travel_tourism'
+  | 'various'
+  | 'world_regional';
 
 // Types de liens
 export type LinkType = 'dofollow' | 'nofollow' | 'sponsored' | 'ugc';

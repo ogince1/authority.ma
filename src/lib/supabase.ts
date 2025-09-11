@@ -242,7 +242,7 @@ export const getWebsites = async (filters?: WebsiteFilterOptions): Promise<Websi
     }
 
     const { data, error } = await query
-      .in('status', ['active', 'pending_approval'])
+      .in('status', ['active'])
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -259,7 +259,7 @@ export const getWebsiteBySlug = async (slug: string): Promise<Website | null> =>
       .from('websites')
       .select('*')
       .eq('slug', slug)
-      .in('status', ['active', 'pending_approval'])
+      .in('status', ['active'])
       .single();
 
     if (error) {
@@ -447,10 +447,28 @@ export const createLinkListing = async (listingData: CreateLinkListingData): Pro
       throw new Error('Utilisateur non connecté');
     }
 
-    // Ajouter l'user_id automatiquement
+    // Récupérer la catégorie du site web si website_id est fourni
+    let websiteCategory = listingData.category;
+    if (listingData.website_id && !listingData.category) {
+      const { data: website, error: websiteError } = await supabase
+        .from('websites')
+        .select('category')
+        .eq('id', listingData.website_id)
+        .single();
+      
+      if (websiteError) {
+        console.warn('Could not fetch website category:', websiteError);
+      } else if (website) {
+        websiteCategory = website.category;
+        console.log(`Using website category: ${websiteCategory}`);
+      }
+    }
+
+    // Ajouter l'user_id et la catégorie automatiquement
     const listingDataWithUser = {
       ...listingData,
-      user_id: user.id
+      user_id: user.id,
+      category: websiteCategory
     };
 
     const { data, error } = await supabase
@@ -1629,7 +1647,7 @@ export const getLinkRecommendations = async (
         if (dr >= 40) return 'silver';
         return 'bronze';
       })() as any,
-      theme: listing.website?.niche || listing.website_category || 'General',
+      theme: listing.website?.niche || listing.website_category || listing.category || 'various',
       existing_article: {
         title: listing.title,
         url: listing.target_url,
@@ -1663,7 +1681,7 @@ export const getLinkRecommendations = async (
         if (dr >= 40) return 'silver';
         return 'bronze';
       })() as any,
-      theme: website.niche || website.category || 'General',
+      theme: website.niche || website.category || 'various',
       new_article: {
         duration: '1 an',
         placement_info: 'Articles seront à 2 clics de la page d\'accueil'
@@ -2449,6 +2467,72 @@ export const sendMessage = async (messageData: {
     return data;
   } catch (error) {
     console.error('Error sending message:', error);
+    throw error;
+  }
+};
+
+// ===== SYNCHRONISATION DES CATÉGORIES =====
+
+export const syncArticleCategoriesWithWebsites = async () => {
+  try {
+    console.log('🔄 Synchronisation des catégories des articles avec leurs sites web...');
+    
+    // Récupérer tous les articles avec leurs sites web
+    const { data: articles, error: fetchError } = await supabase
+      .from('link_listings')
+      .select(`
+        id,
+        title,
+        category,
+        website_id,
+        websites!inner(
+          id,
+          title,
+          category
+        )
+      `);
+    
+    if (fetchError) {
+      console.error('Error fetching articles for sync:', fetchError);
+      throw fetchError;
+    }
+    
+    if (!articles || articles.length === 0) {
+      console.log('ℹ️ Aucun article trouvé pour la synchronisation');
+      return { updated: 0, total: 0 };
+    }
+
+    // Identifier les articles avec des catégories différentes
+    const mismatches = articles.filter(article => 
+      article.category !== article.websites?.category
+    );
+
+    if (mismatches.length === 0) {
+      console.log('✅ Tous les articles ont déjà la bonne catégorie');
+      return { updated: 0, total: articles.length };
+    }
+
+    // Mettre à jour les catégories
+    let updatedCount = 0;
+    for (const article of mismatches) {
+      const { error: updateError } = await supabase
+        .from('link_listings')
+        .update({ category: article.websites?.category })
+        .eq('id', article.id);
+      
+      if (updateError) {
+        console.error(`Error updating article ${article.id}:`, updateError);
+      } else {
+        updatedCount++;
+        console.log(`✅ Article "${article.title}" mis à jour: ${article.category} → ${article.websites?.category}`);
+      }
+    }
+
+    console.log(`🎉 Synchronisation terminée: ${updatedCount}/${mismatches.length} articles mis à jour`);
+    return { updated: updatedCount, total: articles.length };
+    
+  } catch (error) {
+    console.error('Error syncing article categories:', error);
     throw error;
   }
 };

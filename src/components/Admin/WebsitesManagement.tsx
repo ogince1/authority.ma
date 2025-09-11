@@ -20,6 +20,7 @@ import {
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { trackPageView } from '../../utils/analytics';
+import { getCategoryOptions } from '../../utils/categories';
 import toast from 'react-hot-toast';
 
 interface Website {
@@ -320,15 +321,11 @@ const WebsitesManagement: React.FC = () => {
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="all">Toutes les catégories</option>
-              <option value="tech">Tech</option>
-              <option value="business">Business</option>
-              <option value="lifestyle">Lifestyle</option>
-              <option value="health">Santé</option>
-              <option value="education">Éducation</option>
-              <option value="entertainment">Divertissement</option>
-              <option value="sports">Sports</option>
-              <option value="other">Autre</option>
+              {getCategoryOptions().map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>

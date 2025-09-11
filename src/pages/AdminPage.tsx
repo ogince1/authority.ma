@@ -8,6 +8,7 @@ import UsersManagement from '../components/Admin/UsersManagement';
 import DisputesManagement from '../components/Admin/DisputesManagement';
 import TransactionsManagement from '../components/Admin/TransactionsManagement';
 import WebsitesManagement from '../components/Admin/WebsitesManagement';
+import ServicesManagement from '../components/Admin/ServicesManagement';
 import PlatformSettings from '../components/Admin/PlatformSettings';
 import BlogList from '../components/Admin/BlogList';
 import BlogForm from '../components/Admin/BlogForm';
@@ -72,6 +73,13 @@ const AdminPage: React.FC = () => {
       <Route path="/websites" element={
         <ProtectedRoute>
           <WebsitesManagement />
+        </ProtectedRoute>
+      } />
+      
+      {/* Gestion des services */}
+      <Route path="/services" element={
+        <ProtectedRoute>
+          <ServicesManagement />
         </ProtectedRoute>
       } />
       

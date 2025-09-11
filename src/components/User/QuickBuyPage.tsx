@@ -13,10 +13,14 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Zap
+  Zap,
+  ChevronDown,
+  ChevronRight,
+  X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LinkListing, LinkOpportunity } from '../../types';
+import { getCategoryLabel } from '../../utils/categories';
 import { 
   getLinkRecommendations, 
   getCurrentUser, 
@@ -46,11 +50,11 @@ const QuickBuyPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedType, setSelectedType] = useState<string>('all');
   const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 1000 });
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState<number>(0);
   const [processing, setProcessing] = useState(false);
+  const [expandedWebsites, setExpandedWebsites] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadData();
@@ -115,14 +119,61 @@ const QuickBuyPage: React.FC = () => {
     
     const matchesCategory = selectedCategory === 'all' || opportunity.theme === selectedCategory;
     
-    const matchesType = selectedType === 'all' || 
-                       (selectedType === 'existing' && opportunity.type === 'existing_article') ||
-                       (selectedType === 'new' && opportunity.type === 'new_article');
-    
     const matchesPrice = opportunity.price >= priceRange.min && opportunity.price <= priceRange.max;
     
-    return matchesSearch && matchesCategory && matchesType && matchesPrice;
+    return matchesSearch && matchesCategory && matchesPrice;
   }) : [];
+
+  // Organiser les opportunités par site web (grouper par URL pour éviter les doublons)
+  const opportunitiesByWebsite = filteredOpportunities.reduce((acc, opportunity) => {
+    // Utiliser l'URL comme clé pour grouper correctement
+    const websiteKey = opportunity.site_url;
+    
+    if (!acc[websiteKey]) {
+      // Extraire le nom du site sans "(Nouveau)" pour l'affichage
+      const cleanSiteName = opportunity.site_name.replace(/\s*\(Nouveau\)\s*$/, '');
+      
+      acc[websiteKey] = {
+        website: {
+          name: cleanSiteName,
+          url: opportunity.site_url,
+          category: opportunity.theme,
+          tf: opportunity.tf || 0,
+          cf: opportunity.cf || 0
+        },
+        existingArticles: [],
+        newArticle: null // Un seul nouvel article par site
+      };
+    }
+    
+    if (opportunity.type === 'existing_article') {
+      acc[websiteKey].existingArticles.push(opportunity);
+    } else if (opportunity.type === 'new_article' && !acc[websiteKey].newArticle) {
+      acc[websiteKey].newArticle = opportunity;
+    }
+    
+    return acc;
+  }, {} as Record<string, {
+    website: {
+      name: string;
+      url: string;
+      category: string;
+      tf: number;
+      cf: number;
+    };
+    existingArticles: LinkOpportunity[];
+    newArticle: LinkOpportunity | null;
+  }>);
+
+  const toggleWebsiteExpansion = (websiteUrl: string) => {
+    const newExpanded = new Set(expandedWebsites);
+    if (newExpanded.has(websiteUrl)) {
+      newExpanded.delete(websiteUrl);
+    } else {
+      newExpanded.add(websiteUrl);
+    }
+    setExpandedWebsites(newExpanded);
+  };
 
   const addToCart = (listing: LinkOpportunity) => {
     const isVirtual = listing.type === 'new_article';
@@ -285,11 +336,6 @@ const QuickBuyPage: React.FC = () => {
   };
 
   const categories = ['all', ...Array.from(new Set(Array.isArray(opportunities) ? opportunities.map(o => o.theme) : []))];
-  const types = [
-    { value: 'all', label: 'Tous' },
-    { value: 'existing', label: 'Articles existants' },
-    { value: 'new', label: 'Nouveaux articles' }
-  ];
 
   if (loading) {
     return (
@@ -301,171 +347,373 @@ const QuickBuyPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      <div className="mb-8">
-        <div className="flex items-center space-x-3 mb-2">
-          <Zap className="h-8 w-8 text-blue-600" />
-          <h1 className="text-3xl font-bold text-gray-900">Achat Rapide</h1>
+      {/* Hero Section */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-blue-50 to-indigo-50 rounded-2xl p-8 mb-8">
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/10 to-blue-600/10"></div>
+        <div className="relative">
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="p-3 bg-white rounded-xl shadow-sm">
+              <Zap className="h-8 w-8 text-emerald-600" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">
+                Achat Rapide
+              </h1>
+              <p className="text-lg text-gray-600 mt-1">
+                Achetez des liens directement sans créer de campagne
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                <span className="text-sm font-medium text-gray-700">Sites disponibles</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {Object.keys(opportunitiesByWebsite).length}
+              </p>
+            </div>
+            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-sm font-medium text-gray-700">Articles total</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {filteredOpportunities.length}
+              </p>
+            </div>
+            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <span className="text-sm font-medium text-gray-700">Dans le panier</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{cartItems.length}</p>
+            </div>
+            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                <span className="text-sm font-medium text-gray-700">Total</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {calculateTotal().toLocaleString()} MAD
+              </p>
+            </div>
+          </div>
         </div>
-        <p className="text-gray-600">Achetez des liens directement sans créer de campagne</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
         {/* Filtres et recherche */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="lg:col-span-2 min-w-0">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+            {/* Barre de recherche et filtres en une ligne */}
+            <div className="flex flex-col lg:flex-row gap-4 mb-6">
               {/* Recherche */}
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <input
                     type="text"
                     placeholder="Rechercher des liens..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200"
                   />
                 </div>
               </div>
 
-              {/* Filtres */}
-              <div className="flex gap-4">
+              {/* Catégorie */}
+              <div className="lg:w-48">
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200"
                 >
                   {categories.map(category => (
                     <option key={category} value={category}>
-                      {category === 'all' ? 'Toutes catégories' : category}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {types.map(type => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
+                      {category === 'all' ? 'Toutes catégories' : getCategoryLabel(category)}
                     </option>
                   ))}
                 </select>
               </div>
-            </div>
 
-            {/* Plage de prix */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Plage de prix: {priceRange.min} - {priceRange.max} MAD
-              </label>
-              <div className="flex gap-4">
+              {/* Plage de prix compacte */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Prix:</span>
                 <input
                   type="number"
                   placeholder="Min"
                   value={priceRange.min}
                   onChange={(e) => setPriceRange({ ...priceRange, min: Number(e.target.value) })}
-                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-20 px-3 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200 text-sm"
                 />
+                <span className="text-gray-400">-</span>
                 <input
                   type="number"
                   placeholder="Max"
                   value={priceRange.max}
                   onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
-                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-20 px-3 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200 text-sm"
                 />
+                <span className="text-sm text-gray-500 whitespace-nowrap">MAD</span>
               </div>
             </div>
+
+            {/* Résumé des filtres actifs */}
+            {(searchTerm || selectedCategory !== 'all' || priceRange.min > 0 || priceRange.max < 1000) && (
+              <div className="flex flex-wrap items-center gap-2 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                <span className="text-sm font-medium text-emerald-800">Filtres actifs:</span>
+                {searchTerm && (
+                  <span className="inline-flex items-center px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
+                    Recherche: "{searchTerm}"
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="ml-1 text-emerald-600 hover:text-emerald-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedCategory !== 'all' && (
+                  <span className="inline-flex items-center px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
+                    Catégorie: {getCategoryLabel(selectedCategory)}
+                    <button
+                      onClick={() => setSelectedCategory('all')}
+                      className="ml-1 text-emerald-600 hover:text-emerald-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {(priceRange.min > 0 || priceRange.max < 1000) && (
+                  <span className="inline-flex items-center px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
+                    Prix: {priceRange.min} - {priceRange.max} MAD
+                    <button
+                      onClick={() => setPriceRange({ min: 0, max: 1000 })}
+                      className="ml-1 text-emerald-600 hover:text-emerald-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Liste des opportunités */}
-          <div className="space-y-4">
-            {filteredOpportunities.map((opportunity) => (
-              <motion.div
-                key={opportunity.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{opportunity.site_name}</h3>
-                      {opportunity.type === 'new_article' && (
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
-                          Nouveau
-                        </span>
+          {/* Liste des sites web avec accordéon */}
+          <div className="space-y-3">
+            {Object.keys(opportunitiesByWebsite).length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+                <div className="p-4 bg-gray-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+                  <Globe className="h-10 w-10 text-gray-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Aucun site web trouvé</h3>
+                <p className="text-gray-600">Ajustez vos filtres pour voir plus de résultats</p>
+              </div>
+            ) : (
+              Object.entries(opportunitiesByWebsite).map(([websiteUrl, data], index) => (
+                <motion.div
+                  key={websiteUrl}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:shadow-emerald-500/10 transition-all duration-300 overflow-hidden"
+                >
+                {/* En-tête du site web */}
+                <div 
+                  className={`p-4 ${data.existingArticles.length > 0 ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+                  onClick={data.existingArticles.length > 0 ? () => toggleWebsiteExpansion(websiteUrl) : undefined}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      {data.existingArticles.length > 0 && (
+                        <div className="p-1.5 bg-gray-100 rounded-md flex-shrink-0">
+                          {expandedWebsites.has(websiteUrl) ? (
+                            <ChevronDown className="h-4 w-4 text-gray-600" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-gray-600" />
+                          )}
+                        </div>
+                      )}
+                      <div className="flex items-center space-x-3 min-w-0 flex-1">
+                        <div className="p-2 bg-gradient-to-br from-emerald-50 to-blue-50 rounded-lg flex-shrink-0">
+                          <Globe className="h-5 w-5 text-emerald-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-lg font-bold text-gray-900 truncate">{data.website.name}</h3>
+                          <p className="text-xs text-gray-600 truncate">{data.website.url}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Métriques compactes */}
+                    <div className="flex items-center space-x-2 text-xs flex-shrink-0">
+                      <div className="text-center bg-gray-50 rounded-md p-1.5 min-w-[60px]">
+                        <span className="text-gray-500 text-xs">Catégorie</span>
+                        <p className="font-semibold text-gray-900 text-xs leading-tight truncate">{getCategoryLabel(data.website.category)}</p>
+                      </div>
+                      <div className="text-center bg-blue-50 rounded-md p-1.5 min-w-[45px]">
+                        <span className="text-gray-500 text-xs">TF</span>
+                        <p className="font-bold text-blue-600 text-sm">{data.website.tf}</p>
+                      </div>
+                      <div className="text-center bg-purple-50 rounded-md p-1.5 min-w-[45px]">
+                        <span className="text-gray-500 text-xs">CF</span>
+                        <p className="font-bold text-purple-600 text-sm">{data.website.cf}</p>
+                      </div>
+                      <div className="text-center bg-emerald-50 rounded-md p-1.5 min-w-[55px]">
+                        <span className="text-gray-500 text-xs">Articles</span>
+                        <p className="font-bold text-emerald-600 text-sm">{data.existingArticles.length + (data.newArticle ? 1 : 0)}</p>
+                      </div>
+                      {data.newArticle && (
+                        <div className="text-center bg-green-50 rounded-md p-1.5 min-w-[70px]">
+                          <span className="text-gray-500 text-xs">Nouveau</span>
+                          <p className="font-bold text-green-600 text-xs">{data.newArticle.price.toLocaleString()} MAD</p>
+                        </div>
                       )}
                     </div>
-                    <p className="text-gray-600 mb-3">
-                      {opportunity.existing_article?.title || 'Nouvel article à créer'}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                        {opportunity.theme}
-                      </span>
-                      <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm">
-                        {opportunity.site_url}
-                      </span>
-                      <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">
-                        {opportunity.type === 'existing_article' ? 'Article existant' : 'Nouvel article'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right ml-4">
-                    <p className="text-2xl font-bold text-green-600 mb-2">
-                      {opportunity.price.toLocaleString()} MAD
-                    </p>
-                    <button
-                      onClick={() => addToCart(opportunity)}
-                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Ajouter au panier
-                    </button>
+                    
+                    {/* Bouton pour commander directement les nouveaux articles */}
+                    {data.newArticle && (
+                      <div className="flex-shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(data.newArticle!);
+                          }}
+                          className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all duration-300 text-sm font-semibold whitespace-nowrap shadow-sm hover:shadow-md"
+                        >
+                          <ShoppingCart className="h-4 w-4 mr-1.5" />
+                          Ajouter
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Contenu de l'accordéon - Articles existants uniquement */}
+                {expandedWebsites.has(websiteUrl) && data.existingArticles.length > 0 && (
+                  <div className="border-t border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50">
+                    <div className="p-4">
+                      <div className="flex items-center space-x-3 mb-4">
+                        <div className="p-1.5 bg-blue-100 rounded-md">
+                          <FileText className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <h4 className="text-md font-bold text-gray-900">Articles existants</h4>
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                          {data.existingArticles.length} article{data.existingArticles.length > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Site</th>
+                              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Catégorie</th>
+                              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">TF</th>
+                              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">CF</th>
+                              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Prix</th>
+                              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {data.existingArticles.map((article) => (
+                              <tr key={article.id} className="border-b border-gray-100 hover:bg-white/50 transition-colors">
+                                <td className="py-3 px-4">
+                                  <div>
+                                    <p className="font-semibold text-gray-900 text-sm">{article.site_name}</p>
+                                    <p className="text-xs text-gray-600 mt-1 truncate">{article.existing_article?.title}</p>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                                    {getCategoryLabel(article.theme)}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className="font-bold text-blue-600 text-sm">{article.tf || 0}</span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className="font-bold text-purple-600 text-sm">{article.cf || 0}</span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                                    {article.price.toLocaleString()} MAD
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <button
+                                    onClick={() => addToCart(article)}
+                                    className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 text-xs font-semibold shadow-sm hover:shadow-md"
+                                  >
+                                    <ShoppingCart className="h-3 w-3 mr-1" />
+                                    Ajouter
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </motion.div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
         {/* Panier */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
-            <div className="flex items-center space-x-2 mb-4">
-              <ShoppingCart className="h-5 w-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Panier</h2>
-              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+        <div className="lg:col-span-1 min-w-0">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 sticky top-6 z-10">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <ShoppingCart className="h-6 w-6 text-emerald-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Panier</h2>
+              <span className="bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-semibold">
                 {cartItems.length}
               </span>
             </div>
 
             {cartItems.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">Votre panier est vide</p>
+              <div className="text-center py-12">
+                <div className="p-4 bg-gray-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                  <ShoppingCart className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500 font-medium">Votre panier est vide</p>
+                <p className="text-gray-400 text-sm mt-1">Ajoutez des articles pour commencer</p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {cartItems.map((item, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <h4 className="font-medium text-gray-900 mb-2">{item.listing.site_name}</h4>
+                  <div key={index} className="border border-gray-100 rounded-xl p-4 bg-gradient-to-r from-gray-50 to-blue-50">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-gray-900">{item.listing.site_name}</h4>
+                      <button
+                        onClick={() => removeFromCart(index)}
+                        className="text-red-500 hover:text-red-700 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                     
                     {/* Champs requis */}
-                    <div className="space-y-2 mb-3">
+                    <div className="space-y-3 mb-4">
                       <input
                         type="url"
                         placeholder="URL cible *"
                         value={item.targetUrl}
                         onChange={(e) => updateCartItem(index, 'targetUrl', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white transition-all duration-200"
                       />
                       <input
                         type="text"
                         placeholder="Texte d'ancrage *"
                         value={item.anchorText}
                         onChange={(e) => updateCartItem(index, 'anchorText', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white transition-all duration-200"
                       />
                     </div>
 
@@ -540,30 +788,33 @@ const QuickBuyPage: React.FC = () => {
 
                 {/* Total et bouton d'achat */}
                 <div className="border-t pt-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-lg font-semibold text-gray-900">Total:</span>
-                    <span className="text-xl font-bold text-green-600">
-                      {calculateTotal().toLocaleString()} MAD
-                    </span>
-                  </div>
-                  
-                  <div className="text-sm text-gray-600 mb-4">
-                    Solde disponible: {balance.toLocaleString()} MAD
+                  <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-4 mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-lg font-semibold text-gray-900">Total:</span>
+                      <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                        {calculateTotal().toLocaleString()} MAD
+                      </span>
+                    </div>
+                    
+                    <div className="text-sm text-gray-600 flex items-center space-x-2">
+                      <DollarSign className="h-4 w-4" />
+                      <span>Solde disponible: {balance.toLocaleString()} MAD</span>
+                    </div>
                   </div>
 
                   <button
                     onClick={processQuickBuy}
                     disabled={processing || cartItems.length === 0}
-                    className="w-full py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-xl hover:from-emerald-700 hover:to-green-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3 font-semibold shadow-lg hover:shadow-xl hover:shadow-emerald-500/25 transform hover:-translate-y-0.5 disabled:transform-none"
                   >
                     {processing ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                         <span>Traitement...</span>
                       </>
                     ) : (
                       <>
-                        <Zap className="h-4 w-4" />
+                        <Zap className="h-5 w-5" />
                         <span>Achat Rapide</span>
                       </>
                     )}

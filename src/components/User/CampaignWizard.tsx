@@ -16,7 +16,8 @@ import {
   ExternalLink,
   Info,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  ChevronDown
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CreateCampaignData, LinkOpportunity, LinkQualityType } from '../../types';
@@ -36,7 +37,6 @@ const CampaignWizard: React.FC = () => {
   const [analysisResults, setAnalysisResults] = React.useState<any[]>([]);
   const [createdCampaignId, setCreatedCampaignId] = React.useState<string | null>(null);
   const [recommendations, setRecommendations] = React.useState<any>(null);
-  const [activeTab, setActiveTab] = React.useState<'existing' | 'new'>('existing');
   const [filters, setFilters] = React.useState({
     price_min: '',
     price_max: '',
@@ -47,6 +47,7 @@ const CampaignWizard: React.FC = () => {
   });
   const [searchTerm, setSearchTerm] = React.useState('');
   const [cartIds, setCartIds] = React.useState<string[]>([]);
+  const [expandedWebsites, setExpandedWebsites] = React.useState<Set<string>>(new Set());
 
   // Charger les IDs du panier au montage
   React.useEffect(() => {
@@ -251,6 +252,90 @@ const CampaignWizard: React.FC = () => {
       
       return true;
     });
+  };
+
+  // Organiser toutes les opportunités par site web (grouper par URL pour éviter les doublons)
+  const organizeAllOpportunitiesByWebsite = () => {
+    if (!recommendations) return {};
+    
+    const allOpportunities = [
+      ...(recommendations.existing_articles || []),
+      ...(recommendations.new_articles || [])
+    ];
+    
+    const filtered = allOpportunities.filter(opportunity => {
+      if (filters.price_min && opportunity.price < parseFloat(filters.price_min)) return false;
+      if (filters.price_max && opportunity.price > parseFloat(filters.price_max)) return false;
+      if (filters.dr_min && (opportunity.site_metrics.dr || 0) < parseFloat(filters.dr_min)) return false;
+      if (filters.tf_min && (opportunity.site_metrics.tf || 0) < parseFloat(filters.tf_min)) return false;
+      if (filters.ps_min && (opportunity.site_metrics.ps || 0) < parseFloat(filters.ps_min)) return false;
+      if (filters.type && opportunity.quality_type !== filters.type) return false;
+      
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const title = opportunity.existing_article?.title || opportunity.site_name;
+        const url = opportunity.existing_article?.url || opportunity.site_url;
+        const theme = opportunity.theme;
+        
+        if (!title?.toLowerCase().includes(searchLower) && 
+            !url?.toLowerCase().includes(searchLower) && 
+            !theme?.toLowerCase().includes(searchLower)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+    
+    return filtered.reduce((acc, opportunity) => {
+      // Utiliser l'URL comme clé pour grouper correctement
+      const websiteKey = opportunity.site_url;
+      
+      if (!acc[websiteKey]) {
+        // Extraire le nom du site sans "(Nouveau)" pour l'affichage
+        const cleanSiteName = opportunity.site_name.replace(/\s*\(Nouveau\)\s*$/, '');
+        
+        acc[websiteKey] = {
+          website: {
+            name: cleanSiteName,
+            url: opportunity.site_url,
+            category: opportunity.theme,
+            tf: opportunity.site_metrics.tf || 0,
+            cf: opportunity.site_metrics.cf || 0
+          },
+          existingArticles: [],
+          newArticle: null
+        };
+      }
+      
+      if (opportunity.existing_article) {
+        acc[websiteKey].existingArticles.push(opportunity);
+      } else if (!acc[websiteKey].newArticle) {
+        acc[websiteKey].newArticle = opportunity;
+      }
+      
+      return acc;
+    }, {} as Record<string, {
+      website: {
+        name: string;
+        url: string;
+        category: string;
+        tf: number;
+        cf: number;
+      };
+      existingArticles: LinkOpportunity[];
+      newArticle: LinkOpportunity | null;
+    }>);
+  };
+
+  const toggleWebsiteExpansion = (websiteUrl: string) => {
+    const newExpanded = new Set(expandedWebsites);
+    if (newExpanded.has(websiteUrl)) {
+      newExpanded.delete(websiteUrl);
+    } else {
+      newExpanded.add(websiteUrl);
+    }
+    setExpandedWebsites(newExpanded);
   };
 
   const OpportunityRow: React.FC<{ opportunity: LinkOpportunity; type: 'existing' | 'new' }> = ({ opportunity, type }) => {
@@ -490,8 +575,8 @@ const CampaignWizard: React.FC = () => {
                   </div>
                 </div>
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <div className="text-sm font-medium text-yellow-900">Articles Existants</div>
-                  <div className="text-2xl font-bold text-yellow-900">{recommendations.existing_articles?.length || 0}</div>
+                  <div className="text-sm font-medium text-yellow-900">Nouveaux Articles</div>
+                  <div className="text-2xl font-bold text-yellow-900">{recommendations.new_articles?.length || 0}</div>
                 </div>
               </div>
             )}
@@ -577,60 +662,157 @@ const CampaignWizard: React.FC = () => {
               </div>
             )}
 
-            {/* Onglets */}
-            {recommendations && (
-              <div className="border-b border-gray-200 mb-6">
-                <nav className="-mb-px flex space-x-8">
-                  <button
-                    onClick={() => setActiveTab('existing')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'existing'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    Articles Existants ({recommendations.existing_articles?.length || 0})
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('new')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'new'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    Nouveaux Articles ({recommendations.new_articles?.length || 0})
-                  </button>
-                </nav>
-              </div>
-            )}
 
-            {/* Tableau des opportunités */}
+            {/* Liste des sites web avec accordéon */}
             {recommendations && (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Titre</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TF</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thème</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cmd</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {activeTab === 'existing' ? (
-                      filterOpportunities(recommendations.existing_articles || [], 'existing').map((opportunity: LinkOpportunity, index: number) => (
-                        <OpportunityRow key={opportunity.id} opportunity={opportunity} type="existing" />
-                      ))
-                    ) : (
-                      filterOpportunities(recommendations.new_articles || [], 'new').map((opportunity: LinkOpportunity, index: number) => (
-                        <OpportunityRow key={opportunity.id} opportunity={opportunity} type="new" />
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              <div className="space-y-4">
+                {(() => {
+                  const opportunitiesByWebsite = organizeAllOpportunitiesByWebsite();
+                  
+                  return Object.keys(opportunitiesByWebsite).length === 0 ? (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+                      <Globe className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun site web trouvé</h3>
+                      <p className="text-gray-600">Ajustez vos filtres pour voir plus de résultats</p>
+                    </div>
+                  ) : (
+                    Object.entries(opportunitiesByWebsite).map(([websiteUrl, data]) => (
+                      <motion.div
+                        key={websiteUrl}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white rounded-lg shadow-sm border border-gray-200"
+                      >
+                        {/* En-tête du site web */}
+                        <div 
+                          className={`p-6 ${data.existingArticles.length > 0 ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+                          onClick={data.existingArticles.length > 0 ? () => toggleWebsiteExpansion(websiteUrl) : undefined}
+                        >
+                          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div className="flex items-center space-x-4">
+                              {data.existingArticles.length > 0 && (
+                                expandedWebsites.has(websiteUrl) ? (
+                                  <ChevronDown className="h-5 w-5 text-gray-400" />
+                                ) : (
+                                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                                )
+                              )}
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-900">{data.website.name}</h3>
+                                <p className="text-sm text-gray-600">{data.website.url}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                              <div className="flex items-center space-x-4 text-sm">
+                                <div className="text-center">
+                                  <span className="text-gray-500">Catégorie</span>
+                                  <p className="font-medium">{data.website.category}</p>
+                                </div>
+                                <div className="text-center">
+                                  <span className="text-gray-500">TF</span>
+                                  <p className="font-medium">{data.website.tf}</p>
+                                </div>
+                                <div className="text-center">
+                                  <span className="text-gray-500">CF</span>
+                                  <p className="font-medium">{data.website.cf}</p>
+                                </div>
+                                <div className="text-center">
+                                  <span className="text-gray-500">Articles</span>
+                                  <p className="font-medium">{data.existingArticles.length + (data.newArticle ? 1 : 0)}</p>
+                                </div>
+                                {data.newArticle && (
+                                  <div className="text-center">
+                                    <span className="text-gray-500">Nouveau</span>
+                                    <p className="font-medium text-green-600">{data.newArticle.price.toLocaleString()} MAD</p>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Bouton pour commander directement les nouveaux articles */}
+                              {data.newArticle && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddToCart(data.newArticle!, 'new');
+                                  }}
+                                  className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm whitespace-nowrap"
+                                >
+                                  <ShoppingCart className="h-4 w-4 mr-2" />
+                                  Ajouter
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Contenu de l'accordéon - Articles existants uniquement */}
+                        {expandedWebsites.has(websiteUrl) && data.existingArticles.length > 0 && (
+                          <div className="border-t border-gray-200">
+                            <div className="p-6">
+                              <h4 className="text-md font-semibold text-gray-900 mb-4">Articles existants</h4>
+                              <div className="overflow-x-auto">
+                                <table className="w-full">
+                                  <thead>
+                                    <tr className="border-b border-gray-200">
+                                      <th className="text-left py-3 px-4 font-medium text-gray-700">Site</th>
+                                      <th className="text-left py-3 px-4 font-medium text-gray-700">Catégorie</th>
+                                      <th className="text-left py-3 px-4 font-medium text-gray-700">TF</th>
+                                      <th className="text-left py-3 px-4 font-medium text-gray-700">CF</th>
+                                      <th className="text-left py-3 px-4 font-medium text-gray-700">Prix</th>
+                                      <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {data.existingArticles.map((article) => {
+                                      const isInCart = cartIds.includes(article.id);
+                                      return (
+                                        <tr key={article.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                          <td className="py-3 px-4">
+                                            <div>
+                                              <p className="font-medium text-gray-900">{article.site_name}</p>
+                                              <p className="text-sm text-gray-600">{article.existing_article?.title}</p>
+                                            </div>
+                                          </td>
+                                          <td className="py-3 px-4">
+                                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                                              {article.theme}
+                                            </span>
+                                          </td>
+                                          <td className="py-3 px-4 font-medium">{article.site_metrics.tf || 0}</td>
+                                          <td className="py-3 px-4 font-medium">{article.site_metrics.cf || 0}</td>
+                                          <td className="py-3 px-4">
+                                            <span className="text-lg font-bold text-green-600">
+                                              {article.price.toLocaleString()} MAD
+                                            </span>
+                                          </td>
+                                          <td className="py-3 px-4">
+                                            <button
+                                              onClick={() => handleAddToCart(article, 'existing')}
+                                              disabled={isInCart}
+                                              className={`inline-flex items-center px-3 py-1 rounded text-sm transition-colors ${
+                                                isInCart 
+                                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                                                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                                              }`}
+                                            >
+                                              <ShoppingCart className="h-3 w-3 mr-1" />
+                                              {isInCart ? 'Dans le panier' : 'Ajouter'}
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    ))
+                  );
+                })()}
               </div>
             )}
 

@@ -21,6 +21,7 @@ import { getCurrentUser } from '../lib/supabase';
 import WebsiteCard from '../components/Websites/WebsiteCard';
 import WebsiteForm from '../components/Websites/WebsiteForm';
 import { trackPageView } from '../utils/analytics';
+import { getCategoryOptions } from '../utils/categories';
 import toast from 'react-hot-toast';
 
 const UserWebsitesPage: React.FC = () => {
@@ -89,7 +90,7 @@ const UserWebsitesPage: React.FC = () => {
   const stats = {
     total: websites.length,
     active: websites.filter(w => w.status === 'active').length,
-    pending: websites.filter(w => w.status === 'pending_approval').length,
+    pending: 0, // Plus de sites en attente d'approbation
     rejected: websites.filter(w => w.status === 'suspended').length
   };
 
@@ -97,8 +98,6 @@ const UserWebsitesPage: React.FC = () => {
     switch (status) {
       case 'active':
         return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending_approval':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'suspended':
         return 'bg-red-100 text-red-800 border-red-200';
       default:
@@ -110,8 +109,6 @@ const UserWebsitesPage: React.FC = () => {
     switch (status) {
       case 'active':
         return 'Actif';
-      case 'pending_approval':
-        return 'En attente';
       case 'suspended':
         return 'Suspendu';
       default:
@@ -215,7 +212,6 @@ const UserWebsitesPage: React.FC = () => {
             >
               <option value="all">Tous les statuts</option>
               <option value="active">Actifs</option>
-              <option value="pending_approval">En attente</option>
               <option value="suspended">Suspendus</option>
             </select>
             <select
@@ -223,13 +219,11 @@ const UserWebsitesPage: React.FC = () => {
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="all">Toutes les catégories</option>
-              <option value="blog">Blog</option>
-              <option value="ecommerce">E-commerce</option>
-              <option value="actualites">Actualités</option>
-              <option value="lifestyle">Lifestyle</option>
-              <option value="tech">Technologie</option>
-              <option value="business">Business</option>
+              {getCategoryOptions().map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>

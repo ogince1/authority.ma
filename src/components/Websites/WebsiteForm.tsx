@@ -16,6 +16,7 @@ import {
 import { motion } from 'framer-motion';
 import { Website, CreateWebsiteData, WebsiteCategory, WebsiteNiche, OwnerStatus } from '../../types';
 import { createWebsite, updateWebsite, uploadImage, uploadMultipleImages } from '../../lib/supabase';
+import { WEBSITE_CATEGORIES } from '../../utils/categories';
 import toast from 'react-hot-toast';
 
 interface WebsiteFormProps {
@@ -80,24 +81,7 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
 
   const watchedLanguages = watch('languages');
 
-  const categories: { value: WebsiteCategory; label: string }[] = [
-    { value: 'blog', label: 'Blog' },
-    { value: 'ecommerce', label: 'E-commerce' },
-    { value: 'actualites', label: 'Actualités' },
-    { value: 'lifestyle', label: 'Lifestyle' },
-    { value: 'tech', label: 'Technologie' },
-    { value: 'business', label: 'Business' },
-    { value: 'sante', label: 'Santé' },
-    { value: 'education', label: 'Éducation' },
-    { value: 'immobilier', label: 'Immobilier' },
-    { value: 'automobile', label: 'Automobile' },
-    { value: 'voyage', label: 'Voyage' },
-    { value: 'cuisine', label: 'Cuisine' },
-    { value: 'sport', label: 'Sport' },
-    { value: 'culture', label: 'Culture' },
-    { value: 'politique', label: 'Politique' },
-    { value: 'economie', label: 'Économie' }
-  ];
+  const categories = WEBSITE_CATEGORIES;
 
 
   const ownerStatuses: { value: OwnerStatus; label: string }[] = [
@@ -159,7 +143,7 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
         ...data,
         slug: generateSlug(data.title),
         logo: logo || undefined,
-        status: 'pending_approval',
+        status: 'active',
         meta_title: data.title,
         meta_description: data.description.substring(0, 160)
       };

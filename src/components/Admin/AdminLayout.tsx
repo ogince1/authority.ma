@@ -27,6 +27,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Tableau de Bord', href: '/admin', icon: LayoutDashboard },
     { name: 'Utilisateurs', href: '/admin/users', icon: Users },
     { name: 'Sites Web', href: '/admin/websites', icon: FolderOpen },
+    { name: 'Services', href: '/admin/services', icon: Settings },
     { name: 'Disputes', href: '/admin/disputes', icon: AlertTriangle },
     { name: 'Transactions', href: '/admin/transactions', icon: TrendingUp },
     { name: 'Blog', href: '/admin/blog', icon: FileText },
