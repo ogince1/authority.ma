@@ -8,6 +8,7 @@ import {
   checkAdvertiserBalance,
   getCurrentUser,
   supabase,
+  acceptPurchaseRequest,
   acceptPurchaseRequestWithUrl,
   getPurchaseRequestDetails
 } from '../../lib/supabase';

@@ -25,6 +25,19 @@ const PublisherDashboard: React.FC = () => {
   const [placedUrl, setPlacedUrl] = useState('');
   const [processing, setProcessing] = useState(false);
 
+  // Fonction pour recharger le solde
+  const refreshBalance = async () => {
+    if (user) {
+      try {
+        const userBalance = await getUserBalance(user.id);
+        setBalance(userBalance);
+        console.log('💰 Solde éditeur mis à jour:', userBalance);
+      } catch (error) {
+        console.error('Error refreshing publisher balance:', error);
+      }
+    }
+  };
+
   // Vérifier l'authentification et charger les données
   useEffect(() => {
     const loadData = async () => {
@@ -69,6 +82,24 @@ const PublisherDashboard: React.FC = () => {
 
     loadData();
   }, [navigate]);
+
+  // Écouter les événements de mise à jour du solde
+  useEffect(() => {
+    const handleBalanceUpdate = () => {
+      refreshBalance();
+    };
+
+    // Écouter les événements personnalisés pour la mise à jour du solde
+    window.addEventListener('balance-updated', handleBalanceUpdate);
+    
+    // Recharger le solde toutes les 30 secondes
+    const interval = setInterval(refreshBalance, 30000);
+
+    return () => {
+      window.removeEventListener('balance-updated', handleBalanceUpdate);
+      clearInterval(interval);
+    };
+  }, [user]);
 
   // Gérer la réponse à une demande
   const handleRespondToRequest = async (request: LinkPurchaseRequest, status: 'accepted' | 'rejected') => {

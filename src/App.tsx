@@ -27,8 +27,21 @@ import CreateDisputeForm from './components/User/CreateDisputeForm';
 import DisputeDetail from './components/User/DisputeDetail';
 import DisputeMessages from './components/User/DisputeMessages';
 import ErrorBoundary from './components/ErrorBoundary';
+import { startCronJobs } from './utils/cronJobs';
 
 function App() {
+  // Démarrer les tâches cron au démarrage de l'application
+  React.useEffect(() => {
+    const intervalId = startCronJobs();
+    
+    // Nettoyer l'intervalle lors du démontage
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, []);
+
   return (
     <HelmetProvider>
       <ErrorBoundary>

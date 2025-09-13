@@ -19,7 +19,7 @@ import {
   X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { LinkListing, LinkOpportunity } from '../../types';
+import { LinkListing } from '../../types';
 import { getCategoryLabel } from '../../utils/categories';
 import { 
   getLinkRecommendations, 
@@ -33,7 +33,7 @@ import {
 import toast from 'react-hot-toast';
 
 interface QuickBuyItem {
-  listing: LinkOpportunity;
+  listing: any; // Peut être LinkListing ou Website transformé
   quantity: number;
   anchorText: string;
   targetUrl: string;
@@ -45,7 +45,7 @@ interface QuickBuyItem {
 
 const QuickBuyPage: React.FC = () => {
   const navigate = useNavigate();
-  const [opportunities, setOpportunities] = useState<LinkOpportunity[]>([]);
+  const [opportunities, setOpportunities] = useState<any[]>([]);
   const [cartItems, setCartItems] = useState<QuickBuyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -77,23 +77,44 @@ const QuickBuyPage: React.FC = () => {
       console.log('Recommendations received:', recommendations);
       console.log('Type of recommendations:', typeof recommendations);
       
-      // Extraire les opportunités du résultat
+      // Extraire les données du résultat
       if (recommendations) {
-        const existingArticles = recommendations.existing_articles || [];
-        const newArticles = recommendations.new_articles || [];
+        const websites = recommendations.websites || [];
+        const linkListings = recommendations.link_listings || [];
         
-        // Dédupliquer les opportunités par ID pour éviter les clés dupliquées
-        const allOpportunities = [...existingArticles, ...newArticles];
-        const uniqueOpportunities = allOpportunities.filter((opportunity, index, self) => 
-          index === self.findIndex(o => o.id === opportunity.id)
-        );
+        console.log('Websites (headers):', websites.length);
+        console.log('Link listings (articles):', linkListings.length);
         
-        console.log('Existing articles:', existingArticles.length);
-        console.log('New articles:', newArticles.length);
-        console.log('Total before deduplication:', allOpportunities.length);
-        console.log('Total after deduplication:', uniqueOpportunities.length);
+        // Créer la structure d'accordéon : websites comme headers, link_listings comme contenu
+        const accordionData = websites.map(website => {
+          // Trouver les articles existants pour ce site
+          const siteArticles = linkListings.filter(listing => listing.website_id === website.id);
+          
+          return {
+            website: {
+              id: website.id,
+              name: website.title || website.name || 'Site sans nom',
+              url: website.url || '',
+              category: website.category || 'various',
+              tf: website.domain_authority || 0,
+              cf: 0, // Pas de CF dans websites
+              description: website.description || ''
+            },
+            existingArticles: siteArticles,
+            newArticle: {
+              id: `new-${website.id}`,
+              website_id: website.id,
+              title: website.title || website.name || 'Site sans nom',
+              description: website.description || '',
+              target_url: website.url || '',
+              price: website.new_article_price || 80, // Utiliser le prix défini par l'éditeur
+              currency: 'MAD',
+              type: 'new_article'
+            }
+          };
+        });
         
-        setOpportunities(uniqueOpportunities);
+        setOpportunities(accordionData);
       } else {
         console.warn('No recommendations received, setting empty array');
         setOpportunities([]);
@@ -112,70 +133,55 @@ const QuickBuyPage: React.FC = () => {
     }
   };
 
-  const filteredOpportunities = Array.isArray(opportunities) ? opportunities.filter(opportunity => {
-    const matchesSearch = opportunity.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (opportunity.existing_article?.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         opportunity.site_url.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredOpportunities = Array.isArray(opportunities) ? opportunities.filter(data => {
+    const website = data.website;
+    const newArticle = data.newArticle;
+    const existingArticles = data.existingArticles;
+
+    const matchesSearch = (website.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (website.url || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (newArticle?.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         existingArticles.some(article => 
+                           (article.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (article.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (article.target_url || '').toLowerCase().includes(searchTerm.toLowerCase())
+                         );
     
-    const matchesCategory = selectedCategory === 'all' || opportunity.theme === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || website.category === selectedCategory;
     
-    const matchesPrice = opportunity.price >= priceRange.min && opportunity.price <= priceRange.max;
+    const matchesPrice = (newArticle?.price || 0) >= priceRange.min && (newArticle?.price || 0) <= priceRange.max ||
+                         existingArticles.some(article => article.price >= priceRange.min && article.price <= priceRange.max);
     
     return matchesSearch && matchesCategory && matchesPrice;
   }) : [];
 
-  // Organiser les opportunités par site web (grouper par URL pour éviter les doublons)
-  const opportunitiesByWebsite = filteredOpportunities.reduce((acc, opportunity) => {
-    // Utiliser l'URL comme clé pour grouper correctement
-    const websiteKey = opportunity.site_url;
+  // Trier les sites web pour afficher ceux avec des articles en premier
+  const sortedWebsites = opportunities.sort((a, b) => {
+    // Vérifier que les objets existent
+    if (!a || !b || !a.website || !b.website) return 0;
     
-    if (!acc[websiteKey]) {
-      // Extraire le nom du site sans "(Nouveau)" pour l'affichage
-      const cleanSiteName = opportunity.site_name.replace(/\s*\(Nouveau\)\s*$/, '');
-      
-      acc[websiteKey] = {
-        website: {
-          name: cleanSiteName,
-          url: opportunity.site_url,
-          category: opportunity.theme,
-          tf: opportunity.tf || 0,
-          cf: opportunity.cf || 0
-        },
-        existingArticles: [],
-        newArticle: null // Un seul nouvel article par site
-      };
+    // Priorité 1: Sites avec plus d'articles existants
+    if (a.existingArticles.length !== b.existingArticles.length) {
+      return b.existingArticles.length - a.existingArticles.length;
     }
     
-    if (opportunity.type === 'existing_article') {
-      acc[websiteKey].existingArticles.push(opportunity);
-    } else if (opportunity.type === 'new_article' && !acc[websiteKey].newArticle) {
-      acc[websiteKey].newArticle = opportunity;
-    }
-    
-    return acc;
-  }, {} as Record<string, {
-    website: {
-      name: string;
-      url: string;
-      category: string;
-      tf: number;
-      cf: number;
-    };
-    existingArticles: LinkOpportunity[];
-    newArticle: LinkOpportunity | null;
-  }>);
+    // Priorité 2: Ordre alphabétique
+    const nameA = a.website.name || '';
+    const nameB = b.website.name || '';
+    return nameA.localeCompare(nameB);
+  });
 
-  const toggleWebsiteExpansion = (websiteUrl: string) => {
+  const toggleWebsiteExpansion = (websiteKey: string) => {
     const newExpanded = new Set(expandedWebsites);
-    if (newExpanded.has(websiteUrl)) {
-      newExpanded.delete(websiteUrl);
+    if (newExpanded.has(websiteKey)) {
+      newExpanded.delete(websiteKey);
     } else {
-      newExpanded.add(websiteUrl);
+      newExpanded.add(websiteKey);
     }
     setExpandedWebsites(newExpanded);
   };
 
-  const addToCart = (listing: LinkOpportunity) => {
+  const addToCart = (listing: any) => {
     const isVirtual = listing.type === 'new_article';
     const newItem: QuickBuyItem = {
       listing,
@@ -258,10 +264,13 @@ const QuickBuyPage: React.FC = () => {
 
         if (isVirtualLink) {
           // Pour les nouveaux articles, récupérer le publisher_id du website
+          // L'ID du listing pour les nouveaux articles est "new-{website_id}"
+          const websiteId = item.listing.id.replace('new-', '');
+          
           const { data: website, error: websiteError } = await supabase
             .from('websites')
             .select('user_id')
-            .eq('id', item.listing.id)
+            .eq('id', websiteId)
             .single();
           
           if (websiteError) {
@@ -270,9 +279,8 @@ const QuickBuyPage: React.FC = () => {
           }
           
           publisherId = website.user_id;
-          // Pour les nouveaux articles, ne pas créer de link_listing
-          // Utiliser directement l'ID du website comme référence
-          listingId = item.listing.id;
+          // Pour les nouveaux articles, utiliser l'ID du website comme référence
+          listingId = websiteId;
         } else {
           // Pour les articles existants, récupérer le publisher_id du listing
           const { data: existingListing } = await supabase
@@ -296,15 +304,9 @@ const QuickBuyPage: React.FC = () => {
           proposed_duration: 1
         });
 
-        // Créer la transaction de crédit
-        await createCreditTransaction({
-          user_id: user.id,
-          type: 'purchase',
-          amount: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
-          description: `Achat rapide: ${item.listing.title}`,
-          payment_method: 'manual',
-          related_purchase_request_id: purchaseRequest.id
-        });
+        // NE PAS créer de transaction de crédit ici - le débit se fera lors de la confirmation
+        // L'annonceur sera débité uniquement quand l'éditeur acceptera ET que l'annonceur confirmera
+        console.log(`Achat rapide créé pour: ${item.listing.title} - Le paiement se fera lors de la confirmation`);
 
         // Créer une notification pour l'éditeur
         await createNotification({
@@ -335,7 +337,7 @@ const QuickBuyPage: React.FC = () => {
     }
   };
 
-  const categories = ['all', ...Array.from(new Set(Array.isArray(opportunities) ? opportunities.map(o => o.theme) : []))];
+  const categories = ['all', ...Array.from(new Set(Array.isArray(opportunities) ? opportunities.map(o => o.website?.category).filter(Boolean) : []))];
 
   if (loading) {
     return (
@@ -371,7 +373,7 @@ const QuickBuyPage: React.FC = () => {
                 <span className="text-sm font-medium text-gray-700">Sites disponibles</span>
               </div>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {Object.keys(opportunitiesByWebsite).length}
+                {opportunities.length}
               </p>
             </div>
             <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
@@ -380,7 +382,7 @@ const QuickBuyPage: React.FC = () => {
                 <span className="text-sm font-medium text-gray-700">Articles total</span>
               </div>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {filteredOpportunities.length}
+                {opportunities.reduce((total, data) => total + data.existingArticles.length + (data.newArticle ? 1 : 0), 0)}
               </p>
             </div>
             <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
@@ -503,7 +505,7 @@ const QuickBuyPage: React.FC = () => {
 
           {/* Liste des sites web avec accordéon */}
           <div className="space-y-3">
-            {Object.keys(opportunitiesByWebsite).length === 0 ? (
+            {opportunities.length === 0 ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
                 <div className="p-4 bg-gray-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
                   <Globe className="h-10 w-10 text-gray-400" />
@@ -512,9 +514,9 @@ const QuickBuyPage: React.FC = () => {
                 <p className="text-gray-600">Ajustez vos filtres pour voir plus de résultats</p>
               </div>
             ) : (
-              Object.entries(opportunitiesByWebsite).map(([websiteUrl, data], index) => (
+              sortedWebsites.map((data, index) => (
                 <motion.div
-                  key={websiteUrl}
+                  key={data.website.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
@@ -522,20 +524,18 @@ const QuickBuyPage: React.FC = () => {
                 >
                 {/* En-tête du site web */}
                 <div 
-                  className={`p-4 ${data.existingArticles.length > 0 ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
-                  onClick={data.existingArticles.length > 0 ? () => toggleWebsiteExpansion(websiteUrl) : undefined}
+                  className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => toggleWebsiteExpansion(data.website.id)}
                 >
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center space-x-3 min-w-0 flex-1">
-                      {data.existingArticles.length > 0 && (
-                        <div className="p-1.5 bg-gray-100 rounded-md flex-shrink-0">
-                          {expandedWebsites.has(websiteUrl) ? (
-                            <ChevronDown className="h-4 w-4 text-gray-600" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-600" />
-                          )}
-                        </div>
-                      )}
+                      <div className="p-1.5 bg-gray-100 rounded-md flex-shrink-0">
+                        {expandedWebsites.has(data.website.id) ? (
+                          <ChevronDown className="h-4 w-4 text-gray-600" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-gray-600" />
+                        )}
+                      </div>
                       <div className="flex items-center space-x-3 min-w-0 flex-1">
                         <div className="p-2 bg-gradient-to-br from-emerald-50 to-blue-50 rounded-lg flex-shrink-0">
                           <Globe className="h-5 w-5 text-emerald-600" />
@@ -591,8 +591,9 @@ const QuickBuyPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Contenu de l'accordéon - Articles existants uniquement */}
-                {expandedWebsites.has(websiteUrl) && data.existingArticles.length > 0 && (
+
+                {/* Contenu de l'accordéon - Articles existants */}
+                {expandedWebsites.has(data.website.id) && data.existingArticles.length > 0 && (
                   <div className="border-t border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50">
                     <div className="p-4">
                       <div className="flex items-center space-x-3 mb-4">
@@ -618,33 +619,29 @@ const QuickBuyPage: React.FC = () => {
                           </thead>
                           <tbody>
                             {data.existingArticles.map((article) => (
-                              <tr key={article.id} className="border-b border-gray-100 hover:bg-white/50 transition-colors">
+                              <tr key={article.id} className="border-b border-gray-100 hover:bg-gray-50">
                                 <td className="py-3 px-4">
                                   <div>
-                                    <p className="font-semibold text-gray-900 text-sm">{article.site_name}</p>
-                                    <p className="text-xs text-gray-600 mt-1 truncate">{article.existing_article?.title}</p>
+                                    <p className="font-medium text-gray-900 text-sm">{article.title}</p>
+                                    <p className="text-xs text-gray-500 truncate max-w-[200px]">{article.target_url}</p>
                                   </div>
                                 </td>
                                 <td className="py-3 px-4">
-                                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                                    {getCategoryLabel(article.theme)}
-                                  </span>
+                                  <span className="text-xs text-gray-600">{getCategoryLabel(article.category || 'various')}</span>
                                 </td>
                                 <td className="py-3 px-4">
-                                  <span className="font-bold text-blue-600 text-sm">{article.tf || 0}</span>
+                                  <span className="text-sm font-medium text-blue-600">{article.tf || 0}</span>
                                 </td>
                                 <td className="py-3 px-4">
-                                  <span className="font-bold text-purple-600 text-sm">{article.cf || 0}</span>
+                                  <span className="text-sm font-medium text-purple-600">{article.cf || 0}</span>
                                 </td>
                                 <td className="py-3 px-4">
-                                  <span className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                                    {article.price.toLocaleString()} MAD
-                                  </span>
+                                  <span className="text-sm font-bold text-emerald-600">{article.price} MAD</span>
                                 </td>
                                 <td className="py-3 px-4">
                                   <button
                                     onClick={() => addToCart(article)}
-                                    className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 text-xs font-semibold shadow-sm hover:shadow-md"
+                                    className="inline-flex items-center px-2 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700 transition-colors"
                                   >
                                     <ShoppingCart className="h-3 w-3 mr-1" />
                                     Ajouter
@@ -690,7 +687,7 @@ const QuickBuyPage: React.FC = () => {
                 {cartItems.map((item, index) => (
                   <div key={index} className="border border-gray-100 rounded-xl p-4 bg-gradient-to-r from-gray-50 to-blue-50">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-gray-900">{item.listing.site_name}</h4>
+                      <h4 className="font-semibold text-gray-900">{item.listing.title}</h4>
                       <button
                         onClick={() => removeFromCart(index)}
                         className="text-red-500 hover:text-red-700 transition-colors"

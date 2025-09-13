@@ -287,15 +287,9 @@ const CartPage: React.FC = () => {
               campaign_id: campaignId || undefined
             });
 
-            // Créer la transaction de crédit
-                         await createCreditTransaction({
-               user_id: user.id,
-               type: 'purchase',
-              amount: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
-              description: `Achat de nouveau lien: ${item.listing.title}`,
-              payment_method: 'manual',
-              related_purchase_request_id: purchaseRequest.id
-            });
+            // NE PAS créer de transaction de crédit ici - le débit se fera lors de la confirmation
+            // L'annonceur sera débité uniquement quand l'éditeur acceptera ET que l'annonceur confirmera
+            console.log(`Demande d'achat créée pour: ${item.listing.title} - Le paiement se fera lors de la confirmation`);
 
             console.log('New article purchase processed successfully');
           } catch (error) {
@@ -353,15 +347,9 @@ const CartPage: React.FC = () => {
                 campaign_id: campaignId || undefined
               });
               
-              // Créer la transaction de crédit
-              await createCreditTransaction({
-                user_id: user.id,
-                type: 'purchase',
-                amount: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
-                description: `Achat de lien: ${item.listing.title}`,
-                payment_method: 'manual',
-                related_purchase_request_id: purchaseRequest.id
-              });
+              // NE PAS créer de transaction de crédit ici - le débit se fera lors de la confirmation
+              // L'annonceur sera débité uniquement quand l'éditeur acceptera ET que l'annonceur confirmera
+              console.log(`Demande d'achat créée pour: ${item.listing.title} - Le paiement se fera lors de la confirmation`);
               
               // Créer une notification pour l'éditeur
               await createNotification({
@@ -375,16 +363,9 @@ const CartPage: React.FC = () => {
               
               console.log('LinkPurchaseRequest, CreditTransaction and Notification created successfully');
             } else {
-              // C'est une opportunité simulée, créer seulement la transaction de crédit
-              console.log('Creating CreditTransaction for simulated opportunity');
-              
-              await createCreditTransaction({
-                user_id: user.id,
-                type: 'purchase',
-                amount: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
-                description: `Achat d'opportunité: ${item.listing.title}`,
-                payment_method: 'manual'
-              });
+              // C'est une opportunité simulée, ne pas créer de transaction de crédit
+              // Le paiement se fera lors de la confirmation
+              console.log('Opportunité simulée créée - Le paiement se fera lors de la confirmation');
               
               console.log('CreditTransaction created successfully for opportunity');
             }
