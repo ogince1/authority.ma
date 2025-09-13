@@ -145,7 +145,6 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
               { name: 'Trouver des Médias', href: '/dashboard/quick-buy', icon: Zap },
               { name: 'Mes Demandes', href: '/dashboard/purchase-requests', icon: FileText },
               { name: 'Services', href: '/dashboard/services', icon: Settings },
-              { name: 'Mes Services', href: '/dashboard/my-services', icon: Package },
                { name: 'Mon Solde', href: '/dashboard/balance', icon: Wallet },
                { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
                { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },

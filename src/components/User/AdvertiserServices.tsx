@@ -12,11 +12,15 @@ import {
   AlertCircle,
   Plus,
   Minus,
-  X
+  X,
+  XCircle,
+  RefreshCw,
+  Eye,
+  MessageSquare
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getCurrentUser, getServices, getServiceById, createServiceRequest, getUserBalance, addUserBalance } from '../../lib/supabase';
-import { Service, ServiceCartItem } from '../../types';
+import { getCurrentUser, getServices, getServiceById, createServiceRequest, getUserBalance, addUserBalance, getUserServiceRequests } from '../../lib/supabase';
+import { Service, ServiceCartItem, ServiceRequest } from '../../types';
 import toast from 'react-hot-toast';
 
 // Interface locale pour l'affichage (avec icône)
@@ -30,12 +34,21 @@ const AdvertiserServices: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [cart, setCart] = useState<ServiceCartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
+  const [activeTab, setActiveTab] = useState<'services' | 'my-requests'>('services');
+  const [myRequests, setMyRequests] = useState<ServiceRequest[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
 
   useEffect(() => {
     loadServices();
     loadUser();
     loadCart();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      loadMyRequests();
+    }
+  }, [user]);
 
   // Charger le panier depuis localStorage
   const loadCart = () => {
@@ -92,6 +105,21 @@ const AdvertiserServices: React.FC = () => {
     }
   };
 
+  // Charger les demandes de l'utilisateur
+  const loadMyRequests = async () => {
+    try {
+      setRequestsLoading(true);
+      if (user) {
+        const data = await getUserServiceRequests(user.id);
+        setMyRequests(data);
+      }
+    } catch (error) {
+      console.error('Error loading my requests:', error);
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
+
   // Fonction pour obtenir l'icône selon la catégorie
   const getServiceIcon = (category: string) => {
     switch (category.toLowerCase()) {
@@ -103,6 +131,53 @@ const AdvertiserServices: React.FC = () => {
         return <Brain className="h-8 w-8 text-purple-600" />;
       default:
         return <Globe className="h-8 w-8 text-gray-600" />;
+    }
+  };
+
+  // Fonction pour obtenir le badge de statut
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            <Clock className="h-3 w-3 mr-1" />
+            En attente
+          </span>
+        );
+      case 'approved':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Approuvée
+          </span>
+        );
+      case 'in_progress':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+            <RefreshCw className="h-3 w-3 mr-1" />
+            En cours
+          </span>
+        );
+      case 'completed':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Terminée
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <XCircle className="h-3 w-3 mr-1" />
+            Annulée
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -214,10 +289,11 @@ const AdvertiserServices: React.FC = () => {
           saveCart([]);
           setShowCart(false);
           
-          // Recharger le solde
+          // Recharger le solde et les demandes
           if (window.dispatchEvent) {
             window.dispatchEvent(new CustomEvent('balance-updated'));
           }
+          loadMyRequests(); // Recharger les demandes
         } else {
           toast.error('Erreur lors de la déduction du solde');
         }
@@ -240,24 +316,56 @@ const AdvertiserServices: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6">
-      {/* Header avec panier */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Services Premium</h1>
-          <p className="text-gray-600 mt-1">Boostez votre visibilité avec nos services spécialisés</p>
-        </div>
-        <button
-          onClick={() => setShowCart(!showCart)}
-          className="relative bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <ShoppingCart className="h-5 w-5" />
-          <span>Panier</span>
-          {cart.length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
-              {cart.length}
-            </span>
+      {/* Header avec onglets */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Services Premium</h1>
+            <p className="text-gray-600 mt-1">Boostez votre visibilité avec nos services spécialisés</p>
+          </div>
+          {activeTab === 'services' && (
+            <button
+              onClick={() => setShowCart(!showCart)}
+              className="relative bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              <span>Panier</span>
+              {cart.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
+                  {cart.length}
+                </span>
+              )}
+            </button>
           )}
-        </button>
+        </div>
+
+        {/* Onglets */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('services')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'services'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Package className="h-4 w-4 inline mr-2" />
+              Services disponibles
+            </button>
+            <button
+              onClick={() => setActiveTab('my-requests')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'my-requests'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Eye className="h-4 w-4 inline mr-2" />
+              Mes demandes ({myRequests.length})
+            </button>
+          </nav>
+        </div>
       </div>
 
       {/* Panier latéral */}
@@ -349,50 +457,53 @@ const AdvertiserServices: React.FC = () => {
         />
       )}
 
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-8 mb-8">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10"></div>
-        <div className="relative">
-          <div className="flex items-center space-x-4 mb-4">
-            <div className="p-3 bg-white rounded-xl shadow-sm">
-              <Settings className="h-8 w-8 text-blue-600" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Services Premium
-              </h1>
-              <p className="text-lg text-gray-600 mt-1">
-                Boostez votre visibilité avec nos services spécialisés
-              </p>
+      {/* Contenu des onglets */}
+      {activeTab === 'services' && (
+        <>
+          {/* Hero Section */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-8 mb-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10"></div>
+            <div className="relative">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="p-3 bg-white rounded-xl shadow-sm">
+                  <Settings className="h-8 w-8 text-blue-600" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    Services Premium
+                  </h1>
+                  <p className="text-lg text-gray-600 mt-1">
+                    Boostez votre visibilité avec nos services spécialisés
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">Services actifs</span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{services.filter(s => s.status === 'available').length}</p>
+                </div>
+                <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">Prix moyen</span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    {services.length > 0 ? Math.round(services.reduce((acc, s) => acc + s.price, 0) / services.length) : 0} MAD
+                  </p>
+                </div>
+                <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">Satisfaction</span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">98%</p>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-sm font-medium text-gray-700">Services actifs</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{services.filter(s => s.status === 'available').length}</p>
-            </div>
-            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span className="text-sm font-medium text-gray-700">Prix moyen</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {services.length > 0 ? Math.round(services.reduce((acc, s) => acc + s.price, 0) / services.length) : 0} MAD
-              </p>
-            </div>
-            <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <span className="text-sm font-medium text-gray-700">Satisfaction</span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900 mt-1">98%</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Information importante */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 mb-8">
@@ -530,6 +641,128 @@ const AdvertiserServices: React.FC = () => {
           </div>
         </div>
       </div>
+        </>
+      )}
+
+      {/* Onglet Mes demandes */}
+      {activeTab === 'my-requests' && (
+        <div className="space-y-6">
+          {/* Statistiques des demandes */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            {[
+              { key: 'all', label: 'Total', color: 'gray', count: myRequests.length },
+              { key: 'pending', label: 'En attente', color: 'yellow', count: myRequests.filter(r => r.status === 'pending').length },
+              { key: 'approved', label: 'Approuvées', color: 'blue', count: myRequests.filter(r => r.status === 'approved').length },
+              { key: 'in_progress', label: 'En cours', color: 'purple', count: myRequests.filter(r => r.status === 'in_progress').length },
+              { key: 'completed', label: 'Terminées', color: 'green', count: myRequests.filter(r => r.status === 'completed').length },
+            ].map(({ key, label, color, count }) => (
+              <div key={key} className={`bg-${color}-50 border border-${color}-200 rounded-lg p-4`}>
+                <div className="text-2xl font-bold text-gray-900">{count}</div>
+                <div className="text-sm text-gray-600">{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Liste des demandes */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Mes Demandes ({myRequests.length})
+              </h2>
+              <button
+                onClick={loadMyRequests}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span>Actualiser</span>
+              </button>
+            </div>
+
+            {requestsLoading ? (
+              <div className="p-12 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="text-gray-600 mt-4">Chargement des demandes...</p>
+              </div>
+            ) : myRequests.length === 0 ? (
+              <div className="p-12 text-center">
+                <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune demande</h3>
+                <p className="text-gray-500 mb-6">Vous n'avez pas encore fait de demandes de services</p>
+                <button
+                  onClick={() => setActiveTab('services')}
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center space-x-2"
+                >
+                  <Package className="h-5 w-5" />
+                  <span>Voir les services</span>
+                </button>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {myRequests.map((request) => (
+                  <motion.div
+                    key={request.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-6 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {request.service?.name}
+                          </h3>
+                          {getStatusBadge(request.status)}
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                          <div className="flex items-center space-x-2">
+                            <Euro className="h-4 w-4" />
+                            <span>{request.total_price} MAD (x{request.quantity})</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Clock className="h-4 w-4" />
+                            <span>Commandé le {new Date(request.created_at).toLocaleDateString('fr-FR')}</span>
+                          </div>
+                          {request.completed_at && (
+                            <div className="flex items-center space-x-2">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Terminé le {new Date(request.completed_at).toLocaleDateString('fr-FR')}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {request.client_notes && (
+                          <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                            <div className="flex items-start space-x-2">
+                              <MessageSquare className="h-4 w-4 text-blue-600 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-medium text-blue-900">Vos notes:</p>
+                                <p className="text-sm text-blue-700">{request.client_notes}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {request.admin_notes && (
+                          <div className="mt-3 p-3 bg-green-50 rounded-lg">
+                            <div className="flex items-start space-x-2">
+                              <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-medium text-green-900">Réponse de l'admin:</p>
+                                <p className="text-sm text-green-700">{request.admin_notes}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
