@@ -2368,4 +2368,67 @@ export const updateServiceRequestStatus = async (
     console.error('Error updating service request status:', error);
     return { success: false, error: 'Erreur lors de la mise à jour' };
   }
+};
+
+// ===== FONCTIONS POUR LA GESTION DU SOLDE =====
+
+// Ajouter ou retirer du solde utilisateur
+export const addUserBalance = async (
+  userId: string, 
+  amount: number, 
+  transactionType: string, 
+  description: string
+): Promise<{ success: boolean; error?: string; newBalance?: number }> => {
+  try {
+    // Récupérer le solde actuel
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('balance')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !user) {
+      return { success: false, error: 'Utilisateur non trouvé' };
+    }
+
+    const currentBalance = user.balance || 0;
+    const newBalance = currentBalance + amount;
+
+    // Vérifier que le solde ne devient pas négatif
+    if (newBalance < 0) {
+      return { success: false, error: 'Solde insuffisant' };
+    }
+
+    // Mettre à jour le solde
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ balance: newBalance })
+      .eq('id', userId);
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    // Créer une transaction de crédit
+    const { error: transactionError } = await supabase
+      .from('credit_transactions')
+      .insert([{
+        user_id: userId,
+        amount: amount,
+        transaction_type: transactionType,
+        description: description,
+        balance_before: currentBalance,
+        balance_after: newBalance
+      }]);
+
+    if (transactionError) {
+      console.error('Error creating credit transaction:', transactionError);
+      // Ne pas faire échouer la transaction pour une erreur de log
+    }
+
+    return { success: true, newBalance };
+  } catch (error) {
+    console.error('Error updating user balance:', error);
+    return { success: false, error: 'Erreur lors de la mise à jour du solde' };
+  }
 }; 

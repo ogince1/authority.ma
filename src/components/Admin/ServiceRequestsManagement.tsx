@@ -216,7 +216,7 @@ const ServiceRequestsManagement: React.FC = () => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Euro className="h-4 w-4" />
-                        <span>{request.total_price}€ (x{request.quantity})</span>
+                        <span>{request.total_price} MAD (x{request.quantity})</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4" />
@@ -309,7 +309,7 @@ const ServiceRequestsManagement: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-gray-600">Prix total:</span>
-                    <p className="font-medium">{selectedRequest.total_price}€</p>
+                    <p className="font-medium">{selectedRequest.total_price} MAD</p>
                   </div>
                   <div>
                     <span className="text-gray-600">Statut actuel:</span>

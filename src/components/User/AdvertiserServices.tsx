@@ -15,7 +15,7 @@ import {
   X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getCurrentUser, getServices, getServiceById } from '../../lib/supabase';
+import { getCurrentUser, getServices, getServiceById, createServiceRequest, getUserBalance, addUserBalance } from '../../lib/supabase';
 import { Service, ServiceCartItem } from '../../types';
 import toast from 'react-hot-toast';
 
@@ -173,13 +173,57 @@ const AdvertiserServices: React.FC = () => {
     }
 
     try {
-      // Ici, on créerait les demandes de services
-      // Pour l'instant, on simule
-      toast.success('Commande passée avec succès ! L\'administrateur va traiter votre demande.');
-      
-      // Vider le panier
-      saveCart([]);
-      setShowCart(false);
+      // Vérifier le solde de l'utilisateur
+      const userBalance = await getUserBalance(user.id);
+      const totalAmount = getCartTotal();
+
+      if (userBalance < totalAmount) {
+        toast.error(`Solde insuffisant. Votre solde: ${userBalance} MAD, Total: ${totalAmount} MAD`);
+        return;
+      }
+
+      // Créer les demandes de services et déduire le montant
+      let successCount = 0;
+      let totalDeducted = 0;
+
+      for (const item of cart) {
+        if (item.service) {
+          const serviceRequest = await createServiceRequest({
+            service_id: item.service.id,
+            user_id: user.id,
+            quantity: item.quantity,
+            total_price: item.service.price * item.quantity,
+            client_notes: `Commande via panier - ${item.quantity} x ${item.service.name}`
+          });
+
+          if (serviceRequest) {
+            successCount++;
+            totalDeducted += item.service.price * item.quantity;
+          }
+        }
+      }
+
+      if (successCount > 0) {
+        // Déduire le montant total du solde
+        const result = await addUserBalance(user.id, -totalDeducted, 'service_purchase', `Achat de ${successCount} service(s)`);
+        
+        if (result.success) {
+          toast.success(`Commande passée avec succès ! ${successCount} demande(s) envoyée(s) à l'administrateur. Montant déduit: ${totalDeducted} MAD`);
+          
+          // Vider le panier
+          saveCart([]);
+          setShowCart(false);
+          
+          // Recharger le solde
+          if (window.dispatchEvent) {
+            window.dispatchEvent(new CustomEvent('balance-updated'));
+          }
+        } else {
+          toast.error('Erreur lors de la déduction du solde');
+        }
+      } else {
+        toast.error('Aucune demande n\'a pu être créée');
+      }
     } catch (error) {
       console.error('Error during checkout:', error);
       toast.error('Erreur lors de la commande');
@@ -272,7 +316,7 @@ const AdvertiserServices: React.FC = () => {
                           </button>
                         </div>
                         <span className="font-semibold text-gray-900">
-                          {(item.service?.price || 0) * item.quantity}€
+                          {(item.service?.price || 0) * item.quantity} {item.service?.currency || 'MAD'}
                         </span>
                       </div>
                     </div>
@@ -282,7 +326,7 @@ const AdvertiserServices: React.FC = () => {
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-lg font-semibold text-gray-900">Total:</span>
-                    <span className="text-xl font-bold text-blue-600">{getCartTotal().toFixed(2)}€</span>
+                    <span className="text-xl font-bold text-blue-600">{getCartTotal().toFixed(2)} MAD</span>
                   </div>
                   <button
                     onClick={checkout}
@@ -336,7 +380,7 @@ const AdvertiserServices: React.FC = () => {
                 <span className="text-sm font-medium text-gray-700">Prix moyen</span>
               </div>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {services.length > 0 ? Math.round(services.reduce((acc, s) => acc + s.price, 0) / services.length) : 0}€
+                {services.length > 0 ? Math.round(services.reduce((acc, s) => acc + s.price, 0) / services.length) : 0} MAD
               </p>
             </div>
             <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/20">
