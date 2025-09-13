@@ -11,7 +11,9 @@ import {
   Menu,
   X,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  Clock,
+  ShoppingCart
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -28,6 +30,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     { name: 'Utilisateurs', href: '/admin/users', icon: Users },
     { name: 'Sites Web', href: '/admin/websites', icon: FolderOpen },
     { name: 'Services', href: '/admin/services', icon: Settings },
+    { name: 'Demandes Services', href: '/admin/service-requests', icon: ShoppingCart },
+    { name: 'Confirmation Auto', href: '/admin/auto-confirmation', icon: Clock },
     { name: 'Disputes', href: '/admin/disputes', icon: AlertTriangle },
     { name: 'Transactions', href: '/admin/transactions', icon: TrendingUp },
     { name: 'Blog', href: '/admin/blog', icon: FileText },

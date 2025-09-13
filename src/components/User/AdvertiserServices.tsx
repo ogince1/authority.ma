@@ -9,33 +9,57 @@ import {
   Euro,
   Info,
   ShoppingCart,
-  AlertCircle
+  AlertCircle,
+  Plus,
+  Minus,
+  X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getCurrentUser } from '../../lib/supabase';
+import { getCurrentUser, getServices, getServiceById } from '../../lib/supabase';
+import { Service, ServiceCartItem } from '../../types';
 import toast from 'react-hot-toast';
 
-interface Service {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  currency: string;
-  minimum_quantity?: number;
+// Interface locale pour l'affichage (avec icône)
+interface ServiceDisplay extends Service {
   icon: React.ReactNode;
-  features: string[];
-  status: 'available' | 'unavailable';
 }
 
 const AdvertiserServices: React.FC = () => {
-  const [services, setServices] = useState<Service[]>([]);
+  const [services, setServices] = useState<ServiceDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [cart, setCart] = useState<ServiceCartItem[]>([]);
+  const [showCart, setShowCart] = useState(false);
 
   useEffect(() => {
     loadServices();
     loadUser();
+    loadCart();
   }, []);
+
+  // Charger le panier depuis localStorage
+  const loadCart = () => {
+    try {
+      const savedCart = localStorage.getItem('service-cart');
+      if (savedCart) {
+        setCart(JSON.parse(savedCart));
+      }
+    } catch (error) {
+      console.error('Error loading cart:', error);
+    }
+  };
+
+  // Sauvegarder le panier dans localStorage
+  const saveCart = (newCart: ServiceCartItem[]) => {
+    try {
+      localStorage.setItem('service-cart', JSON.stringify(newCart));
+      setCart(newCart);
+      // Émettre un événement pour mettre à jour le compteur dans la sidebar
+      window.dispatchEvent(new CustomEvent('service-cart-updated', { detail: newCart.length }));
+    } catch (error) {
+      console.error('Error saving cart:', error);
+    }
+  };
 
   const loadUser = async () => {
     try {
@@ -50,60 +74,16 @@ const AdvertiserServices: React.FC = () => {
     try {
       setLoading(true);
       
-      // Services prédéfinis (en attendant l'implémentation admin)
-      const predefinedServices: Service[] = [
-        {
-          id: 'forum-links',
-          name: 'Pack de liens forums thématisés',
-          description: 'Liens de qualité sur des forums spécialisés dans votre secteur d\'activité',
-          price: 24.50,
-          currency: 'EUR',
-          minimum_quantity: 10,
-          icon: <Package className="h-8 w-8 text-blue-600" />,
-          features: [
-            'Liens sur forums thématisés',
-            'Minimum 10 liens',
-            'Forums de qualité',
-            'Ancres optimisées',
-            'Livraison sous 7 jours'
-          ],
-          status: 'available'
-        },
-        {
-          id: 'directory-submission',
-          name: 'Soumission dans annuaires généralistes',
-          description: 'Soumission de votre site dans 15 annuaires généralistes de qualité',
-          price: 195,
-          currency: 'EUR',
-          icon: <Globe className="h-8 w-8 text-green-600" />,
-          features: [
-            '15 annuaires généralistes',
-            'Soumission manuelle',
-            'Descriptions optimisées',
-            'Catégorisation appropriée',
-            'Livraison sous 14 jours'
-          ],
-          status: 'available'
-        },
-        {
-          id: 'llm-backlinks',
-          name: 'Backlinks optimisés pour LLMs',
-          description: 'Liens optimisés pour l\'indexation dans les modèles de langage (ChatGPT, etc.)',
-          price: 45,
-          currency: 'EUR',
-          icon: <Brain className="h-8 w-8 text-purple-600" />,
-          features: [
-            'Optimisation LLM',
-            'Liens contextuels',
-            'Contenu structuré',
-            'Métadonnées enrichies',
-            'Livraison sous 10 jours'
-          ],
-          status: 'available'
-        }
-      ];
+      // Charger les services depuis la base de données
+      const dbServices = await getServices();
+      
+      // Mapper les services avec leurs icônes
+      const servicesWithIcons: ServiceDisplay[] = dbServices.map(service => ({
+        ...service,
+        icon: getServiceIcon(service.category)
+      }));
 
-      setServices(predefinedServices);
+      setServices(servicesWithIcons);
     } catch (error) {
       console.error('Error loading services:', error);
       toast.error('Erreur lors du chargement des services');
@@ -112,15 +92,98 @@ const AdvertiserServices: React.FC = () => {
     }
   };
 
-  const handleRequestService = (service: Service) => {
+  // Fonction pour obtenir l'icône selon la catégorie
+  const getServiceIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'seo':
+        return <Package className="h-8 w-8 text-blue-600" />;
+      case 'audit':
+        return <CheckCircle className="h-8 w-8 text-green-600" />;
+      case 'contenu':
+        return <Brain className="h-8 w-8 text-purple-600" />;
+      default:
+        return <Globe className="h-8 w-8 text-gray-600" />;
+    }
+  };
+
+  // Ajouter un service au panier
+  const addToCart = (service: Service) => {
     if (!user) {
-      toast.error('Vous devez être connecté pour demander un service');
+      toast.error('Vous devez être connecté pour ajouter un service au panier');
       return;
     }
 
-    // Pour l'instant, on affiche juste un message
-    // Plus tard, cela créera une demande de service
-    toast.success(`Demande de service "${service.name}" envoyée à l'administrateur`);
+    const existingItem = cart.find(item => item.service_id === service.id);
+    const newCart = [...cart];
+
+    if (existingItem) {
+      // Augmenter la quantité
+      existingItem.quantity += 1;
+    } else {
+      // Ajouter un nouvel item
+      newCart.push({
+        service_id: service.id,
+        quantity: 1,
+        service: service
+      });
+    }
+
+    saveCart(newCart);
+    toast.success(`${service.name} ajouté au panier`);
+  };
+
+  // Retirer un service du panier
+  const removeFromCart = (serviceId: string) => {
+    const newCart = cart.filter(item => item.service_id !== serviceId);
+    saveCart(newCart);
+    toast.success('Service retiré du panier');
+  };
+
+  // Modifier la quantité d'un service dans le panier
+  const updateQuantity = (serviceId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeFromCart(serviceId);
+      return;
+    }
+
+    const newCart = cart.map(item => 
+      item.service_id === serviceId 
+        ? { ...item, quantity: newQuantity }
+        : item
+    );
+    saveCart(newCart);
+  };
+
+  // Calculer le total du panier
+  const getCartTotal = () => {
+    return cart.reduce((total, item) => {
+      const service = item.service;
+      if (service) {
+        return total + (service.price * item.quantity);
+      }
+      return total;
+    }, 0);
+  };
+
+  // Passer la commande
+  const checkout = async () => {
+    if (!user || cart.length === 0) {
+      toast.error('Panier vide ou utilisateur non connecté');
+      return;
+    }
+
+    try {
+      // Ici, on créerait les demandes de services
+      // Pour l'instant, on simule
+      toast.success('Commande passée avec succès ! L\'administrateur va traiter votre demande.');
+      
+      // Vider le panier
+      saveCart([]);
+      setShowCart(false);
+    } catch (error) {
+      console.error('Error during checkout:', error);
+      toast.error('Erreur lors de la commande');
+    }
   };
 
   if (loading) {
@@ -133,6 +196,115 @@ const AdvertiserServices: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6">
+      {/* Header avec panier */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Services Premium</h1>
+          <p className="text-gray-600 mt-1">Boostez votre visibilité avec nos services spécialisés</p>
+        </div>
+        <button
+          onClick={() => setShowCart(!showCart)}
+          className="relative bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+        >
+          <ShoppingCart className="h-5 w-5" />
+          <span>Panier</span>
+          {cart.length > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
+              {cart.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Panier latéral */}
+      {showCart && (
+        <motion.div
+          initial={{ opacity: 0, x: 300 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 300 }}
+          className="fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 overflow-y-auto"
+        >
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Panier</h2>
+              <button
+                onClick={() => setShowCart(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {cart.length === 0 ? (
+              <div className="text-center py-12">
+                <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Votre panier est vide</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-4 mb-6">
+                  {cart.map((item) => (
+                    <div key={item.service_id} className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-gray-900">{item.service?.name}</h3>
+                        <button
+                          onClick={() => removeFromCart(item.service_id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">{item.service?.description}</p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => updateQuantity(item.service_id, item.quantity - 1)}
+                            className="p-1 hover:bg-gray-200 rounded"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <span className="px-3 py-1 bg-white rounded border">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.service_id, item.quantity + 1)}
+                            className="p-1 hover:bg-gray-200 rounded"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <span className="font-semibold text-gray-900">
+                          {(item.service?.price || 0) * item.quantity}€
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-lg font-semibold text-gray-900">Total:</span>
+                    <span className="text-xl font-bold text-blue-600">{getCartTotal().toFixed(2)}€</span>
+                  </div>
+                  <button
+                    onClick={checkout}
+                    className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                  >
+                    Passer la commande
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Overlay pour le panier */}
+      {showCart && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setShowCart(false)}
+        />
+      )}
+
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-8 mb-8">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10"></div>
@@ -261,7 +433,7 @@ const AdvertiserServices: React.FC = () => {
             {/* Bouton d'action */}
             <div className="mt-auto">
               <button
-                onClick={() => handleRequestService(service)}
+                onClick={() => addToCart(service)}
                 disabled={service.status === 'unavailable'}
                 className={`w-full py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center space-x-3 ${
                   service.status === 'available'
@@ -271,7 +443,7 @@ const AdvertiserServices: React.FC = () => {
               >
                 <ShoppingCart className="h-5 w-5" />
                 <span>
-                  {service.status === 'available' ? 'Demander ce service' : 'Indisponible'}
+                  {service.status === 'available' ? 'Ajouter au panier' : 'Indisponible'}
                 </span>
               </button>
             </div>

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LinkPurchaseRequest } from '../../types';
-import { getCurrentUser, getLinkPurchaseRequests, getCurrentUserProfile } from '../../lib/supabase';
+import { getCurrentUser, getLinkPurchaseRequests, getCurrentUserProfile, getPendingConfirmationRequests, confirmLinkPlacement } from '../../lib/supabase';
 import { trackPageView } from '../../utils/analytics';
 import toast from 'react-hot-toast';
 
@@ -36,9 +36,21 @@ const AdvertiserRequests: React.FC = () => {
       const user = await getCurrentUser();
       if (!user) return;
 
-      // Pour les annonceurs, on récupère les demandes qu'ils ont envoyées
+      // Récupérer les demandes envoyées par l'annonceur
       const userRequests = await getLinkPurchaseRequests({ user_id: user.id });
-      setRequests(userRequests);
+      
+      // Récupérer les demandes en attente de confirmation
+      const confirmationRequests = await getPendingConfirmationRequests(user.id);
+      
+      // Combiner les deux listes
+      const allRequests = [...userRequests, ...confirmationRequests];
+      
+      // Supprimer les doublons (au cas où une demande serait dans les deux listes)
+      const uniqueRequests = allRequests.filter((request, index, self) => 
+        index === self.findIndex(r => r.id === request.id)
+      );
+      
+      setRequests(uniqueRequests);
     } catch (error) {
       console.error('Error loading requests:', error);
       toast.error('Erreur lors du chargement des demandes');
@@ -54,6 +66,13 @@ const AdvertiserRequests: React.FC = () => {
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
             <CheckCircle className="h-3 w-3 mr-1" />
             Acceptée
+          </span>
+        );
+      case 'pending_confirmation':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            <Clock className="h-3 w-3 mr-1" />
+            En attente de confirmation
           </span>
         );
       case 'rejected':
@@ -78,6 +97,21 @@ const AdvertiserRequests: React.FC = () => {
   const openRequestDetails = (request: LinkPurchaseRequest) => {
     setSelectedRequest(request);
     setShowModal(true);
+  };
+
+  const handleConfirmLink = async (requestId: string) => {
+    try {
+      const result = await confirmLinkPlacement(requestId);
+      if (result.success) {
+        toast.success('Lien confirmé avec succès ! Le paiement a été effectué.');
+        loadRequests(); // Recharger la liste
+      } else {
+        toast.error(result.error || 'Erreur lors de la confirmation');
+      }
+    } catch (error) {
+      console.error('Error confirming link:', error);
+      toast.error('Erreur lors de la confirmation du lien');
+    }
   };
 
   if (loading) {
@@ -202,6 +236,16 @@ const AdvertiserRequests: React.FC = () => {
               </div>
 
               <div className="flex items-center space-x-2 ml-4">
+                {request.status === 'pending_confirmation' && (
+                  <button
+                    onClick={() => handleConfirmLink(request.id)}
+                    className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                    title="Confirmer le placement du lien"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-1 inline" />
+                    Confirmer
+                  </button>
+                )}
                 <button
                   onClick={() => openRequestDetails(request)}
                   className="p-2 text-gray-400 hover:text-gray-600 transition-colors"

@@ -124,7 +124,6 @@ export interface LinkPurchaseRequest {
   link_listing_id: string;
   user_id: string; // ID de l'annonceur
   publisher_id: string; // ID de l'éditeur
-  campaign_id?: string; // ID de la campagne associée
   
   // Détails de la demande
   target_url: string;
@@ -136,7 +135,7 @@ export interface LinkPurchaseRequest {
   proposed_duration: number; // Durée en mois
   
   // Statut
-  status: 'pending' | 'accepted' | 'rejected' | 'negotiating';
+  status: 'pending' | 'accepted' | 'rejected' | 'negotiating' | 'pending_confirmation' | 'confirmed' | 'auto_confirmed';
   
   // Réponse de l'éditeur
   editor_response?: string;
@@ -145,6 +144,13 @@ export interface LinkPurchaseRequest {
   // Informations de placement (quand acceptée)
   placed_url?: string;
   placed_at?: string;
+  
+  // Nouveaux champs pour le workflow
+  accepted_at?: string;
+  confirmation_deadline?: string;
+  confirmed_at?: string;
+  auto_confirmed_at?: string;
+  payment_transaction_id?: string;
   
   // Informations de création
   created_at: string;
@@ -193,6 +199,44 @@ export interface LinkPurchaseTransaction {
 
 // Interface pour un utilisateur
 export type UserRole = 'advertiser' | 'publisher' | 'admin';
+
+// Interfaces pour les services
+export interface Service {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  minimum_quantity?: number;
+  features: string[];
+  status: 'available' | 'unavailable';
+  category: string;
+  estimated_delivery_days: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ServiceRequest {
+  id: string;
+  service_id: string;
+  user_id: string; // ID de l'annonceur
+  quantity: number;
+  total_price: number;
+  status: 'pending' | 'approved' | 'in_progress' | 'completed' | 'cancelled';
+  admin_notes?: string;
+  client_notes?: string;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string;
+  service?: Service;
+  user?: User;
+}
+
+export interface ServiceCartItem {
+  service_id: string;
+  quantity: number;
+  service?: Service;
+}
 
 export interface User {
   id: string;
@@ -256,6 +300,9 @@ export interface CreateWebsiteData {
   languages: string[];
   content_quality: 'excellent' | 'good' | 'average' | 'poor';
   user_id?: string;
+  // Nouveaux champs pour l'achat rapide
+  new_article_price?: number;
+  is_new_article?: boolean;
 }
 
 // Interface pour créer une annonce de lien
@@ -551,199 +598,6 @@ export interface AdvancedSEOMetrics {
   age?: number; // Âge du domaine/article (mois)
   outlinks?: number; // Nombre de liens sortants
   importance?: number; // Importance Google
-}
-
-// Types de qualité des liens
-export type LinkQualityType = 'bronze' | 'silver' | 'gold';
-
-// Types de recommandations
-export type RecommendationType = 'existing_article' | 'new_article';
-
-// Interface pour une campagne
-export interface Campaign {
-  id: string;
-  user_id: string;
-  name: string;
-  urls: string[]; // URLs à analyser
-  language: string; // Langue de la campagne
-  status: 'draft' | 'pending_editor_approval' | 'approved' | 'active' | 'rejected' | 'completed' | 'paused';
-  
-  // Métriques extraites automatiquement
-  extracted_metrics?: {
-    traffic: number;
-    mc: number; // Monthly clicks
-    dr: number;
-    cf: number;
-    tf: number;
-    category: string;
-  };
-  
-  // Budget et statistiques
-  budget: number;
-  total_orders: number;
-  total_spent: number;
-  spent_amount: number; // Montant dépensé (calculé automatiquement)
-  
-  // Dates de campagne
-  start_date?: string;
-  end_date?: string;
-  
-  // URLs cibles
-  target_urls?: string[];
-  
-  // Métriques de performance
-  performance_metrics?: Record<string, any>;
-  
-  // Notes
-  notes?: string;
-  
-  // Informations de création
-  created_at: string;
-  updated_at: string;
-}
-
-// Interface pour créer une campagne
-export interface CreateCampaignData {
-  name: string;
-  urls: string[];
-  language: string;
-  budget?: number;
-  user_id?: string;
-}
-
-// Interface pour une opportunité de lien
-export interface LinkOpportunity {
-  id: string;
-  campaign_id: string;
-  type: RecommendationType; // existing_article ou new_article
-  
-  // Informations du site
-  site_name: string;
-  site_url: string;
-  site_metrics: AdvancedSEOMetrics;
-  
-  // Qualité et classification
-  quality_type: LinkQualityType;
-  theme: string;
-  
-  // Pour les articles existants
-  existing_article?: {
-    title: string;
-    url: string;
-    age: number;
-    outlinks: number;
-  };
-  
-  // Pour les nouveaux articles
-  new_article?: {
-    duration: string; // "1 an"
-    placement_info: string; // "Articles seront à 2 clics de la page d'accueil"
-  };
-  
-  // Prix et conditions
-  price: number;
-  currency: 'MAD' | 'EUR' | 'USD';
-  
-  // Métadonnées
-  created_at: string;
-  updated_at: string;
-}
-
-// Interface pour les filtres de recommandations
-export interface RecommendationFilters {
-  price_min?: number;
-  price_max?: number;
-  ttf?: string;
-  tf_min?: string;
-  importance?: string;
-  dr_min?: number;
-  dr_max?: number;
-  at_min?: string;
-  type?: LinkQualityType;
-  ps_min?: number;
-  duration?: string;
-}
-
-// Interface pour l'analyse d'URL
-export interface URLAnalysis {
-  url: string;
-  metrics: {
-    traffic: number;
-    mc: number;
-    dr: number;
-    cf: number;
-    tf: number;
-  };
-  category: string;
-  analysis_status: 'pending' | 'completed' | 'failed';
-  created_at: string;
-}
-
-// Interface pour les commandes de liens
-export interface LinkOrder {
-  id: string;
-  campaign_id: string;
-  opportunity_id: string;
-  advertiser_id: string;
-  
-  // Détails de la commande
-  anchor_text: string;
-  target_url: string;
-  quantity: number;
-  
-  // Prix et paiement
-  unit_price: number;
-  total_price: number;
-  currency: 'MAD' | 'EUR' | 'USD';
-  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
-  
-  // Informations de création
-  created_at: string;
-  updated_at: string;
-}
-
-// Interface pour créer une commande
-export interface CreateLinkOrderData {
-  campaign_id: string;
-  opportunity_id: string;
-  anchor_text: string;
-  target_url: string;
-  quantity: number;
-  advertiser_id?: string;
-}
-
-// Interface pour les statistiques de campagne
-export interface CampaignStats {
-  total_campaigns: number;
-  active_campaigns: number;
-  total_spent: number;
-  total_orders: number;
-  average_order_value: number;
-  top_performing_campaigns: Campaign[];
-}
-
-// Interface pour les recommandations de campagne
-export interface CampaignRecommendations {
-  existing_articles: LinkOpportunity[];
-  new_articles: LinkOpportunity[];
-  total_opportunities: number;
-  average_price: number;
-  price_range: {
-    min: number;
-    max: number;
-  };
-}
-
-// Interface pour les filtres de campagne
-export interface CampaignFilterOptions {
-  status?: 'draft' | 'pending_editor_approval' | 'approved' | 'rejected' | 'completed';
-  language?: string;
-  date_from?: string;
-  date_to?: string;
-  budget_min?: number;
-  budget_max?: number;
-  search?: string;
-  user_id?: string;
 }
 
 // ===== SYSTÈME DE MESSAGERIE =====

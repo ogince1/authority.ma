@@ -8,10 +8,6 @@ import UserWebsitesPage from './UserWebsitesPage';
 import UserLinkListingsPage from './UserLinkListingsPage';
 import QuickBuyPage from '../components/User/QuickBuyPage';
 import AdvertiserServices from '../components/User/AdvertiserServices';
-import CampaignDashboard from '../components/User/CampaignDashboard';
-import CampaignForm from '../components/User/CampaignForm';
-import CampaignDetails from '../components/User/CampaignDetails';
-import CampaignEditForm from '../components/User/CampaignEditForm';
 import BalanceManager from '../components/User/BalanceManager';
 import PurchaseRequests from '../components/User/PurchaseRequests';
 import MessagesList from '../components/User/MessagesList';
@@ -88,27 +84,6 @@ const UserDashboardPage: React.FC = () => {
         </ProtectedRoute>
       } />
       
-      {/* Routes pour les campagnes (annonceurs) */}
-      <Route path="/campaigns" element={
-        <ProtectedRoute>
-          <CampaignDashboard />
-        </ProtectedRoute>
-      } />
-      <Route path="/campaigns/new" element={
-        <ProtectedRoute>
-          <CampaignForm />
-        </ProtectedRoute>
-      } />
-      <Route path="/campaigns/:id" element={
-        <ProtectedRoute>
-          <CampaignDetails />
-        </ProtectedRoute>
-      } />
-      <Route path="/campaigns/:id/edit" element={
-        <ProtectedRoute>
-          <CampaignEditForm />
-        </ProtectedRoute>
-      } />
       
       {/* Route pour la gestion du solde */}
       <Route path="/balance" element={
@@ -123,6 +98,7 @@ const UserDashboardPage: React.FC = () => {
           <PurchaseRequests />
         </ProtectedRoute>
       } />
+      
       
       {/* Routes pour le système de messagerie */}
       <Route path="/messages" element={

@@ -43,6 +43,19 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
   const [balance, setBalance] = React.useState<number>(0);
   const [cartCount, setCartCount] = React.useState<number>(0);
 
+  // Fonction pour recharger le solde
+  const refreshBalance = async () => {
+    if (user) {
+      try {
+        const userBalance = await getUserBalance(user.id);
+        setBalance(userBalance);
+        console.log('💰 Solde mis à jour:', userBalance);
+      } catch (error) {
+        console.error('Error refreshing balance:', error);
+      }
+    }
+  };
+
   React.useEffect(() => {
     const fetchUser = async () => {
       const currentUser = await getCurrentUser();
@@ -63,6 +76,24 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
     };
     fetchUser();
   }, []);
+
+  // Écouter les événements de mise à jour du solde
+  React.useEffect(() => {
+    const handleBalanceUpdate = () => {
+      refreshBalance();
+    };
+
+    // Écouter les événements personnalisés pour la mise à jour du solde
+    window.addEventListener('balance-updated', handleBalanceUpdate);
+    
+    // Recharger le solde toutes les 30 secondes
+    const interval = setInterval(refreshBalance, 30000);
+
+    return () => {
+      window.removeEventListener('balance-updated', handleBalanceUpdate);
+      clearInterval(interval);
+    };
+  }, [user]);
 
   // Fonction pour mettre à jour le compteur du panier
   const updateCartCount = () => {
@@ -107,17 +138,16 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
           { name: 'Mon Solde', href: '/dashboard/balance', icon: Wallet },
           { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },
         ];
-      case 'advertiser':
-        return [
-          { name: 'Tableau de Bord', href: '/dashboard', icon: LayoutDashboard },
-          { name: 'Achat Rapide', href: '/dashboard/quick-buy', icon: Zap },
-          { name: 'Mes Campagnes', href: '/dashboard/campaigns', icon: Target },
-          { name: 'Mes Demandes', href: '/dashboard/purchase-requests', icon: FileText },
-          { name: 'Services', href: '/dashboard/services', icon: Settings },
-          { name: 'Mon Solde', href: '/dashboard/balance', icon: Wallet },
-          { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
-          { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },
-        ];
+           case 'advertiser':
+             return [
+               { name: 'Tableau de Bord', href: '/dashboard', icon: LayoutDashboard },
+               { name: 'Trouver des Médias', href: '/dashboard/quick-buy', icon: Zap },
+               { name: 'Mes Demandes', href: '/dashboard/purchase-requests', icon: FileText },
+               { name: 'Services', href: '/dashboard/services', icon: Settings },
+               { name: 'Mon Solde', href: '/dashboard/balance', icon: Wallet },
+               { name: 'Messages', href: '/dashboard/messages', icon: MessageSquare },
+               { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },
+             ];
       default:
         return [
           { name: 'Tableau de Bord', href: '/dashboard', icon: LayoutDashboard },
@@ -162,7 +192,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 bg-white shadow-lg transform ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+      } transition-all duration-300 ease-in-out lg:translate-x-0 lg:relative lg:inset-0 ${
         sidebarCollapsed ? 'w-16' : 'w-64'
       }`}>
         <div className={`flex items-center justify-between h-16 border-b border-gray-200 ${
@@ -252,9 +282,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
       </div>
 
       {/* Main content */}
-      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
-        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
-      }`}>
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top bar */}
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between h-16 px-6">

@@ -699,26 +699,25 @@ export const updateTransactionStatus = async (
 
 export const createNotification = async (notificationData: {
   user_id: string;
-  title: string;
-  message: string;
   type: 'info' | 'success' | 'warning' | 'error';
-  action_url?: string;
+  message: string;
   action_type?: 'link_purchase' | 'website_approval' | 'payment' | 'review';
+  action_id?: string;
+  is_read?: boolean;
+  target_user_id?: string;
 }): Promise<any> => {
   try {
-    // Utiliser la fonction RPC create_notification qui a les permissions SECURITY DEFINER
+    // Utiliser la fonction RPC create_notification qui existe déjà
     const { data, error } = await supabase.rpc('create_notification', {
       p_user_id: notificationData.user_id,
-      p_title: notificationData.title,
+      p_title: `Notification ${notificationData.type}`,
       p_message: notificationData.message,
       p_type: notificationData.type,
-      p_action_url: notificationData.action_url || null,
+      p_action_url: notificationData.action_id ? `/dashboard/action/${notificationData.action_id}` : null,
       p_action_type: notificationData.action_type || null
     });
 
     if (error) throw error;
-    
-    // La fonction RPC retourne l'ID de la notification créée
     return { id: data };
   } catch (error) {
     console.error('Error creating notification:', error);
@@ -1324,586 +1323,6 @@ export const updateSuccessStory = async (id: string, storyData: Partial<CreateSu
   }
 }; 
 
-// ===== FONCTIONS POUR LE SYSTÈME DE CAMPAGNES =====
-
-import { 
-  Campaign,
-  CreateCampaignData,
-  LinkOpportunity,
-  RecommendationFilters,
-  URLAnalysis,
-  LinkOrder,
-  CreateLinkOrderData,
-  CampaignStats,
-  CampaignRecommendations,
-  CampaignFilterOptions
-} from '../types';
-
-// ===== GESTION DES CAMPAGNES =====
-
-export const createCampaign = async (campaignData: CreateCampaignData): Promise<Campaign> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('Utilisateur non connecté');
-    }
-
-    const { data, error } = await supabase
-      .from('campaigns')
-      .insert([{
-        ...campaignData,
-        user_id: campaignData.user_id || user.id,
-        status: 'draft',
-        budget: campaignData.budget || 0,
-        total_orders: 0,
-        total_spent: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error creating campaign:', error);
-    throw error;
-  }
-};
-
-export const getCampaigns = async (filters?: CampaignFilterOptions): Promise<Campaign[]> => {
-  try {
-    let query = supabase.from('campaigns').select('*');
-
-    if (filters?.status) {
-      query = query.eq('status', filters.status);
-    }
-    if (filters?.language) {
-      query = query.eq('language', filters.language);
-    }
-    if (filters?.date_from) {
-      query = query.gte('created_at', filters.date_from);
-    }
-    if (filters?.date_to) {
-      query = query.lte('created_at', filters.date_to);
-    }
-    if (filters?.budget_min) {
-      query = query.gte('budget', filters.budget_min);
-    }
-    if (filters?.budget_max) {
-      query = query.lte('budget', filters.budget_max);
-    }
-    if (filters?.search) {
-      query = query.or(`name.ilike.%${filters.search}%`);
-    }
-    if (filters?.user_id) {
-      query = query.eq('user_id', filters.user_id);
-    }
-
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) throw error;
-    
-    // Calculer les vraies valeurs de total_spent et total_orders pour chaque campagne
-    const campaignsWithRealData = await Promise.all(
-      (data || []).map(async (campaign) => {
-        try {
-          // Récupérer les commandes de cette campagne
-          const orders = await getCampaignOrders(campaign.id);
-          
-          // Récupérer les demandes d'achat de cette campagne
-          const { data: requests, error: requestsError } = await supabase
-            .from('link_purchase_requests')
-            .select('*')
-            .eq('campaign_id', campaign.id);
-          
-          if (requestsError) {
-            console.error(`Error fetching purchase requests for campaign ${campaign.id}:`, requestsError);
-          }
-          
-          // Calculer le montant réel dépensé (commandes terminées + demandes acceptées)
-          const completedOrdersSpent = orders
-            .filter(o => o.status === 'completed')
-            .reduce((sum, order) => sum + (order.total_price || 0), 0);
-          
-          const acceptedRequestsSpent = (requests || [])
-            .filter(r => r.status === 'accepted')
-            .reduce((sum, request) => sum + (request.proposed_price || 0), 0);
-          
-          const realTotalSpent = completedOrdersSpent + acceptedRequestsSpent;
-          
-          // Calculer le nombre réel de commandes (commandes + demandes)
-          const realTotalOrders = orders.length + (requests || []).length;
-          
-          return {
-            ...campaign,
-            total_spent: realTotalSpent,
-            total_orders: realTotalOrders
-          };
-        } catch (error) {
-          console.error(`Error calculating real data for campaign ${campaign.id}:`, error);
-          // En cas d'erreur, retourner les valeurs par défaut
-          return {
-            ...campaign,
-            total_spent: 0,
-            total_orders: 0
-          };
-        }
-      })
-    );
-    
-    return campaignsWithRealData;
-  } catch (error) {
-    console.error('Error fetching campaigns:', error);
-    throw error;
-  }
-};
-
-export const getCampaignById = async (id: string): Promise<Campaign | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('campaigns')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw error;
-    }
-
-    if (!data) return null;
-    
-    // Calculer les vraies valeurs de total_spent et total_orders
-    try {
-      const orders = await getCampaignOrders(id);
-      
-      // Récupérer les demandes d'achat de cette campagne
-      const { data: requests, error: requestsError } = await supabase
-        .from('link_purchase_requests')
-        .select('*')
-        .eq('campaign_id', id);
-      
-      if (requestsError) {
-        console.error(`Error fetching purchase requests for campaign ${id}:`, requestsError);
-      }
-      
-      // Calculer le montant réel dépensé (commandes terminées + demandes acceptées)
-      const completedOrdersSpent = orders
-        .filter(o => o.status === 'completed')
-        .reduce((sum, order) => sum + (order.total_price || 0), 0);
-      
-      const acceptedRequestsSpent = (requests || [])
-        .filter(r => r.status === 'accepted')
-        .reduce((sum, request) => sum + (request.proposed_price || 0), 0);
-      
-      const realTotalSpent = completedOrdersSpent + acceptedRequestsSpent;
-      
-      // Calculer le nombre réel de commandes (commandes + demandes)
-      const realTotalOrders = orders.length + (requests || []).length;
-      
-      return {
-        ...data,
-        total_spent: realTotalSpent,
-        total_orders: realTotalOrders
-      };
-    } catch (calcError) {
-      console.error(`Error calculating real data for campaign ${id}:`, calcError);
-      return {
-        ...data,
-        total_spent: 0,
-        total_orders: 0
-      };
-    }
-  } catch (error) {
-    console.error('Error fetching campaign by id:', error);
-    throw error;
-  }
-};
-
-export const updateCampaign = async (id: string, campaignData: Partial<CreateCampaignData>): Promise<Campaign> => {
-  try {
-    const { data, error } = await supabase
-      .from('campaigns')
-      .update({
-        ...campaignData,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error updating campaign:', error);
-    throw error;
-  }
-};
-
-export const deleteCampaign = async (id: string): Promise<void> => {
-  try {
-    const { error } = await supabase
-      .from('campaigns')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-  } catch (error) {
-    console.error('Error deleting campaign:', error);
-    throw error;
-  }
-};
-
-// ===== ANALYSE D'URL =====
-
-export const analyzeURL = async (url: string): Promise<URLAnalysis> => {
-  try {
-    // Simulation d'analyse d'URL (à remplacer par un vrai service)
-    const mockMetrics = {
-      traffic: Math.floor(Math.random() * 10000),
-      mc: Math.floor(Math.random() * 5000),
-      dr: Math.floor(Math.random() * 100),
-      cf: Math.floor(Math.random() * 100),
-      tf: Math.floor(Math.random() * 100)
-    };
-
-    const categories = [
-      'Computers/Internet/Web Design and Development',
-      'Business/Marketing and Advertising',
-      'Health/Alternative Medicine',
-      'Shopping/Clothing and Accessories',
-      'Recreation/Travel'
-    ];
-
-    const analysis: URLAnalysis = {
-      url,
-      metrics: mockMetrics,
-      category: categories[Math.floor(Math.random() * categories.length)],
-      analysis_status: 'completed',
-      created_at: new Date().toISOString()
-    };
-
-    // Sauvegarder l'analyse dans la base de données
-    const { data, error } = await supabase
-      .from('url_analyses')
-      .insert([analysis])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error analyzing URL:', error);
-    throw error;
-  }
-};
-
-// ===== RECOMMANDATIONS DE LIENS =====
-
-export const getLinkRecommendations = async (
-  campaignId: string,
-  filters?: RecommendationFilters
-): Promise<CampaignRecommendations> => {
-  try {
-    // Récupérer les liens existants (Articles Existants = Mes Liens Existants des éditeurs)
-    const { data: linkListings, error: linkError } = await supabase
-      .from('link_listings')
-      .select(`
-        *,
-        website:websites(*)
-      `)
-      .eq('status', 'active');
-
-    if (linkError) throw linkError;
-
-    // Récupérer les sites web (Nouveaux Articles = Mes Sites Web des éditeurs)
-    const { data: websites, error: websiteError } = await supabase
-      .from('websites')
-      .select('*')
-      .eq('status', 'active');
-
-    if (websiteError) throw websiteError;
-
-    // Convertir les link_listings en LinkOpportunity pour les articles existants
-    // (Mes Liens Existants des éditeurs = Articles Existants pour annonceurs)
-    const existingArticles: LinkOpportunity[] = (linkListings || []).map((listing) => ({
-      id: listing.id,
-      campaign_id: campaignId,
-      type: 'existing_article' as const,
-      site_name: listing.website?.title || listing.title,
-      site_url: listing.website?.url || listing.target_url,
-      site_metrics: {
-        dr: listing.website?.metrics?.domain_authority || Math.floor(Math.random() * 100),
-        tf: listing.website?.metrics?.trust_flow || Math.floor(Math.random() * 100),
-        cf: listing.website?.metrics?.citation_flow || Math.floor(Math.random() * 100),
-        ps: 85 + Math.random() * 10, // Proximité sémantique simulée
-        age: Math.floor(Math.random() * 60),
-        outlinks: Math.floor(Math.random() * 50)
-      },
-      quality_type: (() => {
-        const dr = listing.website?.metrics?.domain_authority || 0;
-        if (dr >= 70) return 'gold';
-        if (dr >= 40) return 'silver';
-        return 'bronze';
-      })() as any,
-      theme: listing.website?.niche || listing.website_category || listing.category || 'various',
-      existing_article: {
-        title: listing.title,
-        url: listing.target_url,
-        age: Math.floor(Math.random() * 24),
-        outlinks: Math.floor(Math.random() * 30)
-      },
-      price: listing.price,
-      currency: listing.currency,
-      created_at: listing.created_at,
-      updated_at: listing.updated_at
-    }));
-
-    // Créer des opportunités pour nouveaux articles basées sur les sites web
-    // (Mes Sites Web des éditeurs = Nouveaux Articles pour annonceurs)
-    const newArticles: LinkOpportunity[] = (websites || []).map((website) => ({
-      id: website.id, // Utiliser l'ID du website directement (UUID valide)
-      campaign_id: campaignId,
-      type: 'new_article' as const,
-      site_name: `${website.title} (Nouveau)`,
-      site_url: website.url,
-      site_metrics: {
-        dr: website.metrics?.domain_authority || Math.floor(Math.random() * 100),
-        tf: website.metrics?.trust_flow || Math.floor(Math.random() * 100),
-        cf: website.metrics?.citation_flow || Math.floor(Math.random() * 100),
-        ps: 85 + Math.random() * 10,
-        focus: Math.floor(Math.random() * 100)
-      },
-      quality_type: (() => {
-        const dr = website.metrics?.domain_authority || 0;
-        if (dr >= 70) return 'gold';
-        if (dr >= 40) return 'silver';
-        return 'bronze';
-      })() as any,
-      theme: website.niche || website.category || 'various',
-      new_article: {
-        duration: '1 an',
-        placement_info: 'Articles seront à 2 clics de la page d\'accueil'
-      },
-      // Prix basé sur l'autorité du site web
-      price: (() => {
-        const dr = website.metrics?.domain_authority || 0;
-        if (dr >= 70) return 200; // Gold
-        if (dr >= 40) return 120; // Silver
-        return 80; // Bronze
-      })(),
-      currency: 'MAD',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }));
-
-    // Appliquer les filtres
-    let filteredExisting = existingArticles;
-    let filteredNew = newArticles;
-
-    if (filters) {
-      if (filters.price_min) {
-        filteredExisting = filteredExisting.filter(item => item.price >= filters.price_min!);
-        filteredNew = filteredNew.filter(item => item.price >= filters.price_min!);
-      }
-      if (filters.price_max) {
-        filteredExisting = filteredExisting.filter(item => item.price <= filters.price_max!);
-        filteredNew = filteredNew.filter(item => item.price <= filters.price_max!);
-      }
-      if (filters.dr_min) {
-        filteredExisting = filteredExisting.filter(item => item.site_metrics.dr! >= filters.dr_min!);
-        filteredNew = filteredNew.filter(item => item.site_metrics.dr! >= filters.dr_min!);
-      }
-      if (filters.type) {
-        filteredExisting = filteredExisting.filter(item => item.quality_type === filters.type);
-        filteredNew = filteredNew.filter(item => item.quality_type === filters.type);
-      }
-      if (filters.ps_min) {
-        filteredExisting = filteredExisting.filter(item => item.site_metrics.ps! >= filters.ps_min!);
-        filteredNew = filteredNew.filter(item => item.site_metrics.ps! >= filters.ps_min!);
-      }
-    }
-
-    const allOpportunities = [...filteredExisting, ...filteredNew];
-    const prices = allOpportunities.map(item => item.price);
-
-    return {
-      existing_articles: filteredExisting,
-      new_articles: filteredNew,
-      total_opportunities: allOpportunities.length,
-      average_price: prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0,
-      price_range: {
-        min: prices.length > 0 ? Math.min(...prices) : 0,
-        max: prices.length > 0 ? Math.max(...prices) : 0
-      }
-    };
-  } catch (error) {
-    console.error('Error getting link recommendations:', error);
-    throw error;
-  }
-};
-
-// ===== COMMANDES DE LIENS =====
-
-export const createLinkOrder = async (orderData: CreateLinkOrderData): Promise<LinkOrder> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('Utilisateur non connecté');
-    }
-
-    const { data, error } = await supabase
-      .from('link_orders')
-      .insert([{
-        ...orderData,
-        advertiser_id: orderData.advertiser_id || user.id,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error creating link order:', error);
-    throw error;
-  }
-};
-
-export const getLinkOrders = async (filters?: { campaign_id?: string; user_id?: string }): Promise<LinkOrder[]> => {
-  try {
-    let query = supabase.from('link_orders').select('*');
-
-    if (filters?.campaign_id) {
-      query = query.eq('campaign_id', filters.campaign_id);
-    }
-    if (filters?.user_id) {
-      query = query.eq('advertiser_id', filters.user_id);
-    }
-
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    console.error('Error fetching link orders:', error);
-    throw error;
-  }
-};
-
-export const updateLinkOrderStatus = async (
-  id: string,
-  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
-): Promise<LinkOrder> => {
-  try {
-    const { data, error } = await supabase
-      .from('link_orders')
-      .update({
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error updating link order status:', error);
-    throw error;
-  }
-};
-
-// ===== STATISTIQUES DE CAMPAGNE =====
-
-export const getCampaignStats = async (userId: string): Promise<CampaignStats> => {
-  try {
-    const campaigns = await getCampaigns({ user_id: userId });
-    const orders = await getLinkOrders({ user_id: userId });
-
-    const totalCampaigns = campaigns.length;
-    const activeCampaigns = campaigns.filter(c => c.status === 'approved').length;
-    const totalSpent = orders
-      .filter(o => o.status === 'completed')
-      .reduce((sum, order) => sum + order.total_price, 0);
-    const totalOrders = orders.length;
-    const averageOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0;
-
-    const topPerformingCampaigns = campaigns
-      .sort((a, b) => b.total_spent - a.total_spent)
-      .slice(0, 5);
-
-    return {
-      total_campaigns: totalCampaigns,
-      active_campaigns: activeCampaigns,
-      total_spent: totalSpent,
-      total_orders: totalOrders,
-      average_order_value: averageOrderValue,
-      top_performing_campaigns: topPerformingCampaigns
-    };
-  } catch (error) {
-    console.error('Error getting campaign stats:', error);
-    throw error;
-  }
-};
-
-// ===== FONCTIONS UTILITAIRES POUR LES CAMPAGNES =====
-
-export const updateCampaignMetrics = async (campaignId: string, metrics: any): Promise<Campaign> => {
-  try {
-    const { data, error } = await supabase
-      .from('campaigns')
-      .update({
-        extracted_metrics: metrics,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', campaignId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error updating campaign metrics:', error);
-    throw error;
-  }
-};
-
-export const getCampaignOrders = async (campaignId: string): Promise<LinkOrder[]> => {
-  try {
-    return await getLinkOrders({ campaign_id: campaignId });
-  } catch (error) {
-    console.error('Error getting campaign orders:', error);
-    throw error;
-  }
-};
-
-export const calculateCampaignBudget = async (campaignId: string): Promise<{ spent: number; remaining: number }> => {
-  try {
-    const campaign = await getCampaignById(campaignId);
-    const orders = await getCampaignOrders(campaignId);
-
-    if (!campaign) {
-      throw new Error('Campaign not found');
-    }
-
-    const spent = orders
-      .filter(o => o.status === 'completed')
-      .reduce((sum, order) => sum + order.total_price, 0);
-
-    return {
-      spent,
-      remaining: campaign.budget - spent
-    };
-  } catch (error) {
-    console.error('Error calculating campaign budget:', error);
-    throw error;
-  }
-};
-
 // ===== SYSTÈME DE CRÉDIT/SOLDE =====
 
 export const getUserBalance = async (userId: string): Promise<number> => {
@@ -2022,223 +1441,6 @@ export const getCreditTransactions = async (userId: string, filters?: {
   }
 };
 
-export const processLinkPurchase = async (
-  purchaseRequestId: string
-): Promise<{ success: boolean; error?: string; transaction_id?: string }> => {
-  try {
-    console.log('Calling process_link_purchase with:', { purchaseRequestId });
-    
-    // Récupérer d'abord les détails de la demande pour diagnostiquer
-    const { data: request, error: requestError } = await supabase
-      .from('link_purchase_requests')
-      .select('*')
-      .eq('id', purchaseRequestId)
-      .single();
-    
-    if (!requestError && request) {
-      console.log('Purchase request details:', {
-        id: request.id,
-        proposed_price: request.proposed_price,
-        user_id: request.user_id
-      });
-      
-      // Vérifier le solde de l'utilisateur
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('balance')
-        .eq('id', request.user_id)
-        .single();
-      
-      if (!userError && user) {
-        console.log('User balance:', user.balance);
-        console.log('Required amount:', request.proposed_price);
-        console.log('Balance sufficient:', user.balance >= request.proposed_price);
-      }
-    }
-    
-    // Essayer d'abord la fonction SQL
-    const { data, error } = await supabase.rpc('process_link_purchase', {
-      p_purchase_request_id: purchaseRequestId,
-      p_payment_method: 'balance'
-    });
-
-    console.log('RPC response:', { data, error });
-
-    if (error) {
-      console.error('RPC error details:', error);
-      
-      // Si la fonction SQL n'existe pas, utiliser la logique TypeScript
-      if (error.message?.includes('function') || error.message?.includes('does not exist')) {
-        console.log('SQL function not found, using TypeScript fallback');
-        return await processLinkPurchaseFallback(purchaseRequestId);
-      }
-      
-      // Gérer les erreurs spécifiques
-      if (error.message?.includes('Solde insuffisant')) {
-        return {
-          success: false,
-          error: 'Solde insuffisant. Veuillez recharger votre compte.'
-        };
-      }
-      
-      throw error;
-    }
-
-    return {
-      success: true,
-      transaction_id: data?.transaction_id
-    };
-  } catch (error) {
-    console.error('Error processing link purchase:', error);
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      code: (error as any)?.code,
-      details: (error as any)?.details,
-      hint: (error as any)?.hint
-    });
-    
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur lors du traitement du paiement'
-    };
-  }
-};
-
-// Fonction de fallback en TypeScript
-const processLinkPurchaseFallback = async (
-  purchaseRequestId: string
-): Promise<{ success: boolean; error?: string; transaction_id?: string }> => {
-  try {
-    console.log('Using TypeScript fallback for purchase processing');
-    
-    // Récupérer les détails de la demande
-    const { data: request, error: requestError } = await supabase
-      .from('link_purchase_requests')
-      .select('*')
-      .eq('id', purchaseRequestId)
-      .single();
-
-    if (requestError || !request) {
-      throw new Error('Demande non trouvée');
-    }
-
-    // Vérifier le solde de l'annonceur
-    const { data: advertiser, error: advertiserError } = await supabase
-      .from('users')
-      .select('balance')
-      .eq('id', request.user_id)
-      .single();
-
-    if (advertiserError || !advertiser) {
-      throw new Error('Utilisateur non trouvé');
-    }
-
-    if (advertiser.balance < request.proposed_price) {
-      return {
-        success: false,
-        error: 'Solde insuffisant. Veuillez recharger votre compte.'
-      };
-    }
-
-    // Calculer les montants
-    const platformFee = request.proposed_price * 0.10; // 10% de commission
-    const publisherAmount = request.proposed_price - platformFee;
-
-    // Créer la transaction d'achat
-    const { data: transaction, error: transactionError } = await supabase
-      .from('link_purchase_transactions')
-      .insert({
-        purchase_request_id: purchaseRequestId,
-        advertiser_id: request.user_id,
-        publisher_id: request.publisher_id,
-        link_listing_id: request.link_listing_id,
-        amount: request.proposed_price,
-        platform_fee: platformFee,
-        publisher_amount: publisherAmount,
-        status: 'completed',
-        payment_method: 'manual'
-      })
-      .select()
-      .single();
-
-    if (transactionError) {
-      throw new Error('Erreur lors de la création de la transaction');
-    }
-
-    // Débiter l'annonceur
-    const { error: debitError } = await supabase
-      .from('users')
-      .update({ balance: advertiser.balance - request.proposed_price })
-      .eq('id', request.user_id);
-
-    if (debitError) {
-      throw new Error('Erreur lors du débit du compte');
-    }
-
-    // Créditer l'éditeur
-    const { data: publisher, error: publisherError } = await supabase
-      .from('users')
-      .select('balance')
-      .eq('id', request.publisher_id)
-      .single();
-
-    if (publisherError || !publisher) {
-      throw new Error('Éditeur non trouvé');
-    }
-
-    const { error: creditError } = await supabase
-      .from('users')
-      .update({ balance: publisher.balance + publisherAmount })
-      .eq('id', request.publisher_id);
-
-    if (creditError) {
-      throw new Error('Erreur lors du crédit du compte éditeur');
-    }
-
-    // Créer les transactions de crédit
-    await Promise.all([
-      createCreditTransaction({
-        user_id: request.user_id,
-        type: 'purchase',
-        amount: request.proposed_price,
-        description: `Achat de lien - ${request.target_url}`,
-        payment_method: undefined
-      }),
-      createCreditTransaction({
-        user_id: request.publisher_id,
-        type: 'deposit',
-        amount: publisherAmount,
-        description: `Vente de lien - ${request.target_url}`,
-        payment_method: undefined
-      })
-    ]);
-
-    // Marquer la demande comme acceptée
-    const { error: updateError } = await supabase
-      .from('link_purchase_requests')
-      .update({ 
-        status: 'accepted',
-        response_date: new Date().toISOString()
-      })
-      .eq('id', purchaseRequestId);
-
-    if (updateError) {
-      throw new Error('Erreur lors de la mise à jour de la demande');
-    }
-
-    return {
-      success: true,
-      transaction_id: transaction.id
-    };
-  } catch (error) {
-    console.error('Fallback error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erreur lors du traitement du paiement'
-    };
-  }
-};
-
 export const addFundsToBalance = async (
   userId: string,
   amount: number,
@@ -2289,12 +1491,14 @@ export const createLinkPurchaseRequest = async (requestData: {
   message?: string;
   proposed_price: number;
   proposed_duration: number;
-  campaign_id?: string; // ID de la campagne associée
 }): Promise<LinkPurchaseRequest> => {
   try {
+    // Supprimer campaign_id des données avant insertion
+    const { campaign_id, ...cleanRequestData } = requestData as any;
+    
     const { data, error } = await supabase
       .from('link_purchase_requests')
-      .insert([requestData])
+      .insert([cleanRequestData])
       .select()
       .single();
 
@@ -2402,7 +1606,338 @@ export const getLinkPurchaseTransactions = async (filters?: {
     console.error('Error fetching purchase transactions:', error);
     throw error;
   }
-}; 
+};
+
+// ===== WORKFLOW DE CONFIRMATION DES LIENS =====
+
+export const acceptPurchaseRequest = async (requestId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    // Récupérer la demande avec les détails du lien
+    const { data: request, error: requestError } = await supabase
+      .from('link_purchase_requests')
+      .select(`
+        *,
+        link_listings!inner(title)
+      `)
+      .eq('id', requestId)
+      .single();
+
+    if (requestError || !request) {
+      throw new Error('Demande non trouvée');
+    }
+
+    if (request.status !== 'pending') {
+      throw new Error('Cette demande a déjà été traitée');
+    }
+
+    // Mettre à jour le statut à 'pending_confirmation'
+    const { error: updateError } = await supabase
+      .from('link_purchase_requests')
+      .update({
+        status: 'pending_confirmation',
+        response_date: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', requestId);
+
+    if (updateError) throw updateError;
+
+    // Créer une notification pour l'annonceur
+    await createNotification({
+      user_id: request.user_id,
+      type: 'info',
+      message: `Votre demande pour le lien "${request.link_listings?.title}" a été acceptée. Veuillez confirmer le placement.`,
+      action_type: 'link_purchase',
+      action_id: requestId
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error accepting purchase request:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur lors de l\'acceptation de la demande'
+    };
+  }
+};
+
+export const confirmLinkPlacement = async (
+  requestId: string
+): Promise<{ success: boolean; error?: string; transaction_id?: string }> => {
+  try {
+    // Récupérer la demande avec les détails du lien
+    const { data: request, error: requestError } = await supabase
+      .from('link_purchase_requests')
+      .select(`
+        *,
+        link_listings(title)
+      `)
+      .eq('id', requestId)
+      .single();
+
+    if (requestError || !request) {
+      console.error('Error fetching request:', requestError);
+      throw new Error('Demande non trouvée');
+    }
+
+    if (request.status !== 'pending_confirmation') {
+      throw new Error('Cette demande n\'est pas en attente de confirmation');
+    }
+
+    // Vérifier que la demande n'a pas expiré (48h)
+    const deadline = new Date(request.accepted_at || request.response_date);
+    deadline.setHours(deadline.getHours() + 48);
+    
+    if (new Date() > deadline) {
+      throw new Error('Le délai de confirmation a expiré');
+    }
+
+    // Vérifier le solde de l'annonceur
+    const { data: advertiser, error: advertiserError } = await supabase
+      .from('users')
+      .select('balance')
+      .eq('id', request.user_id)
+      .single();
+
+    if (advertiserError || !advertiser) {
+      throw new Error('Annonceur non trouvé');
+    }
+
+    if (advertiser.balance < request.proposed_price) {
+      throw new Error('Solde insuffisant pour confirmer cette demande');
+    }
+
+    // Calculer les montants
+    const platformFee = request.proposed_price * 0.10; // 10% de commission
+    const publisherAmount = request.proposed_price - platformFee;
+
+    // Créer la transaction d'achat
+    const { data: transaction, error: transactionError } = await supabase
+      .from('link_purchase_transactions')
+      .insert({
+        purchase_request_id: requestId,
+        advertiser_id: request.user_id,
+        publisher_id: request.publisher_id,
+        link_listing_id: request.link_listing_id,
+        amount: request.proposed_price,
+        platform_fee: platformFee,
+        publisher_amount: publisherAmount,
+        status: 'completed',
+        payment_method: 'balance'
+      })
+      .select()
+      .single();
+
+    if (transactionError) throw transactionError;
+
+    // Débiter l'annonceur
+    const { error: debitError } = await supabase
+      .from('users')
+      .update({ balance: advertiser.balance - request.proposed_price })
+      .eq('id', request.user_id);
+
+    if (debitError) throw debitError;
+
+    // Récupérer le solde actuel de l'éditeur
+    const { data: publisher, error: publisherError } = await supabase
+      .from('users')
+      .select('balance')
+      .eq('id', request.publisher_id)
+      .single();
+
+    if (publisherError) {
+      console.log('⚠️  Erreur récupération solde éditeur:', publisherError);
+      throw new Error('Impossible de récupérer le solde de l\'éditeur');
+    }
+
+    // Créditer l'éditeur
+    const { error: creditError } = await supabase
+      .from('users')
+      .update({ balance: publisher.balance + publisherAmount })
+      .eq('id', request.publisher_id);
+
+    if (creditError) {
+      console.log('⚠️  Erreur lors du crédit éditeur:', creditError);
+      throw new Error('Erreur lors du crédit de l\'éditeur');
+    }
+
+    // Créer les transactions de crédit (avec tous les champs requis)
+    const { error: creditTransactionError } = await supabase
+      .from('credit_transactions')
+      .insert([
+        {
+          user_id: request.user_id,
+          type: 'purchase',
+          amount: request.proposed_price,
+          description: 'Achat de lien',
+          currency: 'MAD',
+          status: 'completed',
+          related_link_listing_id: request.link_listing_id,
+          related_purchase_request_id: requestId,
+          created_at: new Date().toISOString(),
+          completed_at: new Date().toISOString()
+        },
+        {
+          user_id: request.publisher_id,
+          type: 'deposit',
+          amount: publisherAmount,
+          description: 'Vente de lien',
+          currency: 'MAD',
+          status: 'completed',
+          related_link_listing_id: request.link_listing_id,
+          related_purchase_request_id: requestId,
+          created_at: new Date().toISOString(),
+          completed_at: new Date().toISOString()
+        }
+      ]);
+
+    if (creditTransactionError) {
+      console.log('⚠️  Erreur lors de la création des transactions de crédit:', creditTransactionError);
+      // This is the error the user was previously reporting (42501 RLS)
+    }
+
+    // Mettre à jour le statut de la demande
+    const { error: updateError } = await supabase
+      .from('link_purchase_requests')
+      .update({
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', requestId);
+
+    if (updateError) throw updateError;
+
+    // Créer une notification pour l'éditeur
+    await createNotification({
+      user_id: request.publisher_id,
+      type: 'success',
+      message: `Le placement du lien "${request.link_listings?.title}" a été confirmé. Le paiement a été effectué.`,
+      action_type: 'payment',
+      action_id: requestId,
+      is_read: false
+    });
+
+    // Déclencher un événement pour mettre à jour les soldes dans l'interface
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('balance-updated'));
+      console.log('💰 Événement balance-updated déclenché');
+    }
+
+    return {
+      success: true,
+      transaction_id: transaction.id
+    };
+  } catch (error) {
+    console.error('Error confirming link placement:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur lors de la confirmation du placement'
+    };
+  }
+};
+
+export const getPendingConfirmationRequests = async (userId: string): Promise<LinkPurchaseRequest[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('link_purchase_requests')
+      .select(`
+        *,
+        link_listings!inner(title, target_url),
+        publisher:users!link_purchase_requests_publisher_id_fkey(name)
+      `)
+      .eq('user_id', userId)
+      .eq('status', 'pending_confirmation')
+      .order('response_date', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching pending confirmation requests:', error);
+    return [];
+  }
+};
+
+export const autoConfirmExpiredRequests = async (): Promise<{ confirmed: number; errors: string[] }> => {
+  try {
+    // Récupérer les demandes expirées (plus de 48h sans confirmation)
+    const fortyEightHoursAgo = new Date();
+    fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
+
+    const { data: expiredRequests, error: fetchError } = await supabase
+      .from('link_purchase_requests')
+      .select('*')
+      .eq('status', 'pending_confirmation')
+      .lt('response_date', fortyEightHoursAgo.toISOString());
+
+    if (fetchError) throw fetchError;
+
+    let confirmed = 0;
+    const errors: string[] = [];
+
+    // Traiter chaque demande expirée
+    for (const request of expiredRequests || []) {
+      try {
+        const result = await confirmLinkPlacement(request.id);
+        if (result.success) {
+          confirmed++;
+        } else {
+          errors.push(`Demande ${request.id}: ${result.error}`);
+        }
+      } catch (error) {
+        errors.push(`Demande ${request.id}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      }
+    }
+
+    return { confirmed, errors };
+  } catch (error) {
+    console.error('Error auto-confirming expired requests:', error);
+    return { confirmed: 0, errors: [error instanceof Error ? error.message : 'Erreur inconnue'] };
+  }
+};
+
+// ===== RECOMMANDATIONS DE LIENS POUR ACHAT RAPIDE =====
+
+export const getLinkRecommendations = async (type?: string): Promise<{
+  websites: any[]; // Sites web comme headers d'accordéon
+  link_listings: LinkListing[]; // Articles existants pour le contenu
+}> => {
+  try {
+    // Récupérer les sites web (websites) comme headers d'accordéon
+    const { data: websites, error: websitesError } = await supabase
+      .from('websites')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (websitesError) throw websitesError;
+
+    // Récupérer les articles existants (link_listings actifs)
+    const { data: linkListings, error: listingsError } = await supabase
+      .from('link_listings')
+      .select(`
+        *,
+        website:websites(*)
+      `)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (listingsError) throw listingsError;
+    
+    return {
+      websites: websites || [],
+      link_listings: linkListings || []
+    };
+  } catch (error) {
+    console.error('Error getting link recommendations:', error);
+    return {
+      websites: [],
+      link_listings: []
+    };
+  }
+};
 
 // ===== SYSTÈME DE MESSAGERIE =====
 
@@ -2655,8 +2190,10 @@ export const acceptPurchaseRequestWithUrl = async (
     const { error: updateError } = await supabase
       .from('link_purchase_requests')
       .update({ 
-        status: 'accepted',
+        status: 'pending_confirmation',
         placed_url: placedUrl,
+        placed_at: new Date().toISOString(),
+        accepted_at: new Date().toISOString(),
         editor_response: 'Demande acceptée ! Le lien a été placé avec succès.'
       })
       .eq('id', requestId);
@@ -2670,5 +2207,165 @@ export const acceptPurchaseRequestWithUrl = async (
   } catch (error) {
     console.error('Error accepting purchase request:', error);
     return { success: false, error: 'Erreur lors de l\'acceptation' };
+  }
+};
+
+// ===== FONCTIONS POUR LES SERVICES =====
+
+// Récupérer tous les services disponibles
+export const getServices = async (): Promise<Service[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('services')
+      .select('*')
+      .eq('status', 'available')
+      .order('name');
+
+    if (error) {
+      console.error('Error fetching services:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching services:', error);
+    return [];
+  }
+};
+
+// Récupérer un service par ID
+export const getServiceById = async (serviceId: string): Promise<Service | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('services')
+      .select('*')
+      .eq('id', serviceId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching service:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching service:', error);
+    return null;
+  }
+};
+
+// Créer une demande de service
+export const createServiceRequest = async (requestData: {
+  service_id: string;
+  user_id: string;
+  quantity: number;
+  total_price: number;
+  client_notes?: string;
+}): Promise<ServiceRequest | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('service_requests')
+      .insert([requestData])
+      .select(`
+        *,
+        service:services(*),
+        user:users(id, name, email)
+      `)
+      .single();
+
+    if (error) {
+      console.error('Error creating service request:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error creating service request:', error);
+    return null;
+  }
+};
+
+// Récupérer les demandes de services d'un utilisateur
+export const getUserServiceRequests = async (userId: string): Promise<ServiceRequest[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('service_requests')
+      .select(`
+        *,
+        service:services(*)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching user service requests:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching user service requests:', error);
+    return [];
+  }
+};
+
+// Récupérer toutes les demandes de services (pour les admins)
+export const getAllServiceRequests = async (): Promise<ServiceRequest[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('service_requests')
+      .select(`
+        *,
+        service:services(*),
+        user:users(id, name, email)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching all service requests:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching all service requests:', error);
+    return [];
+  }
+};
+
+// Mettre à jour le statut d'une demande de service (pour les admins)
+export const updateServiceRequestStatus = async (
+  requestId: string, 
+  status: string, 
+  adminNotes?: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const updateData: any = { 
+      status,
+      updated_at: new Date().toISOString()
+    };
+
+    if (adminNotes) {
+      updateData.admin_notes = adminNotes;
+    }
+
+    if (status === 'completed') {
+      updateData.completed_at = new Date().toISOString();
+    }
+
+    const { error } = await supabase
+      .from('service_requests')
+      .update(updateData)
+      .eq('id', requestId);
+
+    if (error) {
+      console.error('Error updating service request status:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating service request status:', error);
+    return { success: false, error: 'Erreur lors de la mise à jour' };
   }
 }; 

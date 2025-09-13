@@ -9,12 +9,14 @@ import DisputesManagement from '../components/Admin/DisputesManagement';
 import TransactionsManagement from '../components/Admin/TransactionsManagement';
 import WebsitesManagement from '../components/Admin/WebsitesManagement';
 import ServicesManagement from '../components/Admin/ServicesManagement';
+import ServiceRequestsManagement from '../components/Admin/ServiceRequestsManagement';
 import PlatformSettings from '../components/Admin/PlatformSettings';
 import BlogList from '../components/Admin/BlogList';
 import BlogForm from '../components/Admin/BlogForm';
 import BlogFormWrapper from '../components/Admin/BlogFormWrapper';
 import SuccessStoriesList from '../components/Admin/SuccessStoriesList';
 import SuccessStoryForm from '../components/Admin/SuccessStoryForm';
+import AutoConfirmationManager from '../components/Admin/AutoConfirmationManager';
 
 const useAdminAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(null);
@@ -80,6 +82,20 @@ const AdminPage: React.FC = () => {
       <Route path="/services" element={
         <ProtectedRoute>
           <ServicesManagement />
+        </ProtectedRoute>
+      } />
+      
+      {/* Gestion des demandes de services */}
+      <Route path="/service-requests" element={
+        <ProtectedRoute>
+          <ServiceRequestsManagement />
+        </ProtectedRoute>
+      } />
+      
+      {/* Gestion de la confirmation automatique */}
+      <Route path="/auto-confirmation" element={
+        <ProtectedRoute>
+          <AutoConfirmationManager />
         </ProtectedRoute>
       } />
       
