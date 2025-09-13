@@ -21,6 +21,7 @@ import {
 import { motion } from 'framer-motion';
 import { LinkListing } from '../../types';
 import { getCategoryLabel } from '../../utils/categories';
+import Favicon from '../Common/Favicon';
 import { 
   getLinkRecommendations, 
   getCurrentUser, 
@@ -50,15 +51,22 @@ const QuickBuyPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 1000 });
+  const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 50000 });
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState<number>(0);
   const [processing, setProcessing] = useState(false);
   const [expandedWebsites, setExpandedWebsites] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // Réinitialiser la page quand les filtres changent
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, priceRange]);
 
   const loadData = async () => {
     try {
@@ -136,21 +144,21 @@ const QuickBuyPage: React.FC = () => {
   const filteredOpportunities = Array.isArray(opportunities) ? opportunities.filter(data => {
     const website = data.website;
     const newArticle = data.newArticle;
-    const existingArticles = data.existingArticles;
+    const existingArticles = data.existingArticles || [];
 
-    const matchesSearch = (website.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (website.url || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = (website?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (website?.url || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (newArticle?.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          existingArticles.some(article => 
-                           (article.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (article.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (article.target_url || '').toLowerCase().includes(searchTerm.toLowerCase())
+                           (article?.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (article?.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (article?.target_url || '').toLowerCase().includes(searchTerm.toLowerCase())
                          );
     
-    const matchesCategory = selectedCategory === 'all' || website.category === selectedCategory;
+    const matchesCategory = selectedCategory === 'all' || website?.category === selectedCategory;
     
     const matchesPrice = (newArticle?.price || 0) >= priceRange.min && (newArticle?.price || 0) <= priceRange.max ||
-                         existingArticles.some(article => article.price >= priceRange.min && article.price <= priceRange.max);
+                         existingArticles.some(article => (article?.price || 0) >= priceRange.min && (article?.price || 0) <= priceRange.max);
     
     return matchesSearch && matchesCategory && matchesPrice;
   }) : [];
@@ -179,6 +187,29 @@ const QuickBuyPage: React.FC = () => {
       newExpanded.add(websiteKey);
     }
     setExpandedWebsites(newExpanded);
+  };
+
+  // Logique de pagination
+  const totalPages = Math.ceil(filteredOpportunities.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOpportunities = filteredOpportunities.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
+    }
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1);
+    }
   };
 
   const addToCart = (listing: any) => {
@@ -417,7 +448,7 @@ const QuickBuyPage: React.FC = () => {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <input
                     type="text"
-                    placeholder="Rechercher des liens..."
+                    placeholder="Rechercher par site ou par mot-clés..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-gray-50 focus:bg-white transition-all duration-200"
@@ -463,7 +494,7 @@ const QuickBuyPage: React.FC = () => {
             </div>
 
             {/* Résumé des filtres actifs */}
-            {(searchTerm || selectedCategory !== 'all' || priceRange.min > 0 || priceRange.max < 1000) && (
+            {(searchTerm || selectedCategory !== 'all' || priceRange.min > 0 || priceRange.max < 50000) && (
               <div className="flex flex-wrap items-center gap-2 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
                 <span className="text-sm font-medium text-emerald-800">Filtres actifs:</span>
                 {searchTerm && (
@@ -488,11 +519,11 @@ const QuickBuyPage: React.FC = () => {
                     </button>
                   </span>
                 )}
-                {(priceRange.min > 0 || priceRange.max < 1000) && (
+                {(priceRange.min > 0 || priceRange.max < 50000) && (
                   <span className="inline-flex items-center px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
                     Prix: {priceRange.min} - {priceRange.max} MAD
                     <button
-                      onClick={() => setPriceRange({ min: 0, max: 1000 })}
+                      onClick={() => setPriceRange({ min: 0, max: 50000 })}
                       className="ml-1 text-emerald-600 hover:text-emerald-800"
                     >
                       <X className="h-3 w-3" />
@@ -505,7 +536,7 @@ const QuickBuyPage: React.FC = () => {
 
           {/* Liste des sites web avec accordéon */}
           <div className="space-y-3">
-            {opportunities.length === 0 ? (
+            {paginatedOpportunities.length === 0 ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
                 <div className="p-4 bg-gray-100 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
                   <Globe className="h-10 w-10 text-gray-400" />
@@ -514,7 +545,7 @@ const QuickBuyPage: React.FC = () => {
                 <p className="text-gray-600">Ajustez vos filtres pour voir plus de résultats</p>
               </div>
             ) : (
-              sortedWebsites.map((data, index) => (
+              paginatedOpportunities.map((data, index) => (
                 <motion.div
                   key={data.website.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -537,8 +568,12 @@ const QuickBuyPage: React.FC = () => {
                         )}
                       </div>
                       <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <div className="p-2 bg-gradient-to-br from-emerald-50 to-blue-50 rounded-lg flex-shrink-0">
-                          <Globe className="h-5 w-5 text-emerald-600" />
+                        <div className="flex-shrink-0">
+                          <Favicon 
+                            url={data.website.url} 
+                            size={24}
+                            className="rounded-lg"
+                          />
                         </div>
                         <div className="min-w-0 flex-1">
                           <h3 className="text-lg font-bold text-gray-900 truncate">{data.website.name}</h3>
@@ -659,6 +694,50 @@ const QuickBuyPage: React.FC = () => {
               ))
             )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center space-x-2 mt-8">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Précédent
+              </button>
+              
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => goToPage(page)}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                      currentPage === page
+                        ? 'bg-emerald-600 text-white'
+                        : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Suivant
+              </button>
+            </div>
+          )}
+
+          {/* Informations de pagination */}
+          {filteredOpportunities.length > 0 && (
+            <div className="text-center text-sm text-gray-600 mt-4">
+              Affichage de {startIndex + 1} à {Math.min(endIndex, filteredOpportunities.length)} sur {filteredOpportunities.length} sites
+            </div>
+          )}
         </div>
 
         {/* Panier */}

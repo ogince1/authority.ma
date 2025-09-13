@@ -315,13 +315,11 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
                   type="number"
                   {...register('new_article_price', { 
                     required: 'Le prix est requis',
-                    min: { value: 10, message: 'Le prix minimum est de 10 MAD' },
-                    max: { value: 1000, message: 'Le prix maximum est de 1000 MAD' }
+                    min: { value: 10, message: 'Le prix minimum est de 10 MAD' }
                   })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="80"
                   min="10"
-                  max="1000"
                 />
                 {errors.new_article_price && (
                   <p className="text-red-600 text-sm mt-1">{errors.new_article_price.message}</p>
