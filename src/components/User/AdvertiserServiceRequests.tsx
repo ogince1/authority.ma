@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Settings,
+  Package,
   Clock,
   CheckCircle,
   XCircle,
@@ -8,24 +8,22 @@ import {
   Eye,
   MessageSquare,
   Calendar,
-  User,
   Euro,
-  Package,
   RefreshCw,
+  User,
   X
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { getAllServiceRequests, updateServiceRequestStatus } from '../../lib/supabase';
+import { motion } from 'framer-motion';
+import { getUserServiceRequests, getCurrentUser } from '../../lib/supabase';
 import { ServiceRequest } from '../../types';
 import toast from 'react-hot-toast';
 
-const ServiceRequestsManagement: React.FC = () => {
+const AdvertiserServiceRequests: React.FC = () => {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [filter, setFilter] = useState<string>('all');
-  const [adminNotes, setAdminNotes] = useState('');
 
   useEffect(() => {
     loadRequests();
@@ -34,30 +32,19 @@ const ServiceRequestsManagement: React.FC = () => {
   const loadRequests = async () => {
     try {
       setLoading(true);
-      const data = await getAllServiceRequests();
+      const user = await getCurrentUser();
+      if (!user) {
+        toast.error('Utilisateur non connecté');
+        return;
+      }
+      
+      const data = await getUserServiceRequests(user.id);
       setRequests(data);
     } catch (error) {
       console.error('Error loading service requests:', error);
       toast.error('Erreur lors du chargement des demandes');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleStatusUpdate = async (requestId: string, newStatus: string) => {
-    try {
-      const result = await updateServiceRequestStatus(requestId, newStatus, adminNotes);
-      if (result.success) {
-        toast.success('Statut mis à jour avec succès');
-        loadRequests();
-        setShowModal(false);
-        setAdminNotes('');
-      } else {
-        toast.error(result.error || 'Erreur lors de la mise à jour');
-      }
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error('Erreur lors de la mise à jour');
     }
   };
 
@@ -138,8 +125,8 @@ const ServiceRequestsManagement: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestion des Services</h1>
-          <p className="text-gray-600 mt-1">Gérez les demandes de services des annonceurs</p>
+          <h1 className="text-3xl font-bold text-gray-900">Mes Demandes de Services</h1>
+          <p className="text-gray-600 mt-1">Suivez l'avancement de vos demandes de services</p>
         </div>
         <button
           onClick={loadRequests}
@@ -177,7 +164,7 @@ const ServiceRequestsManagement: React.FC = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
-            Demandes de Services ({filteredRequests.length})
+            Mes Demandes ({filteredRequests.length})
           </h2>
         </div>
 
@@ -187,10 +174,19 @@ const ServiceRequestsManagement: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-2">Aucune demande</h3>
             <p className="text-gray-500">
               {filter === 'all' 
-                ? 'Aucune demande de service pour le moment'
+                ? 'Vous n\'avez pas encore fait de demandes de services'
                 : `Aucune demande avec le statut "${filter}"`
               }
             </p>
+            <div className="mt-6">
+              <a
+                href="/dashboard/services"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center space-x-2"
+              >
+                <Package className="h-5 w-5" />
+                <span>Voir les services</span>
+              </a>
+            </div>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -212,17 +208,19 @@ const ServiceRequestsManagement: React.FC = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                       <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4" />
-                        <span>{request.user?.name || request.user?.email}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
                         <Euro className="h-4 w-4" />
                         <span>{request.total_price} MAD (x{request.quantity})</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4" />
-                        <span>{new Date(request.created_at).toLocaleDateString('fr-FR')}</span>
+                        <span>Commandé le {new Date(request.created_at).toLocaleDateString('fr-FR')}</span>
                       </div>
+                      {request.completed_at && (
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="h-4 w-4" />
+                          <span>Terminé le {new Date(request.completed_at).toLocaleDateString('fr-FR')}</span>
+                        </div>
+                      )}
                     </div>
 
                     {request.client_notes && (
@@ -230,7 +228,7 @@ const ServiceRequestsManagement: React.FC = () => {
                         <div className="flex items-start space-x-2">
                           <MessageSquare className="h-4 w-4 text-blue-600 mt-0.5" />
                           <div>
-                            <p className="text-sm font-medium text-blue-900">Notes du client:</p>
+                            <p className="text-sm font-medium text-blue-900">Vos notes:</p>
                             <p className="text-sm text-blue-700">{request.client_notes}</p>
                           </div>
                         </div>
@@ -238,12 +236,12 @@ const ServiceRequestsManagement: React.FC = () => {
                     )}
 
                     {request.admin_notes && (
-                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                      <div className="mt-3 p-3 bg-green-50 rounded-lg">
                         <div className="flex items-start space-x-2">
-                          <Settings className="h-4 w-4 text-gray-600 mt-0.5" />
+                          <User className="h-4 w-4 text-green-600 mt-0.5" />
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Notes admin:</p>
-                            <p className="text-sm text-gray-700">{request.admin_notes}</p>
+                            <p className="text-sm font-medium text-green-900">Réponse de l'admin:</p>
+                            <p className="text-sm text-green-700">{request.admin_notes}</p>
                           </div>
                         </div>
                       </div>
@@ -257,7 +255,7 @@ const ServiceRequestsManagement: React.FC = () => {
                         setShowModal(true);
                       }}
                       className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                      title="Gérer cette demande"
+                      title="Voir les détails"
                     >
                       <Eye className="h-4 w-4" />
                     </button>
@@ -269,7 +267,7 @@ const ServiceRequestsManagement: React.FC = () => {
         )}
       </div>
 
-      {/* Modal de gestion */}
+      {/* Modal de détails */}
       {showModal && selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <motion.div
@@ -280,7 +278,7 @@ const ServiceRequestsManagement: React.FC = () => {
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Gérer la demande de service
+                  Détails de la demande
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
@@ -301,10 +299,6 @@ const ServiceRequestsManagement: React.FC = () => {
                     <p className="font-medium">{selectedRequest.service?.name}</p>
                   </div>
                   <div>
-                    <span className="text-gray-600">Client:</span>
-                    <p className="font-medium">{selectedRequest.user?.name || selectedRequest.user?.email}</p>
-                  </div>
-                  <div>
                     <span className="text-gray-600">Quantité:</span>
                     <p className="font-medium">{selectedRequest.quantity}</p>
                   </div>
@@ -317,70 +311,36 @@ const ServiceRequestsManagement: React.FC = () => {
                     <div className="mt-1">{getStatusBadge(selectedRequest.status)}</div>
                   </div>
                   <div>
-                    <span className="text-gray-600">Date de création:</span>
+                    <span className="text-gray-600">Date de commande:</span>
                     <p className="font-medium">{new Date(selectedRequest.created_at).toLocaleString('fr-FR')}</p>
                   </div>
+                  {selectedRequest.completed_at && (
+                    <div>
+                      <span className="text-gray-600">Date de fin:</span>
+                      <p className="font-medium">{new Date(selectedRequest.completed_at).toLocaleString('fr-FR')}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Notes du client */}
               {selectedRequest.client_notes && (
                 <div className="bg-blue-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 mb-2">Notes du client</h3>
+                  <h3 className="font-semibold text-blue-900 mb-2">Vos notes</h3>
                   <p className="text-blue-700">{selectedRequest.client_notes}</p>
                 </div>
               )}
 
               {/* Notes admin */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notes admin
-                </label>
-                <textarea
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={3}
-                  placeholder="Ajoutez des notes pour le client..."
-                />
-              </div>
+              {selectedRequest.admin_notes && (
+                <div className="bg-green-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-green-900 mb-2">Réponse de l'admin</h3>
+                  <p className="text-green-700">{selectedRequest.admin_notes}</p>
+                </div>
+              )}
 
               {/* Actions */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                <div className="flex space-x-2">
-                  {selectedRequest.status !== 'approved' && (
-                    <button
-                      onClick={() => handleStatusUpdate(selectedRequest.id, 'approved')}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Approuver
-                    </button>
-                  )}
-                  {selectedRequest.status !== 'in_progress' && selectedRequest.status !== 'completed' && (
-                    <button
-                      onClick={() => handleStatusUpdate(selectedRequest.id, 'in_progress')}
-                      className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-                    >
-                      Marquer en cours
-                    </button>
-                  )}
-                  {selectedRequest.status !== 'completed' && (
-                    <button
-                      onClick={() => handleStatusUpdate(selectedRequest.id, 'completed')}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      Marquer terminé
-                    </button>
-                  )}
-                  {selectedRequest.status !== 'cancelled' && (
-                    <button
-                      onClick={() => handleStatusUpdate(selectedRequest.id, 'cancelled')}
-                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      Annuler
-                    </button>
-                  )}
-                </div>
+              <div className="flex items-center justify-end pt-4 border-t border-gray-200">
                 <button
                   onClick={() => setShowModal(false)}
                   className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
@@ -396,4 +356,4 @@ const ServiceRequestsManagement: React.FC = () => {
   );
 };
 
-export default ServiceRequestsManagement;
+export default AdvertiserServiceRequests;

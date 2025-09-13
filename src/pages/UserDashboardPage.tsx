@@ -8,6 +8,7 @@ import UserWebsitesPage from './UserWebsitesPage';
 import UserLinkListingsPage from './UserLinkListingsPage';
 import QuickBuyPage from '../components/User/QuickBuyPage';
 import AdvertiserServices from '../components/User/AdvertiserServices';
+import AdvertiserServiceRequests from '../components/User/AdvertiserServiceRequests';
 import BalanceManager from '../components/User/BalanceManager';
 import PurchaseRequests from '../components/User/PurchaseRequests';
 import MessagesList from '../components/User/MessagesList';
@@ -81,6 +82,13 @@ const UserDashboardPage: React.FC = () => {
       <Route path="/services" element={
         <ProtectedRoute>
           <AdvertiserServices />
+        </ProtectedRoute>
+      } />
+      
+      {/* Route pour mes services (annonceurs) */}
+      <Route path="/my-services" element={
+        <ProtectedRoute>
+          <AdvertiserServiceRequests />
         </ProtectedRoute>
       } />
       
