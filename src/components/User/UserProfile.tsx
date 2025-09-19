@@ -1,15 +1,13 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { Save, User, Mail, Phone, Globe, FileText, Briefcase, TrendingUp, Search, CreditCard } from 'lucide-react';
+import { Save, User, Mail, Phone, Globe, FileText, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getCurrentUser, updateUserProfile, getUserProfile } from '../../lib/supabase';
-import { UserRole } from '../../types';
 import toast from 'react-hot-toast';
 import PublisherPaymentSettings from './PublisherPaymentSettings';
 
 interface ProfileFormData {
   name: string;
-  role: UserRole;
   phone?: string;
   website?: string;
   bio?: string;
@@ -41,7 +39,6 @@ const UserProfile: React.FC = () => {
           if (userProfile) {
             reset({
               name: userProfile.name || '',
-              role: userProfile.role || 'advertiser',
               phone: userProfile.phone || '',
               website: userProfile.website || '',
               bio: userProfile.bio || ''
@@ -61,18 +58,8 @@ const UserProfile: React.FC = () => {
     
     setLoading(true);
     try {
-      const oldRole = profile?.role;
-      
       await updateUserProfile(user.id, data);
-      
-      // Check if role changed
-      if (oldRole && oldRole !== data.role) {
-        toast.success('Profil mis à jour avec succès ! Votre dashboard sera mis à jour selon votre nouveau rôle.', {
-          duration: 5000,
-        });
-      } else {
-        toast.success('Profil mis à jour avec succès !');
-      }
+      toast.success('Profil mis à jour avec succès !');
       
       // Refresh profile data
       const updatedProfile = await getUserProfile(user.id);
@@ -180,76 +167,6 @@ const UserProfile: React.FC = () => {
             )}
           </div>
 
-          {/* Role Selector */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Briefcase className="h-4 w-4 inline mr-2" />
-              Rôle sur la plateforme *
-            </label>
-            
-            {/* Role Info */}
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start space-x-2">
-                <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <span className="text-white text-xs font-bold">i</span>
-                </div>
-                <div className="text-sm text-blue-800">
-                  <div className="font-medium mb-1">Comprendre les rôles :</div>
-                  <ul className="text-xs space-y-1">
-                    <li><strong>Éditeur :</strong> Vendre des liens sur vos sites web, gérer vos annonces</li>
-                    <li><strong>Annonceur :</strong> Acheter des liens pour vos sites, explorer les opportunités</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <input
-                  {...register('role', { required: 'Le rôle est requis' })}
-                  type="radio"
-                  value="publisher"
-                  id="role-publisher"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                />
-                <label htmlFor="role-publisher" className="flex items-center space-x-3 cursor-pointer flex-1">
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                    <Briefcase className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">Éditeur</div>
-                    <div className="text-xs text-gray-500">Vendre des liens sur vos sites web</div>
-                  </div>
-                </label>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <input
-                  {...register('role', { required: 'Le rôle est requis' })}
-                  type="radio"
-                  value="advertiser"
-                  id="role-advertiser"
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-                />
-                <label htmlFor="role-advertiser" className="flex items-center space-x-3 cursor-pointer flex-1">
-                  <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                    <TrendingUp className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">Annonceur</div>
-                    <div className="text-xs text-gray-500">Acheter des liens pour vos sites</div>
-                  </div>
-                </label>
-              </div>
-              
-
-            </div>
-            {errors.role && (
-              <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
-            )}
-            <p className="mt-2 text-xs text-gray-500">
-              💡 Changer votre rôle modifiera votre dashboard et les fonctionnalités disponibles.
-            </p>
-          </div>
 
           {/* Phone */}
           <div>
