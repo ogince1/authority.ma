@@ -41,6 +41,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
   const [balance, setBalance] = React.useState<number>(0);
   const [cartCount, setCartCount] = React.useState<number>(0);
   const [showProfileDropdown, setShowProfileDropdown] = React.useState<boolean>(false);
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
   // Fermer le dropdown quand on clique à l'extérieur
   React.useEffect(() => {
@@ -75,20 +76,26 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
 
   React.useEffect(() => {
     const fetchUser = async () => {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
-      
-      if (currentUser) {
-        const profile = await getCurrentUserProfile();
-        setUserProfile(profile);
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
         
-        // Charger le solde de l'utilisateur
-        try {
-          const userBalance = await getUserBalance(currentUser.id);
-          setBalance(userBalance);
-        } catch (error) {
-          console.error('Error fetching balance:', error);
+        if (currentUser) {
+          const profile = await getCurrentUserProfile();
+          setUserProfile(profile);
+          
+          // Charger le solde de l'utilisateur
+          try {
+            const userBalance = await getUserBalance(currentUser.id);
+            setBalance(userBalance);
+          } catch (error) {
+            console.error('Error fetching balance:', error);
+          }
         }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchUser();
@@ -142,7 +149,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
   }, []);
 
   // Navigation selon le rôle
-  const getNavigationByRole = (role: UserRole) => {
+  const getNavigationByRole = (role: UserRole | undefined) => {
     switch (role) {
       case 'publisher':
         return [
@@ -170,7 +177,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
     }
   };
 
-  const navigation = getNavigationByRole(userProfile?.role || 'advertiser');
+  const navigation = getNavigationByRole(userProfile?.role);
 
   const handleLogout = async () => {
     try {
@@ -190,6 +197,18 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
     }
     return location.pathname.startsWith(path);
   };
+
+  // Afficher un indicateur de chargement pendant que les données utilisateur sont chargées
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
