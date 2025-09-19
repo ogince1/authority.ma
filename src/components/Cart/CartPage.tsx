@@ -188,6 +188,8 @@ const CartPage: React.FC = () => {
       const user = await getCurrentUser();
       if (!user) throw new Error('Utilisateur non connecté');
 
+      const results: Array<{ success: boolean; item: string; requestId?: string; error?: string }> = [];
+
       const total = calculateTotal();
       
       // Vérifier le solde actuel en base de données
@@ -225,188 +227,116 @@ const CartPage: React.FC = () => {
       
       // Traiter chaque achat
       for (const item of cartItems) {
-        // Vérifier que l'ID de l'éditeur est valide
-        if (!item.listing.user_id) {
-          console.error('Missing publisher ID for link:', item.listing.id);
-          toast.error('Erreur: Informations d\'éditeur manquantes. Veuillez rafraîchir la page.');
-          return;
-        }
-        
         const isVirtualLink = item.isVirtual || false;
+        
+        // Déterminer l'ID de l'éditeur et l'ID du listing
+        let publisherId: string;
+        let listingId: string;
+        
+        if (isVirtualLink) {
+          // Pour les nouveaux articles, récupérer le publisher_id du website
+          // L'ID du listing pour les nouveaux articles est "new-{website_id}"
+          const websiteId = item.listing.id.replace('new-', '');
+          
+          const { data: website, error: websiteError } = await supabase
+            .from('websites')
+            .select('user_id')
+            .eq('id', websiteId)
+            .single();
+          
+          if (websiteError) {
+            console.error('Error fetching website owner:', websiteError);
+            toast.error('Erreur lors de la récupération du propriétaire du website');
+            return;
+          }
+          
+          publisherId = website.user_id;
+          // Pour les nouveaux articles, utiliser l'ID du website comme référence
+          listingId = websiteId;
+        } else {
+          // Pour les articles existants, utiliser le publisher_id du listing
+          if (!item.listing.user_id) {
+            console.error('Missing publisher ID for link:', item.listing.id);
+            toast.error('Erreur: Informations d\'éditeur manquantes. Veuillez rafraîchir la page.');
+            return;
+          }
+          
+          publisherId = item.listing.user_id;
+          listingId = item.listing.id;
+        }
         
         // Vérifier si une demande d'achat existe déjà pour ce lien et cette URL
         const { data: existingRequest, error: checkError } = await supabase
           .from('link_purchase_requests')
           .select('id')
-          .eq('link_listing_id', item.listing.id)
+          .eq('link_listing_id', listingId)
           .eq('user_id', user.id)
           .eq('target_url', item.targetUrl)
           .eq('status', 'pending')
           .single();
 
         if (existingRequest) {
-          console.log(`⚠️ Demande d'achat déjà existante pour ce lien: ${item.listing.id}`);
+          console.log(`⚠️ Demande d'achat déjà existante pour ce lien: ${listingId}`);
           continue; // Passer au prochain item
         }
         
         console.log('Processing purchase for link:', {
-          linkId: item.listing.id,
-          publisherId: item.listing.user_id,
+          linkId: listingId,
+          publisherId: publisherId,
           price: item.listing.price,
           quantity: item.quantity,
           totalPrice: item.listing.price * item.quantity,
           isVirtual: isVirtualLink
         });
         
-        if (isVirtualLink) {
-          // Pour les nouveaux articles, vérifier d'abord si le listing existe
-          try {
-            let listingToUse;
-            
-            // Vérifier si un listing avec cet ID existe déjà
-            const { data: existingListing, error: existingError } = await supabase
-              .from('link_listings')
-              .select('*')
-              .eq('id', item.listing.id)
-              .single();
+        // Créer la demande d'achat (même logique pour tous les types)
+        try {
+          const purchaseRequest = await createLinkPurchaseRequest({
+            link_listing_id: listingId,
+            user_id: user.id,
+            publisher_id: publisherId,
+            target_url: item.targetUrl,
+            anchor_text: item.anchorText,
+            message: item.message,
+            custom_content: item.customContent,
+            content_option: item.contentOption,
+            proposed_price: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
+            proposed_duration: 1,
+            campaign_id: campaignId || undefined
+          });
 
-            if (existingError && existingError.code !== 'PGRST116') {
-              console.error('Error checking existing listing:', existingError);
-              throw new Error('Erreur lors de la vérification du listing existant');
-            }
+          console.log(`Demande d'achat créée pour: ${item.listing.title} - ID: ${purchaseRequest.id}`);
 
-            if (existingListing) {
-              // Le listing existe déjà, l'utiliser
-              console.log('Using existing link listing:', existingListing.id);
-              listingToUse = existingListing;
-            } else {
-              // Pour les nouveaux articles, ne pas créer de link_listing
-              // Mais récupérer le publisher_id du website
-              console.log('New article - no link_listing creation needed');
-              
-              // Récupérer le propriétaire du website pour le publisher_id
-              const { data: website, error: websiteError } = await supabase
-                .from('websites')
-                .select('user_id')
-                .eq('id', item.listing.id)
-                .single();
-              
-              if (websiteError) {
-                console.error('Error fetching website owner:', websiteError);
-                throw new Error('Erreur lors de la récupération du propriétaire du website');
-              }
-              
-              listingToUse = { 
-                id: item.listing.id, // ID du website
-                user_id: website.user_id // Propriétaire du website
-              };
-            }
-
-            // Maintenant créer la demande d'achat avec le vrai link_listing_id
-            const purchaseRequest = await createLinkPurchaseRequest({
-              link_listing_id: listingToUse.id,
-              user_id: user.id,
-              publisher_id: listingToUse.user_id,
-              target_url: item.targetUrl,
-              anchor_text: item.anchorText,
-              message: item.message,
-              custom_content: item.customContent,
-              content_option: item.contentOption,
-              proposed_price: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
-              proposed_duration: 1,
-              campaign_id: campaignId || undefined
-            });
-
-            // NE PAS créer de transaction de crédit ici - le débit se fera lors de la confirmation
-            // L'annonceur sera débité uniquement quand l'éditeur acceptera ET que l'annonceur confirmera
-            console.log(`Demande d'achat créée pour: ${item.listing.title} - Le paiement se fera lors de la confirmation`);
-
-            console.log('New article purchase processed successfully');
-          } catch (error) {
-            console.error('Error processing new article purchase:', error);
-            throw new Error('Erreur lors du traitement du nouveau article');
-          }
-        } else {
-          // Pour les liens existants, vérifier s'il s'agit d'un vrai lien ou d'une opportunité simulée
-          // Vérifier que l'ID du lien est valide
-          if (!item.listing.id) {
-            console.error('Invalid link listing ID:', item.listing.id);
-            toast.error('Erreur: ID de lien invalide. Veuillez rafraîchir la page.');
-            return;
-          }
-          
-          
-          console.log('Debug - item.listing.user_id:', item.listing.user_id);
-          console.log('Debug - campaignId:', campaignId);
-          
-          try {
-            // Vérifier si c'est un vrai lien ou une opportunité simulée
-            // Les opportunités simulées ont le même ID pour user_id et id
-            const isSimulatedOpportunity = item.listing.user_id === item.listing.id;
-            
-            console.log('Debug - isSimulatedOpportunity:', isSimulatedOpportunity);
-            console.log('Debug - item.isVirtual:', item.isVirtual);
-            console.log('Debug - item.listing.id:', item.listing.id);
-            
-            if (!isSimulatedOpportunity && !item.isVirtual) {
-              // C'est un vrai lien existant, créer une LinkPurchaseRequest
-              console.log('Creating LinkPurchaseRequest for real link');
-              
-              // Récupérer le vrai propriétaire du listing depuis la base de données
-              const { data: listing, error: listingError } = await supabase
-                .from('link_listings')
-                .select('user_id')
-                .eq('id', item.listing.id)
-                .single();
-              
-              if (listingError) {
-                console.error('Error fetching listing owner:', listingError);
-                throw new Error('Erreur lors de la récupération du propriétaire du listing');
-              }
-              
-              const publisherId = listing.user_id; // Utiliser le vrai propriétaire
-              
-              const purchaseRequest = await createLinkPurchaseRequest({
-                link_listing_id: item.listing.id,
-                user_id: user.id,
-                publisher_id: publisherId,
-                target_url: item.targetUrl,
-                anchor_text: item.anchorText,
-                message: item.message,
-                custom_content: item.customContent,
-                content_option: item.contentOption,
-                proposed_price: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
-                proposed_duration: 1,
-                campaign_id: campaignId || undefined
-              });
-              
-              // NE PAS créer de transaction de crédit ici - le débit se fera lors de la confirmation
-              // L'annonceur sera débité uniquement quand l'éditeur acceptera ET que l'annonceur confirmera
-              console.log(`Demande d'achat créée pour: ${item.listing.title} - Le paiement se fera lors de la confirmation`);
-              
-              // Créer une notification pour l'éditeur
-              await createNotification({
-                user_id: publisherId,
-                title: 'Nouvelle demande de lien reçue',
-                message: `Vous avez reçu une nouvelle demande d'achat de lien pour "${item.listing.title}" de la part d'un annonceur.`,
-                type: 'info',
-                action_url: `/dashboard/purchase-requests`,
-                action_type: 'link_purchase'
-              });
-              
-              console.log('LinkPurchaseRequest, CreditTransaction and Notification created successfully');
-            } else {
-              // C'est une opportunité simulée, ne pas créer de transaction de crédit
-              // Le paiement se fera lors de la confirmation
-              console.log('Opportunité simulée créée - Le paiement se fera lors de la confirmation');
-              
-              console.log('CreditTransaction created successfully for opportunity');
-            }
-          } catch (error) {
-            console.error('Error processing link purchase:', error);
-            throw new Error('Erreur lors du traitement de l\'achat de lien');
-          }
+          results.push({
+            success: true,
+            item: item.listing.title,
+            requestId: purchaseRequest.id
+          });
+        } catch (error) {
+          console.error('Error creating purchase request:', error);
+          results.push({
+            success: false,
+            item: item.listing.title,
+            error: error instanceof Error ? error.message : 'Erreur inconnue'
+          });
         }
+      }
+
+      // Traiter les résultats
+      const successfulPurchases = results.filter(r => r.success);
+      const failedPurchases = results.filter(r => !r.success);
+
+      if (successfulPurchases.length > 0) {
+        console.log(`${successfulPurchases.length} achat(s) traité(s) avec succès`);
+      }
+
+      if (failedPurchases.length > 0) {
+        console.error(`${failedPurchases.length} achat(s) échoué(s):`, failedPurchases);
+        toast.error(`${failedPurchases.length} achat(s) ont échoué. Vérifiez les détails.`);
+      }
+
+      if (successfulPurchases.length === 0 && failedPurchases.length > 0) {
+        throw new Error('Tous les achats ont échoué');
       }
 
       
