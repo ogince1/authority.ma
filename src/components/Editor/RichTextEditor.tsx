@@ -42,7 +42,21 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const handleInput = () => {
     if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
+      // S'assurer que le contenu est bien formaté en HTML
+      let content = editorRef.current.innerHTML;
+      
+      // Si le contenu est du texte brut, l'entourer de balises <p>
+      if (!content.includes('<') || content.trim() === '') {
+        content = `<p>${content}</p>`;
+      } else {
+        // S'assurer que chaque ligne de texte est dans un paragraphe
+        const lines = content.split('\n').filter(line => line.trim() !== '');
+        if (lines.length > 0 && !content.includes('<p>') && !content.includes('<div>')) {
+          content = `<p>${content.replace(/\n/g, '</p><p>')}</p>`;
+        }
+      }
+      
+      onChange(content);
     }
   };
 

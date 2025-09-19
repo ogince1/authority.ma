@@ -49,6 +49,7 @@ import CampaignStatusBadge from './CampaignStatusBadge';
 import { trackPageView } from '../../utils/analytics';
 import RichContentDisplay from '../Editor/RichContentDisplay';
 import Pagination from '../Common/Pagination';
+import ContentModal from '../Common/ContentModal';
 
 const PurchaseRequests: React.FC = () => {
   const [requests, setRequests] = React.useState<LinkPurchaseRequest[]>([]);
@@ -60,6 +61,8 @@ const PurchaseRequests: React.FC = () => {
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalItems, setTotalItems] = React.useState(0);
   const itemsPerPage = 10;
+  const [contentModalOpen, setContentModalOpen] = React.useState(false);
+  const [modalContent, setModalContent] = React.useState('');
   const [showModal, setShowModal] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
@@ -354,6 +357,11 @@ const PurchaseRequests: React.FC = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     loadRequests(page);
+  };
+
+  const openContentModal = (content: string) => {
+    setModalContent(content);
+    setContentModalOpen(true);
   };
 
   const filteredAndSortedRequests = React.useMemo(() => {
@@ -682,15 +690,24 @@ const PurchaseRequests: React.FC = () => {
 
                     {request.content_option === 'custom' && request.custom_content && (
                       <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <MessageCircle className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm font-medium text-gray-600">Contenu personnalisé</span>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <MessageCircle className="h-4 w-4 text-blue-600" />
+                            <span className="text-sm font-medium text-gray-600">Contenu personnalisé</span>
+                          </div>
+                          <button
+                            onClick={() => openContentModal(request.custom_content || '')}
+                            className="flex items-center space-x-1 px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 rounded transition-colors"
+                          >
+                            <Eye className="h-3 w-3" />
+                            <span>Voir</span>
+                          </button>
                         </div>
                         <div className="bg-white rounded border border-blue-200 p-2">
-                          <RichContentDisplay 
-                            content={request.custom_content} 
-                            className="text-sm"
-                          />
+                          <div className="text-sm text-gray-600 line-clamp-2">
+                            {request.custom_content.replace(/<[^>]*>/g, '').substring(0, 100)}
+                            {(request.custom_content.replace(/<[^>]*>/g, '').length > 100) && '...'}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1027,6 +1044,16 @@ const PurchaseRequests: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal pour afficher le contenu personnalisé */}
+      <ContentModal
+        isOpen={contentModalOpen}
+        onClose={() => setContentModalOpen(false)}
+        content={modalContent}
+        title="Contenu personnalisé"
+        allowEdit={true}
+        enableProfessionalEditor={true}
+      />
     </div>
   );
 };

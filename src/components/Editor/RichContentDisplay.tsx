@@ -92,11 +92,19 @@ const RichContentDisplay: React.FC<RichContentDisplayProps> = ({
     );
   }
 
+  // Si le contenu est du texte brut (sans balises HTML), le convertir en HTML
+  let htmlContent = content;
+  if (!content.includes('<')) {
+    // Convertir les retours à la ligne en paragraphes
+    const paragraphs = content.split('\n').filter(p => p.trim() !== '');
+    htmlContent = paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
+  }
+
   return (
     <div 
       className={`prose prose-sm max-w-none ${className}`}
       dangerouslySetInnerHTML={{ 
-        __html: sanitizeContent(content) 
+        __html: sanitizeContent(htmlContent) 
       }}
     />
   );

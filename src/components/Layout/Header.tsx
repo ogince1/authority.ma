@@ -75,7 +75,7 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
   };
 
   return (
-    <header className="bg-blue-600 shadow-sm sticky top-0 z-50">
+    <header className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -101,7 +101,7 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
               </button>
               {showDropdown && (
                 <div 
-                  className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
+                  className="absolute top-full left-0 mt-2 w-48 bg-gradient-to-br from-white to-blue-50 rounded-lg shadow-xl border border-blue-200 py-2 z-50"
                   onMouseEnter={() => setShowDropdown(true)}
                   onMouseLeave={() => setShowDropdown(false)}
                 >
@@ -109,7 +109,7 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
                     <Link
                       key={item.name}
                       to={item.href}
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-blue-100 hover:to-purple-100 transition-all duration-300"
                     >
                       {item.name}
                     </Link>
@@ -122,10 +122,10 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
               <Link
                 key={item.name}
                 to={item.href}
-                className={`text-sm font-medium transition-colors ${
+                className={`text-sm font-medium transition-all duration-300 ${
                   isActive(item.href)
-                    ? 'text-blue-200'
-                    : 'text-white hover:text-blue-200'
+                    ? 'text-white bg-white/20 px-3 py-1 rounded-lg'
+                    : 'text-white hover:text-blue-200 hover:bg-white/10 px-3 py-1 rounded-lg'
                 }`}
               >
                 {item.name}
@@ -241,7 +241,7 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
                       setAuthMode('login');
                       setShowAuthModal(true);
                     }}
-                    className="text-white hover:text-blue-200 transition-colors"
+                    className="text-white hover:text-blue-200 hover:bg-white/10 px-3 py-1 rounded-lg transition-all duration-300"
                   >
                     Se connecter
                   </button>
@@ -253,12 +253,9 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
                     setAuthMode('signup');
                     setShowAuthModal(true);
                   }}
-                  className="bg-white text-blue-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
                   S'inscrire
-                </button>
-                <button className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors">
-                  Demander votre audit
                 </button>
               </div>
             )}
@@ -279,17 +276,17 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-blue-500 py-4"
+            className="md:hidden border-t border-white/20 py-4 bg-gradient-to-b from-blue-700 to-indigo-800"
           >
             <nav className="flex flex-col space-y-4">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`text-sm font-medium transition-colors ${
+                  className={`text-sm font-medium transition-all duration-300 px-4 py-2 rounded-lg ${
                     isActive(item.href)
-                      ? 'text-blue-200'
-                      : 'text-white hover:text-blue-200'
+                      ? 'text-white bg-white/20'
+                      : 'text-white hover:text-blue-200 hover:bg-white/10'
                   }`}
                   onClick={() => setIsMenuOpen(false)}
                 >

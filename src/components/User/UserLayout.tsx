@@ -40,6 +40,25 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
   const [userProfile, setUserProfile] = React.useState<any>(null);
   const [balance, setBalance] = React.useState<number>(0);
   const [cartCount, setCartCount] = React.useState<number>(0);
+  const [showProfileDropdown, setShowProfileDropdown] = React.useState<boolean>(false);
+
+  // Fermer le dropdown quand on clique à l'extérieur
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.profile-dropdown-container')) {
+        setShowProfileDropdown(false);
+      }
+    };
+
+    if (showProfileDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileDropdown]);
 
   // Fonction pour recharger le solde
   const refreshBalance = async () => {
@@ -181,13 +200,13 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
             
             {/* Logo et Menu Mobile */}
             <div className="flex items-center space-x-4">
-            <button
+              <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+              
               {/* Logo Back.ma - Même que la homepage */}
               <Link to="/" className="flex items-center group">
                 <div className="relative">
@@ -227,19 +246,22 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
               </Link>
               
               {/* Avatar avec Menu */}
-              <div className="relative group">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm cursor-pointer transition-all duration-300 ${
-                  userProfile?.role === 'publisher' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
-                  userProfile?.role === 'advertiser' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' : 
-                  'bg-gradient-to-br from-gray-500 to-gray-600'
-                } group-hover:shadow-lg`}>
+              <div className="relative profile-dropdown-container">
+                <div 
+                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center shadow-sm cursor-pointer transition-all duration-300 ${
+                    userProfile?.role === 'publisher' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
+                    userProfile?.role === 'advertiser' ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' : 
+                    'bg-gradient-to-br from-gray-500 to-gray-600'
+                  } hover:shadow-lg`}>
                   <span className="text-white font-medium text-sm">
                     {user?.email?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
                 
                 {/* Menu déroulant */}
-                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 p-4 opacity-0 group-hover:opacity-100 transition-all duration-300 z-50">
+                {showProfileDropdown && (
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 p-4 z-50">
                   <div className="flex items-center space-x-3 mb-3">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                       userProfile?.role === 'publisher' ? 'bg-blue-500' :
@@ -274,12 +296,16 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
                   <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
                     <Link
                       to="/dashboard/profile"
+                      onClick={() => setShowProfileDropdown(false)}
                       className="block w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium py-2 rounded-lg hover:bg-blue-50 transition-colors"
                     >
                       Voir le profil
                     </Link>
                     <button
-                      onClick={handleLogout}
+                      onClick={() => {
+                        handleLogout();
+                        setShowProfileDropdown(false);
+                      }}
                       className="block w-full text-center text-sm text-red-600 hover:text-red-700 font-medium py-2 rounded-lg hover:bg-red-50 transition-colors"
                     >
                       <LogOut className="h-4 w-4 inline mr-1" />
@@ -287,11 +313,12 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
                     </button>
                   </div>
                 </div>
-              </div>
+                )}
               </div>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
       {/* Navigation Horizontale sous le Header */}
       <nav className="bg-white border-b border-gray-200 sticky top-16 z-30">

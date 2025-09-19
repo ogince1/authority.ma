@@ -35,6 +35,7 @@ import Favicon from '../Common/Favicon';
 import toast from 'react-hot-toast';
 import RichContentDisplay from '../Editor/RichContentDisplay';
 import Pagination from '../Common/Pagination';
+import ContentModal from '../Common/ContentModal';
 
 const AdvertiserRequests: React.FC = () => {
   const [requests, setRequests] = React.useState<LinkPurchaseRequest[]>([]);
@@ -46,6 +47,8 @@ const AdvertiserRequests: React.FC = () => {
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalItems, setTotalItems] = React.useState(0);
   const itemsPerPage = 10;
+  const [contentModalOpen, setContentModalOpen] = React.useState(false);
+  const [modalContent, setModalContent] = React.useState('');
   const [showModal, setShowModal] = React.useState(false);
   const [expandedMessages, setExpandedMessages] = React.useState<Set<string>>(new Set());
   const [messages, setMessages] = React.useState<Record<string, ConversationMessage[]>>({});
@@ -261,6 +264,11 @@ const AdvertiserRequests: React.FC = () => {
     loadRequests(page);
   };
 
+  const openContentModal = (content: string) => {
+    setModalContent(content);
+    setContentModalOpen(true);
+  };
+
   const handleConfirmLink = async (requestId: string) => {
     // Protection contre les clics multiples
     if (confirmingRequestId === requestId) {
@@ -453,15 +461,24 @@ const AdvertiserRequests: React.FC = () => {
 
                     {request.content_option === 'custom' && request.custom_content && (
                       <div className="bg-blue-50 rounded-xl p-4">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <MessageSquare className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm font-medium text-gray-600">Contenu personnalisé</span>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-2">
+                            <MessageSquare className="h-4 w-4 text-blue-600" />
+                            <span className="text-sm font-medium text-gray-600">Contenu personnalisé</span>
+                          </div>
+                          <button
+                            onClick={() => openContentModal(request.custom_content || '')}
+                            className="flex items-center space-x-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors"
+                          >
+                            <Eye className="h-3 w-3" />
+                            <span>Voir le contenu</span>
+                          </button>
                         </div>
                         <div className="border border-blue-200 rounded-lg p-3 bg-white">
-                          <RichContentDisplay 
-                            content={request.custom_content} 
-                            className="text-sm"
-                          />
+                          <div className="text-sm text-gray-600 line-clamp-3">
+                            {request.custom_content.replace(/<[^>]*>/g, '').substring(0, 150)}
+                            {(request.custom_content.replace(/<[^>]*>/g, '').length > 150) && '...'}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -769,15 +786,24 @@ const AdvertiserRequests: React.FC = () => {
 
                   {selectedRequest.content_option === 'custom' && selectedRequest.custom_content && (
                     <div className="bg-blue-50 rounded-xl p-4">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <MessageSquare className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm font-medium text-gray-600">Contenu personnalisé</span>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <MessageSquare className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm font-medium text-gray-600">Contenu personnalisé</span>
+                        </div>
+                        <button
+                          onClick={() => openContentModal(selectedRequest.custom_content || '')}
+                          className="flex items-center space-x-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors"
+                        >
+                          <Eye className="h-3 w-3" />
+                          <span>Voir le contenu</span>
+                        </button>
                       </div>
                       <div className="border border-blue-200 rounded-lg p-3 bg-white">
-                        <RichContentDisplay 
-                          content={selectedRequest.custom_content} 
-                          className="text-sm"
-                        />
+                        <div className="text-sm text-gray-600 line-clamp-3">
+                          {selectedRequest.custom_content.replace(/<[^>]*>/g, '').substring(0, 150)}
+                          {(selectedRequest.custom_content.replace(/<[^>]*>/g, '').length > 150) && '...'}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -804,6 +830,16 @@ const AdvertiserRequests: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal pour afficher le contenu personnalisé */}
+      <ContentModal
+        isOpen={contentModalOpen}
+        onClose={() => setContentModalOpen(false)}
+        content={modalContent}
+        title="Contenu personnalisé"
+        allowEdit={true}
+        enableProfessionalEditor={true}
+      />
     </div>
   );
 };
