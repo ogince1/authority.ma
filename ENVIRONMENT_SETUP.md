@@ -1,203 +1,71 @@
-# 🔧 Guide de Configuration des Variables d'Environnement
+# Configuration de l'Environnement
 
-## 📋 **Vue d'ensemble**
+## Variables d'Environnement Requises
 
-Ce guide vous explique comment configurer les variables d'environnement pour votre projet **Back.ma**.
+Créez un fichier `.env` à la racine du projet avec les variables suivantes :
 
-## 🔐 **Types de Fichiers d'Environnement**
-
-### **1. `.env.example`** (Template)
-- **Usage** : Template partagé avec l'équipe
-- **Git** : ✅ Commité dans le repository
-- **Contenu** : Variables sans valeurs sensibles
-
-### **2. `.env.local`** (Configuration Locale)
-- **Usage** : Configuration spécifique à votre machine
-- **Git** : ❌ **NE JAMAIS** commité (sécurité)
-- **Contenu** : Variables avec vos vraies valeurs
-
-### **3. `.env.production`** (Production)
-- **Usage** : Configuration pour la production
-- **Git** : ❌ **NE JAMAIS** commité
-- **Contenu** : Variables de production
-
-## 🚀 **Installation Rapide**
-
-### **Option 1 : Script Automatique**
 ```bash
-# Exécuter le script de configuration
-./setup-env.sh
+# Configuration Supabase
+VITE_SUPABASE_URL=https://lqldqgbpaxqaazfjzlsz.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxbGRxZ2JwYXhxYWF6Zmp6bHN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1NjQxOTEsImV4cCI6MjA2OTE0MDE5MX0.b3c4OMwKQwNgFBQSS-oGXsWzsdXY1NPnEcxXQUz7HLI
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxbGRxZ2JwYXhxYWF6Zmp6bHN6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzU2NDE5MSwiZXhwIjoyMDY5MTQwMTkxfQ.rVOMDNv6DVaAq3202AcAacXaM2-hGqppyeI617eWieI
+
+# Configuration PayPal
+VITE_PAYPAL_CLIENT_ID=AUSqfLs6zruS_LVHpmZlb5MR8WZvHmRmFFgi5PIHzm4JEOcgGVa3w5PwTYBbCq7jwdR1DKe0sLf19Tm6
+VITE_PAYPAL_CLIENT_SECRET=EN_jTEIQ3_WUCyDAwlFw6NqrWQJZzlsfvImIc2L0I6-ByCfOHP9_cji5A0QdcmmNKfo0WA_Yia2pbSzx
+VITE_PAYPAL_MODE=sandbox  # ou 'live' pour la production
 ```
 
-### **Option 2 : Configuration Manuelle**
-```bash
-# Copier le template
-cp env.example .env.local
+## Instructions d'Installation
 
-# Éditer le fichier avec vos valeurs
-nano .env.local
-```
+1. **Cloner le repository**
+   ```bash
+   git clone https://github.com/ogince1/authority.ma.git
+   cd authority.ma
+   ```
 
-## 🔧 **Configuration pour Développement Local**
+2. **Installer les dépendances**
+   ```bash
+   npm install
+   ```
 
-### **1. Variables Supabase (Obligatoires)**
-```bash
-# URL de Supabase local
-VITE_SUPABASE_URL=http://127.0.0.1:54321
+3. **Créer le fichier .env**
+   ```bash
+   cp ENVIRONMENT_SETUP.md .env
+   # Puis éditer le fichier .env avec les vraies valeurs
+   ```
 
-# Clé anonyme Supabase local
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+4. **Appliquer les migrations de base de données**
+   ```bash
+   # Les migrations sont dans supabase/migrations/
+   # Appliquez-les via l'interface Supabase ou CLI
+   ```
 
-# Clé de service (pour les opérations admin)
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
-```
+5. **Démarrer le serveur de développement**
+   ```bash
+   npm run dev
+   ```
 
-### **2. Variables Application**
-```bash
-# URL de l'application
-VITE_APP_URL=http://localhost:3000
+## Base de Données
 
-# Mode de l'application
-NODE_ENV=development
-```
+Le projet utilise Supabase (PostgreSQL) avec les migrations suivantes :
+- `20250121000001_base_tables.sql` - Tables de base
+- `20250121000004_purchase_system.sql` - Système d'achat
+- `20250121000005_credit_system.sql` - Système de crédit
+- `20250121000006_add_custom_content.sql` - Contenu personnalisé
+- Et d'autres migrations pour les fonctionnalités avancées
 
-## 🌐 **Configuration pour Production**
+## Fonctionnalités Principales
 
-### **1. Variables Supabase Production**
-```bash
-# URL de votre projet Supabase
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
+- ✅ Éditeur de contenu riche pour les demandes personnalisées
+- ✅ Pagination dans les dashboards utilisateur
+- ✅ Design moderne avec thème bleu RocketLinks
+- ✅ Système de messagerie intégré
+- ✅ Gestion des paiements PayPal
+- ✅ Administration complète
+- ✅ Blog et success stories
+- ✅ SEO optimisé
 
-# Clé anonyme de production
-VITE_SUPABASE_ANON_KEY=your-production-anon-key
+## Support
 
-# Clé de service de production
-SUPABASE_SERVICE_ROLE_KEY=your-production-service-role-key
-```
-
-### **2. Variables de Paiement**
-```bash
-# PayPal
-PAYPAL_CLIENT_ID=your-paypal-client-id
-PAYPAL_CLIENT_SECRET=your-paypal-client-secret
-
-# Stripe
-STRIPE_PUBLISHABLE_KEY=pk_live_your-stripe-key
-STRIPE_SECRET_KEY=sk_live_your-stripe-key
-```
-
-### **3. Variables Email**
-```bash
-# Configuration SMTP
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-```
-
-## 🔍 **Vérification de la Configuration**
-
-### **1. Tester la Connexion Supabase**
-```bash
-# Démarrer Supabase local
-supabase start
-
-# Vérifier le statut
-supabase status
-```
-
-### **2. Tester l'Application**
-```bash
-# Installer les dépendances
-npm install
-
-# Démarrer l'application
-npm run dev
-```
-
-### **3. Vérifier les Variables**
-```javascript
-// Dans votre code
-console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
-console.log('App URL:', import.meta.env.VITE_APP_URL);
-```
-
-## 🛡️ **Sécurité**
-
-### **❌ Ne JAMAIS commiter :**
-- `.env.local`
-- `.env.production`
-- Fichiers contenant des clés API
-- Mots de passe
-- Clés de service
-
-### **✅ Peut être commité :**
-- `.env.example`
-- `env.example`
-- Templates sans valeurs sensibles
-
-## 🔄 **Gestion des Environnements**
-
-### **Développement**
-```bash
-# Variables de développement
-NODE_ENV=development
-VITE_APP_URL=http://localhost:3000
-```
-
-### **Staging**
-```bash
-# Variables de staging
-NODE_ENV=staging
-VITE_APP_URL=https://staging.back.ma
-```
-
-### **Production**
-```bash
-# Variables de production
-NODE_ENV=production
-VITE_APP_URL=https://back.ma
-```
-
-## 🚨 **Dépannage**
-
-### **Problème : Variables non chargées**
-```bash
-# Vérifier que le fichier existe
-ls -la .env.local
-
-# Vérifier le format (pas d'espaces autour du =)
-VITE_SUPABASE_URL=http://127.0.0.1:54321
-```
-
-### **Problème : Connexion Supabase échoue**
-```bash
-# Vérifier que Supabase est démarré
-supabase status
-
-# Redémarrer si nécessaire
-supabase stop
-supabase start
-```
-
-### **Problème : Variables Vite non reconnues**
-```bash
-# Redémarrer le serveur de développement
-npm run dev
-
-# Vérifier le préfixe VITE_ pour les variables côté client
-VITE_SUPABASE_URL=...
-```
-
-## 📚 **Ressources Utiles**
-
-- [Documentation Vite - Variables d'Environnement](https://vitejs.dev/guide/env-and-mode.html)
-- [Documentation Supabase - Configuration](https://supabase.com/docs/guides/getting-started/environment-variables)
-- [Guide de Sécurité des Variables d'Environnement](https://12factor.net/config)
-
-## 🤝 **Support**
-
-Si vous rencontrez des problèmes :
-1. Vérifiez ce guide
-2. Consultez la documentation officielle
-3. Contactez l'équipe de développement 
+Pour toute question, consultez la documentation dans le repository ou contactez l'équipe de développement.
