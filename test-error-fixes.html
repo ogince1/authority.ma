@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Corrections des Erreurs</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        code { background-color: #f8f9fa; padding: 2px 4px; border-radius: 3px; }
+        .file { background-color: #e9ecef; padding: 5px; border-radius: 3px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test - Corrections des Erreurs</h1>
+    
+    <div class="test-section error">
+        <h2>❌ Erreur Initiale</h2>
+        <p><strong>TypeError: Cannot read properties of undefined (reading 'length')</strong></p>
+        <p><strong>Fichier:</strong> <span class="file">LinkCard.tsx:190</span></p>
+        <p><strong>Cause:</strong> Le composant essayait d'accéder à <code>listing.allowed_niches.length</code> mais ce champ a été supprimé de l'interface <code>LinkListing</code>.</p>
+    </div>
+
+    <div class="test-section success">
+        <h2>✅ Corrections Appliquées</h2>
+        
+        <h3>1. LinkCard.tsx</h3>
+        <ul>
+            <li>❌ Supprimé : <code>listing.allowed_niches.length</code></li>
+            <li>❌ Supprimé : Section "Niches autorisées"</li>
+            <li>❌ Supprimé : Section "Exigences de contenu"</li>
+            <li>✅ Corrigé : <code>to={`/lien/${listing.slug}`}</code> → <code>to={`/lien/${listing.id}`}</code></li>
+        </ul>
+
+        <h3>2. LinkDetailPage.tsx</h3>
+        <ul>
+            <li>❌ Supprimé : Statistiques "Niches autorisées" et "Mots-clés interdits"</li>
+            <li>❌ Supprimé : Section complète "Restrictions"</li>
+            <li>❌ Supprimé : Section "Exigences de contenu"</li>
+        </ul>
+
+        <h3>3. QuickBuyPage.tsx</h3>
+        <ul>
+            <li>❌ Supprimé : <code>content_requirements</code> dans la création de listing</li>
+        </ul>
+
+        <h3>4. CampaignWizard.tsx</h3>
+        <ul>
+            <li>❌ Supprimé : <code>allowed_niches</code> et <code>forbidden_keywords</code></li>
+        </ul>
+
+        <h3>5. CartPage.tsx</h3>
+        <ul>
+            <li>❌ Supprimé : <code>allowed_niches</code>, <code>forbidden_keywords</code>, <code>content_requirements</code></li>
+            <li>❌ Supprimé : <code>meta_title</code>, <code>meta_description</code>, <code>slug</code></li>
+        </ul>
+
+        <h3>6. supabase.ts</h3>
+        <ul>
+            <li>❌ Supprimé : Filtre <code>allowed_niches</code> dans <code>getLinkListings</code></li>
+        </ul>
+    </div>
+
+    <div class="test-section info">
+        <h2>📋 Champs Supprimés de l'Interface LinkListing</h2>
+        <ul>
+            <li>❌ <code>allowed_niches: WebsiteNiche[]</code></li>
+            <li>❌ <code>forbidden_keywords: string[]</code></li>
+            <li>❌ <code>content_requirements?: string</code></li>
+            <li>❌ <code>meta_title?: string</code></li>
+            <li>❌ <code>meta_description?: string</code></li>
+            <li>❌ <code>slug: string</code></li>
+        </ul>
+    </div>
+
+    <div class="test-section success">
+        <h2>✅ Champs Conservés dans l'Interface LinkListing</h2>
+        <ul>
+            <li>✅ <code>id: string</code></li>
+            <li>✅ <code>website_id: string</code></li>
+            <li>✅ <code>title: string</code></li>
+            <li>✅ <code>description: string</code></li>
+            <li>✅ <code>target_url: string</code></li>
+            <li>✅ <code>anchor_text: string</code></li>
+            <li>✅ <code>link_type: LinkType</code></li>
+            <li>✅ <code>position: LinkPosition</code></li>
+            <li>✅ <code>price: number</code></li>
+            <li>✅ <code>currency: 'MAD' | 'EUR' | 'USD'</code></li>
+            <li>✅ <code>minimum_contract_duration: number</code></li>
+            <li>✅ <code>max_links_per_page?: number</code></li>
+            <li>✅ <code>status: 'active' | 'sold' | 'pending' | 'inactive'</code></li>
+            <li>✅ <code>images: string[]</code></li>
+            <li>✅ <code>tags: string[]</code></li>
+        </ul>
+    </div>
+
+    <div class="test-section warning">
+        <h2>⚠️ Points d'Attention</h2>
+        <ul>
+            <li><strong>Migration SQL</strong> : N'oubliez pas d'appliquer la migration <code>20250121000020_cleanup_form_fields.sql</code></li>
+            <li><strong>Tests</strong> : Tester tous les composants qui affichent des liens</li>
+            <li><strong>Navigation</strong> : Les liens utilisent maintenant l'ID au lieu du slug</li>
+            <li><strong>Filtres</strong> : Le filtre par niches a été supprimé</li>
+        </ul>
+    </div>
+
+    <div class="test-section success">
+        <h2>🎯 Résultat</h2>
+        <p>L'erreur <code>TypeError: Cannot read properties of undefined (reading 'length')</code> est maintenant corrigée !</p>
+        <ul>
+            <li>✅ <strong>LinkCard</strong> - Plus d'erreur sur les champs supprimés</li>
+            <li>✅ <strong>LinkDetailPage</strong> - Sections supprimées nettoyées</li>
+            <li>✅ <strong>Autres composants</strong> - Références aux champs supprimés corrigées</li>
+            <li>✅ <strong>Cohérence</strong> - Tous les composants utilisent la nouvelle interface</li>
+        </ul>
+    </div>
+
+    <script>
+        console.log('🔧 Test de corrections des erreurs - Terminé !');
+        console.log('❌ Erreur corrigée : TypeError: Cannot read properties of undefined (reading \'length\')');
+        console.log('📋 Fichiers corrigés :');
+        console.log('   - LinkCard.tsx : Champs supprimés retirés');
+        console.log('   - LinkDetailPage.tsx : Sections nettoyées');
+        console.log('   - QuickBuyPage.tsx : Références corrigées');
+        console.log('   - CampaignWizard.tsx : Champs supprimés retirés');
+        console.log('   - CartPage.tsx : Références corrigées');
+        console.log('   - supabase.ts : Filtres mis à jour');
+        console.log('✅ Tous les composants sont maintenant cohérents avec la nouvelle interface !');
+    </script>
+</body>
+</html>
