@@ -53,7 +53,7 @@ const QuickBuyPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 50000 });
-  const [localFilters, setLocalFilters] = useState<Record<string, { search: string; category: string; priceRange: { min: number; max: number } }>>({});
+  const [localFilters, setLocalFilters] = useState<Record<string, { search: string; priceRange: { min: number; max: number } }>>({});
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState<number>(0);
   const [processing, setProcessing] = useState(false);
@@ -193,7 +193,6 @@ const QuickBuyPage: React.FC = () => {
           ...prev,
           [websiteKey]: {
             search: '',
-            category: 'all',
             priceRange: { min: 0, max: 50000 }
           }
         }));
@@ -215,7 +214,6 @@ const QuickBuyPage: React.FC = () => {
   const getLocalFilter = (websiteKey: string) => {
     return localFilters[websiteKey] || {
       search: '',
-      category: 'all',
       priceRange: { min: 0, max: 50000 }
     };
   };
@@ -228,12 +226,10 @@ const QuickBuyPage: React.FC = () => {
         (article.target_url || '').toLowerCase().includes(filter.search.toLowerCase()) ||
         (article.description || '').toLowerCase().includes(filter.search.toLowerCase());
       
-      const matchesCategory = filter.category === 'all' || article.category === filter.category;
-      
       const matchesPrice = (article.price || 0) >= filter.priceRange.min && 
                           (article.price || 0) <= filter.priceRange.max;
       
-      return matchesSearch && matchesCategory && matchesPrice;
+      return matchesSearch && matchesPrice;
     });
   };
 
@@ -704,7 +700,7 @@ const QuickBuyPage: React.FC = () => {
                       
                       {/* Filtres locaux pour les articles existants */}
                       <div className="bg-white rounded-lg p-3 mb-4 border border-blue-200">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {/* Recherche locale */}
                           <div className="relative">
                             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -717,24 +713,9 @@ const QuickBuyPage: React.FC = () => {
                             />
                           </div>
                           
-                          {/* Catégorie locale */}
-                          <div>
-                            <select
-                              value={getLocalFilter(data.website.id).category}
-                              onChange={(e) => updateLocalFilter(data.website.id, 'category', e.target.value)}
-                              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                              <option value="all">Toutes catégories</option>
-                              {Array.from(new Set(data.existingArticles.map(a => a.category).filter(Boolean))).map(category => (
-                                <option key={category} value={category}>
-                                  {getCategoryLabel(category)}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          
                           {/* Prix local */}
                           <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Prix:</span>
                             <input
                               type="number"
                               placeholder="Min"
