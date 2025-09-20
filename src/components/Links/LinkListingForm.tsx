@@ -10,7 +10,8 @@ import {
   Calendar,
   Target,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Upload
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LinkListing, Website, CreateLinkListingData } from '../../types';
@@ -24,13 +25,15 @@ interface LinkListingFormProps {
   isEdit?: boolean;
   onSuccess: (listing: LinkListing) => void;
   onCancel: () => void;
+  onBulkImport?: () => void;
 }
 
 const LinkListingForm: React.FC<LinkListingFormProps> = ({ 
   listing, 
   isEdit = false, 
   onSuccess, 
-  onCancel 
+  onCancel,
+  onBulkImport
 }) => {
   const [loading, setLoading] = React.useState(false);
   const [websites, setWebsites] = React.useState<Website[]>([]);
@@ -153,6 +156,16 @@ const LinkListingForm: React.FC<LinkListingFormProps> = ({
               </p>
             </div>
           </div>
+          
+          {!isEdit && onBulkImport && (
+            <button
+              onClick={onBulkImport}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Upload className="h-4 w-4" />
+              <span>Import en masse</span>
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">

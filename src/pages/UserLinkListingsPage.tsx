@@ -33,6 +33,7 @@ import { LinkListing } from '../types';
 import { getLinkListings, deleteLinkListing } from '../lib/supabase';
 import { getCurrentUser } from '../lib/supabase';
 import LinkListingForm from '../components/Links/LinkListingForm';
+import BulkLinkImport from '../components/Links/BulkLinkImport';
 import LinkCard from '../components/Links/LinkCard';
 import { trackPageView } from '../utils/analytics';
 import toast from 'react-hot-toast';
@@ -41,6 +42,7 @@ const UserLinkListingsPage: React.FC = () => {
   const [linkListings, setLinkListings] = React.useState<LinkListing[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [showForm, setShowForm] = React.useState(false);
+  const [showBulkImport, setShowBulkImport] = React.useState(false);
   const [editingListing, setEditingListing] = React.useState<LinkListing | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<'all' | LinkListing['status']>('all');
@@ -221,6 +223,29 @@ const UserLinkListingsPage: React.FC = () => {
     }
   };
 
+  const handleBulkImportSuccess = (createdListings: LinkListing[]) => {
+    setShowBulkImport(false);
+    setLinkListings(prev => [...createdListings, ...prev]);
+    toast.success(`${createdListings.length} annonces créées avec succès !`);
+  };
+
+  const handleBulkImportCancel = () => {
+    setShowBulkImport(false);
+  };
+
+  const handleShowBulkImport = () => {
+    setShowBulkImport(true);
+  };
+
+  if (showBulkImport) {
+    return (
+      <BulkLinkImport
+        onSuccess={handleBulkImportSuccess}
+        onCancel={handleBulkImportCancel}
+      />
+    );
+  }
+
   if (showForm) {
     return (
       <LinkListingForm
@@ -231,6 +256,7 @@ const UserLinkListingsPage: React.FC = () => {
           setShowForm(false);
           setEditingListing(null);
         }}
+        onBulkImport={handleShowBulkImport}
       />
     );
   }

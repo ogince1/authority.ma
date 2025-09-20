@@ -8,7 +8,6 @@ import {
   X, 
   LogIn, 
   Link as LinkIcon,
-  ShoppingCart,
   AlertTriangle,
   MessageCircle,
   ChevronDown
@@ -151,26 +150,6 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
 
           {/* User Menu */}
           <div className="flex items-center space-x-4">
-            {/* Cart Button */}
-            <Link
-              to="/panier"
-              className="relative text-gray-700 hover:text-blue-600 transition-colors"
-            >
-              <ShoppingCart className="h-5 w-5" />
-              {/* Cart Badge */}
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {(() => {
-                  try {
-                    const cart = localStorage.getItem('cart');
-                    const cartItems = cart ? JSON.parse(cart) : [];
-                    return cartItems.length;
-                  } catch {
-                    return 0;
-                  }
-                })()}
-              </span>
-            </Link>
-            
             {user ? (
               <div className="relative">
                 <button

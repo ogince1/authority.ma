@@ -251,18 +251,20 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
                 </div>
               </div>
               
-              {/* Panier */}
-              <Link
-                to="/panier"
-                className="relative text-gray-700 hover:text-blue-600 transition-colors"
-              >
-                <ShoppingCart className="h-5 w-5" />
-                {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartCount}
-                </span>
-                )}
-              </Link>
+              {/* Panier - Seulement pour les annonceurs */}
+              {userProfile?.role === 'advertiser' && (
+                <Link
+                  to="/panier"
+                  className="relative text-gray-700 hover:text-blue-600 transition-colors"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                  )}
+                </Link>
+              )}
               
               {/* Avatar avec Menu */}
               <div className="relative profile-dropdown-container">
@@ -306,10 +308,12 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
                       <span className="text-gray-600">Solde:</span>
                       <span className="font-bold text-emerald-600">{balance.toLocaleString()} MAD</span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Panier:</span>
-                      <span className="font-bold text-blue-600">{cartCount} article{cartCount > 1 ? 's' : ''}</span>
-                    </div>
+                    {userProfile?.role === 'advertiser' && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Panier:</span>
+                        <span className="font-bold text-blue-600">{cartCount} article{cartCount > 1 ? 's' : ''}</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">

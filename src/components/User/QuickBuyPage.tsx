@@ -53,6 +53,7 @@ const QuickBuyPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 50000 });
+  const [localFilters, setLocalFilters] = useState<Record<string, { search: string; category: string; priceRange: { min: number; max: number } }>>({});
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState<number>(0);
   const [processing, setProcessing] = useState(false);
@@ -186,8 +187,54 @@ const QuickBuyPage: React.FC = () => {
       newExpanded.delete(websiteKey);
     } else {
       newExpanded.add(websiteKey);
+      // Initialiser les filtres locaux quand on ouvre un site
+      if (!localFilters[websiteKey]) {
+        setLocalFilters(prev => ({
+          ...prev,
+          [websiteKey]: {
+            search: '',
+            category: 'all',
+            priceRange: { min: 0, max: 50000 }
+          }
+        }));
+      }
     }
     setExpandedWebsites(newExpanded);
+  };
+
+  const updateLocalFilter = (websiteKey: string, field: string, value: any) => {
+    setLocalFilters(prev => ({
+      ...prev,
+      [websiteKey]: {
+        ...prev[websiteKey],
+        [field]: value
+      }
+    }));
+  };
+
+  const getLocalFilter = (websiteKey: string) => {
+    return localFilters[websiteKey] || {
+      search: '',
+      category: 'all',
+      priceRange: { min: 0, max: 50000 }
+    };
+  };
+
+  const getFilteredExistingArticles = (websiteKey: string, articles: any[]) => {
+    const filter = getLocalFilter(websiteKey);
+    return articles.filter(article => {
+      const matchesSearch = !filter.search || 
+        (article.title || '').toLowerCase().includes(filter.search.toLowerCase()) ||
+        (article.target_url || '').toLowerCase().includes(filter.search.toLowerCase()) ||
+        (article.description || '').toLowerCase().includes(filter.search.toLowerCase());
+      
+      const matchesCategory = filter.category === 'all' || article.category === filter.category;
+      
+      const matchesPrice = (article.price || 0) >= filter.priceRange.min && 
+                          (article.price || 0) <= filter.priceRange.max;
+      
+      return matchesSearch && matchesCategory && matchesPrice;
+    });
   };
 
   // Logique de pagination
@@ -484,6 +531,7 @@ const QuickBuyPage: React.FC = () => {
                 </select>
               </div>
 
+
               {/* Plage de prix compacte */}
               <div className="flex items-center space-x-2">
                 <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Prix:</span>
@@ -650,11 +698,82 @@ const QuickBuyPage: React.FC = () => {
                         </div>
                         <h4 className="text-md font-bold text-gray-900">Articles existants</h4>
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                          {data.existingArticles.length} article{data.existingArticles.length > 1 ? 's' : ''}
+                          {getFilteredExistingArticles(data.website.id, data.existingArticles).length} article{getFilteredExistingArticles(data.website.id, data.existingArticles).length > 1 ? 's' : ''}
                         </span>
                       </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
+                      
+                      {/* Filtres locaux pour les articles existants */}
+                      <div className="bg-white rounded-lg p-3 mb-4 border border-blue-200">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {/* Recherche locale */}
+                          <div className="relative">
+                            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                            <input
+                              type="text"
+                              placeholder="Rechercher dans les articles..."
+                              value={getLocalFilter(data.website.id).search}
+                              onChange={(e) => updateLocalFilter(data.website.id, 'search', e.target.value)}
+                              className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                          
+                          {/* Catégorie locale */}
+                          <div>
+                            <select
+                              value={getLocalFilter(data.website.id).category}
+                              onChange={(e) => updateLocalFilter(data.website.id, 'category', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                              <option value="all">Toutes catégories</option>
+                              {Array.from(new Set(data.existingArticles.map(a => a.category).filter(Boolean))).map(category => (
+                                <option key={category} value={category}>
+                                  {getCategoryLabel(category)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          {/* Prix local */}
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="number"
+                              placeholder="Min"
+                              value={getLocalFilter(data.website.id).priceRange.min}
+                              onChange={(e) => updateLocalFilter(data.website.id, 'priceRange', { 
+                                ...getLocalFilter(data.website.id).priceRange, 
+                                min: Number(e.target.value) 
+                              })}
+                              className="w-20 px-2 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <span className="text-gray-400">-</span>
+                            <input
+                              type="number"
+                              placeholder="Max"
+                              value={getLocalFilter(data.website.id).priceRange.max}
+                              onChange={(e) => updateLocalFilter(data.website.id, 'priceRange', { 
+                                ...getLocalFilter(data.website.id).priceRange, 
+                                max: Number(e.target.value) 
+                              })}
+                              className="w-20 px-2 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <span className="text-xs text-gray-500">MAD</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Message si aucun article ne correspond aux filtres */}
+                      {getFilteredExistingArticles(data.website.id, data.existingArticles).length === 0 ? (
+                        <div className="bg-white rounded-lg p-6 text-center border border-gray-200">
+                          <div className="text-gray-400 mb-2">
+                            <FileText className="h-8 w-8 mx-auto" />
+                          </div>
+                          <p className="text-gray-600 text-sm">
+                            Aucun article ne correspond aux filtres appliqués
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
                           <thead>
                             <tr className="border-b border-gray-200">
                               <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Site</th>
@@ -666,7 +785,7 @@ const QuickBuyPage: React.FC = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {data.existingArticles.map((article) => (
+                            {getFilteredExistingArticles(data.website.id, data.existingArticles).map((article) => (
                               <tr key={article.id} className="border-b border-gray-100 hover:bg-gray-50">
                                 <td className="py-3 px-4">
                                   <div>
@@ -699,7 +818,8 @@ const QuickBuyPage: React.FC = () => {
                             ))}
                           </tbody>
                         </table>
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
