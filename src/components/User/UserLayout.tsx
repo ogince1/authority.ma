@@ -251,24 +251,6 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
                 </div>
               </div>
               
-              {/* Widget de Traduction */}
-              <div className="relative">
-                <select 
-                  onChange={(e) => {
-                    if (e.target.value === 'en') {
-                      window.location.href = `https://translate.google.com/translate?sl=fr&tl=en&u=${encodeURIComponent(window.location.href)}`;
-                    } else if (e.target.value === 'ar') {
-                      window.location.href = `https://translate.google.com/translate?sl=fr&tl=ar&u=${encodeURIComponent(window.location.href)}`;
-                    }
-                  }}
-                  className="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                >
-                  <option value="fr">🇫🇷 FR</option>
-                  <option value="en">🇺🇸 EN</option>
-                  <option value="ar">🇲🇦 عربي</option>
-                </select>
-              </div>
-
               {/* Panier */}
               <Link
                 to="/panier"
@@ -420,26 +402,6 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
                       </Link>
                     );
                   })}
-                  
-                  {/* Widget de Traduction Mobile */}
-                  <div className="px-3 py-2">
-                    <label className="block text-xs font-medium text-gray-500 mb-2">Langue</label>
-                    <select 
-                      onChange={(e) => {
-                        if (e.target.value === 'en') {
-                          window.location.href = `https://translate.google.com/translate?sl=fr&tl=en&u=${encodeURIComponent(window.location.href)}`;
-                        } else if (e.target.value === 'ar') {
-                          window.location.href = `https://translate.google.com/translate?sl=fr&tl=ar&u=${encodeURIComponent(window.location.href)}`;
-                        }
-                        setSidebarOpen(false);
-                      }}
-                      className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="fr">🇫🇷 Français</option>
-                      <option value="en">🇺🇸 English</option>
-                      <option value="ar">🇲🇦 العربية</option>
-                    </select>
-                  </div>
                 </div>
               </motion.div>
             )}
