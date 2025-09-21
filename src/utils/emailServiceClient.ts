@@ -1,331 +1,225 @@
-// Service email côté client utilisant l'API Brevo Transactional
-// Compatible navigateur (pas de modules Node.js)
+// Service email côté client utilisant l'API Brevo
+import { supabase } from '../lib/supabase';
 
-// Configuration
-const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY || process.env.VITE_BREVO_API_KEY;
-const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+// Types pour les emails
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  htmlContent: string;
+  textContent?: string;
+  variables: string[];
+}
 
-// Templates d'email avec variables
-const EMAIL_TEMPLATES = {
-  // Email de bienvenue pour les éditeurs
-  EDITOR_WELCOME: {
-    subject: '🎉 Bienvenue sur Back.ma - Votre compte éditeur est prêt !',
-    htmlContent: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Bienvenue sur Back.ma</title>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }
-          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }
-          .logo { margin-bottom: 20px; }
-          .logo img { height: 60px; width: auto; filter: brightness(0) invert(1); }
-          .header h1 { margin: 0; font-size: 28px; font-weight: 700; }
-          .content { padding: 40px 30px; }
-          .greeting { font-size: 24px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; text-align: center; }
-          .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 20px 0; }
-          .footer { background: #2c3e50; color: white; padding: 30px; text-align: center; }
-          .footer .logo img { height: 40px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">
-              <img src="https://back.ma/logo-simple.svg" alt="Back.ma" />
-            </div>
-            <h1>🎉 Bienvenue {{user_name}} !</h1>
-          </div>
-          <div class="content">
-            <div class="greeting">Votre compte éditeur est maintenant actif !</div>
-            <p>Vous pouvez maintenant :</p>
-            <ul>
-              <li>Ajouter vos sites web</li>
-              <li>Recevoir des demandes de liens</li>
-              <li>Gérer vos revenus</li>
-            </ul>
-            <div style="text-align: center;">
-              <a href="{{dashboard_url}}" class="cta-button">Accéder à mon dashboard</a>
-            </div>
-          </div>
-          <div class="footer">
-            <div class="logo">
-              <img src="https://back.ma/logo-simple.svg" alt="Back.ma" />
-            </div>
-            <p><strong>Back.ma</strong> - Votre partenaire SEO</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `
-  },
+export interface EmailData {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+  from?: string;
+  tags?: string[];
+}
 
-  // Email de bienvenue pour les annonceurs
+// Templates d'emails prédéfinis
+export const EMAIL_TEMPLATES: { [key: string]: EmailTemplate } = {
   ADVERTISER_WELCOME: {
-    subject: '🚀 Bienvenue sur Back.ma - Commencez votre stratégie SEO !',
-    htmlContent: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Bienvenue sur Back.ma</title>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }
-          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }
-          .logo { margin-bottom: 20px; }
-          .logo img { height: 60px; width: auto; filter: brightness(0) invert(1); }
-          .header h1 { margin: 0; font-size: 28px; font-weight: 700; }
-          .content { padding: 40px 30px; }
-          .greeting { font-size: 24px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; text-align: center; }
-          .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 20px 0; }
-          .footer { background: #2c3e50; color: white; padding: 30px; text-align: center; }
-          .footer .logo img { height: 40px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">
-              <img src="https://back.ma/logo-simple.svg" alt="Back.ma" />
-            </div>
-            <h1>🚀 Bienvenue {{user_name}} !</h1>
-          </div>
-          <div class="content">
-            <div class="greeting">Votre compte annonceur est prêt !</div>
-            <p>Vous pouvez maintenant :</p>
-            <ul>
-              <li>Recharger votre solde</li>
-              <li>Acheter des liens de qualité</li>
-              <li>Améliorer votre référencement</li>
-            </ul>
-            <div style="text-align: center;">
-              <a href="{{dashboard_url}}" class="cta-button">Commencer maintenant</a>
-            </div>
-          </div>
-          <div class="footer">
-            <div class="logo">
-              <img src="https://back.ma/logo-simple.svg" alt="Back.ma" />
-            </div>
-            <p><strong>Back.ma</strong> - Votre partenaire SEO</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `
+    id: 'advertiser-welcome',
+    name: 'advertiser-welcome',
+    subject: 'Bienvenue sur Back.ma - Boostez votre SEO ! 🎯',
+    htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bienvenue</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎯 Bienvenue {{user_name}} !</h1>
+    </div>
+    <div class="content">
+      <p>Votre compte annonceur est maintenant actif sur Back.ma !</p>
+      <p>Vous pouvez maintenant :</p>
+      <ul>
+        <li>✅ Acheter des liens de qualité pour améliorer votre SEO</li>
+        <li>📊 Suivre vos performances en temps réel</li>
+        <li>🎯 Cibler les sites les plus pertinents pour votre secteur</li>
+      </ul>
+      <p><a href="{{dashboard_url}}" class="button">Accéder à mon tableau de bord</a></p>
+      <p>Besoin d'aide ? Notre équipe est là pour vous accompagner !</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    variables: ['user_name', 'dashboard_url']
   },
-
-  // Email de nouvelle demande pour les éditeurs
-  EDITOR_NEW_REQUEST: {
-    subject: '💼 Nouvelle demande de lien pour {{site_name}}',
-    htmlContent: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Nouvelle demande</title>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }
-          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }
-          .logo { margin-bottom: 20px; }
-          .logo img { height: 60px; width: auto; filter: brightness(0) invert(1); }
-          .header h1 { margin: 0; font-size: 28px; font-weight: 700; }
-          .content { padding: 40px 30px; }
-          .greeting { font-size: 24px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; text-align: center; }
-          .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 20px 0; }
-          .footer { background: #2c3e50; color: white; padding: 30px; text-align: center; }
-          .footer .logo img { height: 40px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">
-              <img src="https://back.ma/logo-simple.svg" alt="Back.ma" />
-            </div>
-            <h1>💼 Nouvelle demande !</h1>
-          </div>
-          <div class="content">
-            <div class="greeting">Bonjour {{user_name}} !</div>
-            <p>Vous avez reçu une nouvelle demande de lien pour <strong>{{site_name}}</strong></p>
-            <p><strong>Prix proposé :</strong> {{proposed_price}} MAD</p>
-            <p><strong>ID de la demande :</strong> {{request_id}}</p>
-            <div style="text-align: center;">
-              <a href="{{dashboard_url}}" class="cta-button">Voir la demande</a>
-            </div>
-          </div>
-          <div class="footer">
-            <div class="logo">
-              <img src="https://back.ma/logo-simple.svg" alt="Back.ma" />
-            </div>
-            <p><strong>Back.ma</strong> - Votre partenaire SEO</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `
+  EDITOR_WELCOME: {
+    id: 'editor-welcome',
+    name: 'editor-welcome',
+    subject: 'Bienvenue sur Back.ma - Votre compte éditeur est prêt ! 🚀',
+    htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bienvenue</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 Bienvenue {{user_name}} !</h1>
+    </div>
+    <div class="content">
+      <p>Votre compte éditeur est maintenant actif sur Back.ma !</p>
+      <p>Vous pouvez maintenant :</p>
+      <ul>
+        <li>📝 Lister vos sites web et articles</li>
+        <li>💰 Recevoir des demandes de liens et générer des revenus</li>
+        <li>📊 Suivre vos performances et revenus</li>
+      </ul>
+      <p><a href="{{dashboard_url}}" class="button">Accéder à mon tableau de bord</a></p>
+      <p>Commencez par ajouter vos premiers sites !</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    variables: ['user_name', 'dashboard_url']
   },
-
-  // Email de site approuvé pour les éditeurs
   EDITOR_SITE_APPROVED: {
+    id: 'editor-site-approved',
+    name: 'editor-site-approved',
     subject: '✅ Votre site {{site_name}} a été approuvé !',
-    htmlContent: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Site approuvé</title>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }
-          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-          .header { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 40px 30px; text-align: center; }
-          .logo { margin-bottom: 20px; }
-          .logo img { height: 60px; width: auto; filter: brightness(0) invert(1); }
-          .header h1 { margin: 0; font-size: 28px; font-weight: 700; }
-          .content { padding: 40px 30px; }
-          .greeting { font-size: 24px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; text-align: center; }
-          .cta-button { display: inline-block; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 20px 0; }
-          .footer { background: #2c3e50; color: white; padding: 30px; text-align: center; }
-          .footer .logo img { height: 40px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">
-              <img src="https://back.ma/logo-simple.svg" alt="Back.ma" />
-            </div>
-            <h1>✅ Site approuvé !</h1>
-          </div>
-          <div class="content">
-            <div class="greeting">Félicitations {{user_name}} !</div>
-            <p>Votre site <strong>{{site_name}}</strong> a été approuvé et est maintenant disponible pour recevoir des demandes de liens.</p>
-            <p><strong>URL :</strong> {{site_url}}</p>
-            <div style="text-align: center;">
-              <a href="{{dashboard_url}}" class="cta-button">Gérer mes sites</a>
-            </div>
-          </div>
-          <div class="footer">
-            <div class="logo">
-              <img src="https://back.ma/logo-simple.svg" alt="Back.ma" />
-            </div>
-            <p><strong>Back.ma</strong> - Votre partenaire SEO</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `
+    htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Site Approuvé</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎉 Félicitations {{user_name}} !</h1>
+    </div>
+    <div class="content">
+      <p>Votre site <strong>{{site_name}}</strong> ({{site_url}}) a été approuvé et est maintenant visible sur la plateforme !</p>
+      <p>Vous pouvez maintenant :</p>
+      <ul>
+        <li>📝 Ajouter des annonces de liens pour ce site</li>
+        <li>💰 Recevoir des demandes d'achat</li>
+        <li>📊 Suivre vos revenus</li>
+      </ul>
+      <p><a href="{{dashboard_url}}" class="button">Gérer mes sites</a></p>
+    </div>
+  </div>
+</body>
+</html>`,
+    variables: ['user_name', 'site_name', 'site_url', 'dashboard_url']
   },
-
-  // Email de site rejeté pour les éditeurs
-  EDITOR_SITE_REJECTED: {
-    subject: '❌ Votre site {{site_name}} nécessite des modifications',
-    htmlContent: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Site rejeté</title>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }
-          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-          .header { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; padding: 40px 30px; text-align: center; }
-          .logo { margin-bottom: 20px; }
-          .logo img { height: 60px; width: auto; filter: brightness(0) invert(1); }
-          .header h1 { margin: 0; font-size: 28px; font-weight: 700; }
-          .content { padding: 40px 30px; }
-          .greeting { font-size: 24px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; text-align: center; }
-          .cta-button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 20px 0; }
-          .footer { background: #2c3e50; color: white; padding: 30px; text-align: center; }
-          .footer .logo img { height: 40px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">
-              <img src="https://back.ma/logo-simple.svg" alt="Back.ma" />
-            </div>
-            <h1>❌ Modifications nécessaires</h1>
-          </div>
-          <div class="content">
-            <div class="greeting">Bonjour {{user_name}},</div>
-            <p>Votre site <strong>{{site_name}}</strong> nécessite quelques modifications avant d'être approuvé.</p>
-            <p><strong>Raison :</strong> {{rejection_reason}}</p>
-            <div style="text-align: center;">
-              <a href="{{dashboard_url}}" class="cta-button">Modifier mon site</a>
-              <a href="{{support_url}}" class="cta-button">Contacter le support</a>
-            </div>
-          </div>
-          <div class="footer">
-            <div class="logo">
-              <img src="https://back.ma/logo-simple.svg" alt="Back.ma" />
-            </div>
-            <p><strong>Back.ma</strong> - Votre partenaire SEO</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `
+  EDITOR_NEW_REQUEST: {
+    id: 'editor-new-request',
+    name: 'editor-new-request',
+    subject: '🔔 Nouvelle demande de lien reçue pour {{site_name}} !',
+    htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Nouvelle Demande</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #FF9800; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+    .request-details { background: white; padding: 20px; border-radius: 5px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔔 Nouvelle demande reçue !</h1>
+    </div>
+    <div class="content">
+      <p>Bonjour {{user_name}},</p>
+      <p>Vous avez reçu une nouvelle demande de lien pour votre site <strong>{{site_name}}</strong>.</p>
+      <div class="request-details">
+        <h3>📋 Détails de la demande :</h3>
+        <ul>
+          <li><strong>ID de la demande :</strong> {{request_id}}</li>
+          <li><strong>Prix proposé :</strong> {{proposed_price}} MAD</li>
+        </ul>
+      </div>
+      <p><a href="{{dashboard_url}}" class="button">Voir la demande</a></p>
+      <p>Répondez rapidement pour maximiser vos chances de conclure !</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    variables: ['user_name', 'site_name', 'request_id', 'proposed_price', 'dashboard_url']
   },
-
-  // Email de commande passée pour les annonceurs
   ADVERTISER_ORDER_PLACED: {
-    subject: '🛒 Commande confirmée - {{order_id}}',
-    htmlContent: `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Commande confirmée</title>
-        <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }
-          .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-          .header { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 40px 30px; text-align: center; }
-          .logo { margin-bottom: 20px; }
-          .logo img { height: 60px; width: auto; filter: brightness(0) invert(1); }
-          .header h1 { margin: 0; font-size: 28px; font-weight: 700; }
-          .content { padding: 40px 30px; }
-          .greeting { font-size: 24px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; text-align: center; }
-          .cta-button { display: inline-block; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 20px 0; }
-          .footer { background: #2c3e50; color: white; padding: 30px; text-align: center; }
-          .footer .logo img { height: 40px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="logo">
-              <img src="https://back.ma/logo-simple.svg" alt="Back.ma" />
-            </div>
-            <h1>🛒 Commande confirmée !</h1>
-          </div>
-          <div class="content">
-            <div class="greeting">Merci {{user_name}} !</div>
-            <p>Votre commande <strong>{{order_id}}</strong> a été confirmée avec succès.</p>
-            <p><strong>Total :</strong> {{total_amount}} MAD</p>
-            <p><strong>Sites :</strong> {{sites_count}} lien(s)</p>
-            <div style="text-align: center;">
-              <a href="{{dashboard_url}}" class="cta-button">Suivre ma commande</a>
-            </div>
-          </div>
-          <div class="footer">
-            <div class="logo">
-              <img src="https://back.ma/logo-simple.svg" alt="Back.ma" />
-            </div>
-            <p><strong>Back.ma</strong> - Votre partenaire SEO</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `
+    id: 'advertiser-order-placed',
+    name: 'advertiser-order-placed',
+    subject: '📝 Votre commande #{{order_id}} a été enregistrée !',
+    htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Commande Enregistrée</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+    .order-details { background: white; padding: 20px; border-radius: 5px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📝 Commande enregistrée !</h1>
+    </div>
+    <div class="content">
+      <p>Merci {{user_name}} !</p>
+      <p>Votre commande <strong>#{{order_id}}</strong> a été enregistrée avec succès.</p>
+      <div class="order-details">
+        <h3>📋 Détails de la commande :</h3>
+        <ul>
+          <li><strong>Montant total :</strong> {{total_amount}} MAD</li>
+          <li><strong>Nombre de sites :</strong> {{sites_count}}</li>
+        </ul>
+      </div>
+      <p><a href="{{dashboard_url}}" class="button">Suivre ma commande</a></p>
+      <p>Nos éditeurs vont maintenant traiter votre demande. Vous recevrez des mises à jour par email.</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    variables: ['user_name', 'order_id', 'total_amount', 'sites_count', 'dashboard_url']
   },
-
-  // Email de recharge de solde pour les annonceurs
   ADVERTISER_BALANCE_ADDED: {
+    id: 'advertiser-balance-added',
+    name: 'advertiser-balance-added',
     subject: '💰 Votre solde a été rechargé de {{amount}} MAD !',
     htmlContent: `<!DOCTYPE html>
 <html>
@@ -443,95 +337,140 @@ const EMAIL_TEMPLATES = {
     </div>
   </div>
 </body>
-</html>`
+</html>`,
+    variables: ['user_name', 'amount', 'new_balance', 'transaction_date', 'transaction_id', 'dashboard_url', 'buy_links_url']
   }
 };
 
-// Fonction pour remplacer les variables dans le contenu
-function replaceVariables(content: string, variables: Record<string, any>): string {
-  let result = content;
-  for (const key in variables) {
-    const value = variables[key] !== undefined ? String(variables[key]) : '';
-    result = result.replace(new RegExp(`{{${key}}}`, 'g'), value);
-  }
-  return result;
-}
+class EmailServiceClient {
+  private brevoApiKey: string;
+  private brevoApiUrl = 'https://api.brevo.com/v3';
 
-// Fonction pour envoyer un email via l'API Brevo
-async function sendEmail(to: string, subject: string, htmlContent: string, tags: string[] = []): Promise<boolean> {
-  try {
-    if (!BREVO_API_KEY) {
-      console.error('Clé API Brevo manquante');
+  constructor() {
+    this.brevoApiKey = import.meta.env.VITE_BREVO_API_KEY || '';
+    if (!this.brevoApiKey) {
+      console.warn('VITE_BREVO_API_KEY not found in environment variables');
+    }
+  }
+
+  private replaceVariables(content: string, variables: { [key: string]: string | number }): string {
+    let result = content;
+    for (const key in variables) {
+      result = result.replace(new RegExp(`{{${key}}}`, 'g'), String(variables[key]));
+    }
+    return result;
+  }
+
+  private async sendViaBrevoAPI(data: EmailData): Promise<boolean> {
+    if (!this.brevoApiKey) {
+      console.error('Brevo API key not configured');
       return false;
     }
 
-    const emailData = {
-      sender: {
-        email: 'contact@ogince.ma',
-        name: 'Back.ma'
-      },
-      to: [
-        {
-          email: to
-        }
-      ],
+    try {
+      const response = await fetch(`${this.brevoApiUrl}/smtp/email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': this.brevoApiKey,
+        },
+        body: JSON.stringify({
+          sender: { email: data.from || 'contact@ogince.ma', name: 'Back.ma' },
+          to: [{ email: data.to }],
+          subject: data.subject,
+          htmlContent: data.html,
+          textContent: data.text,
+          tags: data.tags || []
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Brevo API error:', errorData);
+        return false;
+      }
+
+      const result = await response.json();
+      console.log('Email sent via Brevo API:', result);
+      return true;
+    } catch (error) {
+      console.error('Error sending email via Brevo API:', error);
+      return false;
+    }
+  }
+
+  public async sendEmail(data: EmailData): Promise<boolean> {
+    const success = await this.sendViaBrevoAPI(data);
+    
+    if (success) {
+      // Log email history
+      await this.logEmailHistory(data.to, data.subject, 'custom', 'sent', data.tags);
+    } else {
+      await this.logEmailHistory(data.to, data.subject, 'custom', 'failed', data.tags, 'Failed to send via Brevo API');
+    }
+    
+    return success;
+  }
+
+  public async sendTemplateEmail(
+    templateKey: keyof typeof EMAIL_TEMPLATES,
+    recipientEmail: string,
+    variables: { [key: string]: string | number },
+    tags?: string[]
+  ): Promise<boolean> {
+    const template = EMAIL_TEMPLATES[templateKey];
+    if (!template) {
+      console.error(`Template ${String(templateKey)} not found`);
+      return false;
+    }
+
+    const subject = this.replaceVariables(template.subject, variables);
+    const html = this.replaceVariables(template.htmlContent, variables);
+
+    const emailData: EmailData = {
+      to: recipientEmail,
       subject: subject,
-      htmlContent: htmlContent,
+      html: html,
+      from: 'contact@ogince.ma',
       tags: tags
     };
 
-    const response = await fetch(BREVO_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': BREVO_API_KEY,
-      },
-      body: JSON.stringify(emailData)
-    });
+    return await this.sendEmail(emailData);
+  }
 
-    if (response.ok) {
-      const result = await response.json();
-      console.log('Email envoyé avec succès:', result.messageId);
-      return true;
-    } else {
-      const errorData = await response.json();
-      console.error('Erreur API Brevo:', errorData);
-      return false;
+  private async logEmailHistory(
+    recipientEmail: string,
+    subject: string,
+    templateName: string,
+    status: 'pending' | 'sent' | 'delivered' | 'failed' | 'bounced',
+    tags?: string[],
+    errorMessage?: string
+  ) {
+    try {
+      const { data: user } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', recipientEmail)
+        .single();
+
+      const userId = user?.id || null;
+
+      await supabase.from('email_history').insert({
+        user_id: userId,
+        email_type: tags ? tags[0] : 'unknown',
+        subject: subject,
+        recipient_email: recipientEmail,
+        template_name: templateName,
+        status: status,
+        sent_at: new Date().toISOString(),
+        metadata: { tags },
+        error_message: errorMessage,
+      });
+    } catch (error) {
+      console.error('Error logging email history:', error);
     }
-  } catch (error) {
-    console.error('Erreur lors de l\'envoi de l\'email:', error);
-    return false;
   }
 }
 
-// Fonction pour envoyer un email avec template
-export async function sendTemplateEmail(
-  templateKey: keyof typeof EMAIL_TEMPLATES,
-  to: string,
-  variables: Record<string, any> = {},
-  tags: string[] = []
-): Promise<boolean> {
-  try {
-    const template = EMAIL_TEMPLATES[templateKey];
-    if (!template) {
-      console.error(`Template ${templateKey} non trouvé`);
-      return false;
-    }
-
-    const subject = replaceVariables(template.subject, variables);
-    const htmlContent = replaceVariables(template.htmlContent, variables);
-
-    return await sendEmail(to, subject, htmlContent, tags);
-  } catch (error) {
-    console.error('Erreur lors de l\'envoi du template email:', error);
-    return false;
-  }
-}
-
-// Export du service email client
-export const emailServiceClient = {
-  sendEmail,
-  sendTemplateEmail
-};
-
-export default emailServiceClient;
+// Instance singleton
+export const emailServiceClient = new EmailServiceClient();

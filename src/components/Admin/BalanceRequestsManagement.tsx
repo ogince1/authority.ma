@@ -88,6 +88,48 @@ const BalanceRequestsManagement: React.FC = () => {
 
       if (data && data.success) {
         toast.success(action === 'approve' ? 'Demande approuvée !' : 'Demande rejetée !');
+        
+        // Envoyer un email de confirmation pour les recharges approuvées
+        if (action === 'approve' && selectedRequest?.type === 'add_funds') {
+          try {
+            // Récupérer les informations de l'utilisateur
+            const { data: userData, error: userError } = await supabase
+              .from('users')
+              .select('name, email, balance')
+              .eq('id', selectedRequest.user_id)
+              .single();
+
+            if (userData && !userError) {
+              // Import dynamique du service email
+              const emailModule = await import('../../utils/emailServiceClient');
+              const { emailServiceClient } = emailModule;
+              
+              // Calculer le nouveau solde (approximatif)
+              const newBalance = (userData.balance || 0) + selectedRequest.amount;
+              
+              await emailServiceClient.sendTemplateEmail(
+                'ADVERTISER_BALANCE_ADDED',
+                userData.email,
+                {
+                  user_name: userData.name || 'Utilisateur',
+                  amount: selectedRequest.amount,
+                  new_balance: newBalance,
+                  transaction_date: new Date().toLocaleString('fr-FR'),
+                  transaction_id: `ADMIN-${selectedRequest.id}`,
+                  dashboard_url: `${window.location.origin}/dashboard/balance`,
+                  buy_links_url: `${window.location.origin}/buy-links`
+                },
+                ['balance_added', 'advertiser', 'transaction', 'admin_approved']
+              );
+              
+              console.log('Email de recharge envoyé après approbation admin');
+            }
+          } catch (emailError) {
+            console.error('Erreur envoi email après approbation admin:', emailError);
+            // Ne pas bloquer le processus si l'email échoue
+          }
+        }
+        
         setShowModal(false);
         setSelectedRequest(null);
         setAdminNotes('');

@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { trackUserSignup } from '../utils/analytics';
 import { signUpWithEmail } from '../lib/supabase';
 import { UserRole } from '../types';
+import { emailServiceClient } from '../utils/emailServiceClient';
 import Header from '../components/Layout/Header';
 import Footer from '../components/Layout/Footer';
 import SEOHead from '../components/SEO/SEOHead';
@@ -37,8 +38,33 @@ const RegisterPage: React.FC = () => {
   const onSubmit = async (data: RegisterFormData) => {
     setLoading(true);
     try {
-      await signUpWithEmail(data.email, data.password, data.name, data.role);
-      toast.success('Compte créé avec succès ! Vérifiez votre email pour confirmer votre compte.');
+      const { user } = await signUpWithEmail(data.email, data.password, data.name, data.role);
+      
+      // Envoyer l'email de bienvenue selon le rôle
+      if (user) {
+        try {
+          const templateKey = data.role === 'publisher' ? 'EDITOR_WELCOME' : 'ADVERTISER_WELCOME';
+          const variables = {
+            user_name: data.name,
+            dashboard_url: `${window.location.origin}/dashboard`
+          };
+
+             await emailServiceClient.sendTemplateEmail(
+            templateKey,
+            data.email,
+            variables,
+            ['welcome', data.role, 'onboarding']
+          );
+
+          toast.success('Compte créé avec succès ! Email de bienvenue envoyé.');
+        } catch (emailError) {
+          console.error('Erreur envoi email bienvenue:', emailError);
+          toast.success('Compte créé avec succès ! (Email de bienvenue en cours)');
+        }
+      } else {
+        toast.success('Compte créé avec succès ! Vérifiez votre email pour confirmer votre compte.');
+      }
+      
       trackUserSignup();
       navigate('/login');
     } catch (error: any) {

@@ -372,7 +372,30 @@ const CartPage: React.FC = () => {
       localStorage.removeItem('quick-buy-cart');
       localStorage.removeItem('current_campaign_id');
 
-      toast.success('Achats traités avec succès !');
+      // Envoyer l'email de confirmation de commande
+      try {
+        // Import dynamique avec gestion d'erreur améliorée
+          const emailModule = await import('../../utils/emailServiceClient');
+        const { emailServiceClient } = emailModule;
+        
+        await emailServiceClient.sendTemplateEmail(
+          'ADVERTISER_ORDER_PLACED',
+          user.email,
+          {
+            user_name: user.user_metadata?.name || user.email,
+            order_id: `CART-${Date.now()}`,
+            total_amount: total,
+            sites_count: cartItems.length,
+            dashboard_url: `${window.location.origin}/dashboard`
+          },
+          ['order_placed', 'advertiser', 'confirmation']
+        );
+      } catch (emailError) {
+        console.error('Erreur envoi email commande:', emailError);
+        // Ne pas bloquer le processus si l'email échoue
+      }
+
+      toast.success('Achats traités avec succès ! Email de confirmation envoyé.');
       navigate('/dashboard');
     } catch (error) {
       console.error('Error processing purchases:', error);

@@ -1398,6 +1398,42 @@ export const createCreditTransaction = async (transactionData: CreateCreditTrans
       // Ne pas faire échouer la transaction si la mise à jour du solde échoue
     }
 
+    // Envoyer un email de confirmation pour les recharges de solde
+    if (transactionData.type === 'deposit') {
+      try {
+        // Récupérer les informations de l'utilisateur pour l'email
+        const { data: userData } = await supabase
+          .from('users')
+          .select('name, email')
+          .eq('id', transactionData.user_id)
+          .single();
+
+        if (userData) {
+          // Import dynamique pour éviter les erreurs de dépendance circulaire
+          const emailModule = await import('../utils/emailServiceClient');
+          const { emailServiceClient } = emailModule;
+          
+          await emailServiceClient.sendTemplateEmail(
+            'ADVERTISER_BALANCE_ADDED',
+            userData.email,
+            {
+              user_name: userData.name,
+              amount: transactionData.amount,
+              new_balance: newBalance,
+              transaction_date: new Date().toLocaleString('fr-FR'),
+              transaction_id: transaction.id,
+              dashboard_url: `${window.location.origin}/dashboard/balance`,
+              buy_links_url: `${window.location.origin}/buy-links`
+            },
+            ['balance_added', 'advertiser', 'transaction']
+          );
+        }
+      } catch (emailError) {
+        console.error('Erreur envoi email recharge solde:', emailError);
+        // Ne pas bloquer la transaction si l'email échoue
+      }
+    }
+
     return transaction;
   } catch (error) {
     console.error('Error creating credit transaction:', error);
@@ -1505,6 +1541,53 @@ export const createLinkPurchaseRequest = async (requestData: {
       .single();
 
     if (error) throw error;
+
+    // Envoyer l'email de notification à l'éditeur
+    try {
+      // Récupérer les informations de l'éditeur et du site
+      const { data: publisherData } = await supabase
+        .from('users')
+        .select('name, email')
+        .eq('id', requestData.publisher_id)
+        .single();
+
+      const { data: websiteData } = await supabase
+        .from('link_listings')
+        .select(`
+          title,
+          website:websites(title, url)
+        `)
+        .eq('id', requestData.link_listing_id)
+        .single();
+
+      if (publisherData && websiteData) {
+        // Import dynamique pour éviter les erreurs de dépendance circulaire
+        try {
+          const emailModule = await import('../utils/emailServiceClient');
+          const { emailServiceClient } = emailModule;
+          
+          await emailServiceClient.sendTemplateEmail(
+            'EDITOR_NEW_REQUEST',
+            publisherData.email,
+            {
+              user_name: publisherData.name,
+              site_name: websiteData.website?.title || websiteData.title,
+              request_id: data.id,
+              proposed_price: requestData.proposed_price,
+              dashboard_url: `${window.location.origin}/dashboard`
+            },
+            ['new_request', 'editor', 'opportunity']
+          );
+        } catch (emailError) {
+          console.error('Erreur envoi email nouvelle demande:', emailError);
+          // Ne pas bloquer la création de la demande si l'email échoue
+        }
+      }
+    } catch (emailError) {
+      console.error('Erreur envoi email nouvelle demande:', emailError);
+      // Ne pas bloquer la création de la demande si l'email échoue
+    }
+
     return data;
   } catch (error) {
     console.error('Error creating purchase request:', error);

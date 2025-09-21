@@ -15,6 +15,7 @@ import CreateDisputeForm from '../components/User/CreateDisputeForm';
 import DisputeDetail from '../components/User/DisputeDetail';
 import DisputeMessages from '../components/User/DisputeMessages';
 import PurchaseHistory from '../components/User/PurchaseHistory';
+import EmailPreferences from '../components/User/EmailPreferences';
 
 const useUserAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(null);
@@ -168,6 +169,13 @@ const UserDashboardPage: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Notifications</h1>
             <p className="text-gray-600">Centre de notifications (à implémenter)</p>
           </div>
+        </ProtectedRoute>
+      } />
+      
+      {/* Route pour les préférences email */}
+      <Route path="/email-preferences" element={
+        <ProtectedRoute>
+          <EmailPreferences />
         </ProtectedRoute>
       } />
     </Routes>

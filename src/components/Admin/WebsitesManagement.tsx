@@ -21,6 +21,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { trackPageView } from '../../utils/analytics';
 import { getCategoryOptions } from '../../utils/categories';
+import { emailServiceClient } from '../../utils/emailServiceClient';
 import toast from 'react-hot-toast';
 
 interface Website {
@@ -121,6 +122,10 @@ const WebsitesManagement: React.FC = () => {
 
   const handleStatusChange = async (websiteId: string, newStatus: string, rejectionReason?: string) => {
     try {
+      // Récupérer les informations du site avant la mise à jour
+      const website = websites.find(w => w.id === websiteId);
+      if (!website) return;
+
       const updateData: any = { status: newStatus };
       if (newStatus === 'rejected' && rejectionReason) {
         updateData.rejection_reason = rejectionReason;
@@ -133,7 +138,43 @@ const WebsitesManagement: React.FC = () => {
 
       if (error) throw error;
 
-      toast.success(`Statut du site web mis à jour`);
+      // Envoyer l'email de notification selon le statut
+      if (website.user) {
+        try {
+          if (newStatus === 'approved') {
+            // Email d'approbation
+               await emailServiceClient.sendTemplateEmail(
+              'EDITOR_SITE_APPROVED',
+              website.user.email,
+              {
+                user_name: website.user.name,
+                site_name: website.title,
+                site_url: website.url,
+                dashboard_url: `${window.location.origin}/dashboard`
+              },
+              ['site_approved', 'editor', 'approval']
+            );
+          } else if (newStatus === 'rejected' && rejectionReason) {
+            // Email de rejet
+               await emailServiceClient.sendTemplateEmail(
+              'EDITOR_SITE_REJECTED',
+              website.user.email,
+              {
+                user_name: website.user.name,
+                site_name: website.title,
+                rejection_reason: rejectionReason,
+                support_url: `${window.location.origin}/contact`
+              },
+              ['site_rejected', 'editor', 'feedback']
+            );
+          }
+        } catch (emailError) {
+          console.error('Erreur envoi email notification:', emailError);
+          // Ne pas bloquer la mise à jour si l'email échoue
+        }
+      }
+
+      toast.success(`Statut du site web mis à jour${newStatus === 'approved' ? ' et email envoyé' : ''}`);
       loadWebsites();
       loadStats();
     } catch (error) {
