@@ -49,7 +49,7 @@ import CampaignStatusBadge from './CampaignStatusBadge';
 import { trackPageView } from '../../utils/analytics';
 import RichContentDisplay from '../Editor/RichContentDisplay';
 import Pagination from '../Common/Pagination';
-import ContentModal from '../Common/ContentModal';
+import RichTextEditor from '../Editor/RichTextEditor';
 
 const PurchaseRequests: React.FC = () => {
   const [requests, setRequests] = React.useState<LinkPurchaseRequest[]>([]);
@@ -63,6 +63,7 @@ const PurchaseRequests: React.FC = () => {
   const itemsPerPage = 10;
   const [contentModalOpen, setContentModalOpen] = React.useState(false);
   const [modalContent, setModalContent] = React.useState('');
+  const [isEditingContent, setIsEditingContent] = React.useState(false);
   const [showModal, setShowModal] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
@@ -362,6 +363,22 @@ const PurchaseRequests: React.FC = () => {
   const openContentModal = (content: string) => {
     setModalContent(content);
     setContentModalOpen(true);
+  };
+
+  // Fonction pour récupérer le nom du site
+  const getSiteName = (request: LinkPurchaseRequest) => {
+    // Si on a un link_listing avec un website
+    if (request.link_listing?.website?.name || request.link_listing?.website?.title) {
+      return request.link_listing.website.name || request.link_listing.website.title;
+    }
+    
+    // Si on a un link_listing avec un titre
+    if (request.link_listing?.title) {
+      return request.link_listing.title;
+    }
+    
+    // Fallback pour les cas non gérés
+    return 'Site inconnu';
   };
 
   const filteredAndSortedRequests = React.useMemo(() => {
@@ -665,13 +682,46 @@ const PurchaseRequests: React.FC = () => {
                         {request.proposed_price?.toLocaleString() || 'Non spécifié'} DH
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Lien concerné</span>
-                      <span className="font-semibold text-gray-900">#{request.link_listing_id.slice(0, 8)}</span>
+                    <div>
+                      <span className="text-sm text-gray-600">Site concerné</span>
+                      <div className="mt-1">
+                        <span className="font-semibold text-gray-900">{getSiteName(request)}</span>
+                      </div>
+                      {request.link_listing?.website?.url && (
+                        <div className="mt-1">
+                          <span className="text-xs text-gray-500">{request.link_listing.website.url}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">Annonceur</span>
                       <span className="font-semibold text-gray-900">{request.advertiser?.email}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Type de demande</span>
+                      <div className="mt-1">
+                        {request.link_listing?.title && request.link_listing.title.startsWith('Nouvel article') ? (
+                          <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                            📝 Nouvel article à créer
+                          </span>
+                        ) : request.link_listing?.title ? (
+                          <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                            🔗 Article existant
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
+                            ❓ Type inconnu
+                          </span>
+                        )}
+                      </div>
+                      {request.link_listing?.title && !request.link_listing.title.startsWith('Nouvel article') && (
+                        <div className="mt-2">
+                          <span className="text-xs text-gray-500">Article:</span>
+                          <div className="text-sm font-medium text-gray-900 mt-1">
+                            {request.link_listing.title}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -905,8 +955,38 @@ const PurchaseRequests: React.FC = () => {
               </div>
 
               <div>
-                <p className="text-sm text-gray-600">Lien concerné</p>
-                <p className="font-medium text-gray-900">#{selectedRequest.link_listing_id.slice(0, 8)}</p>
+                <p className="text-sm text-gray-600">Site concerné</p>
+                <p className="font-medium text-gray-900">{getSiteName(selectedRequest)}</p>
+                {selectedRequest.link_listing?.website?.url && (
+                  <p className="text-xs text-gray-500 mt-1">{selectedRequest.link_listing.website.url}</p>
+                )}
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600">Type de demande</p>
+                <div className="mt-1">
+                  {selectedRequest.link_listing?.title && selectedRequest.link_listing.title.startsWith('Nouvel article') ? (
+                    <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                      📝 Nouvel article à créer
+                    </span>
+                  ) : selectedRequest.link_listing?.title ? (
+                    <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                      🔗 Article existant
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
+                      ❓ Type inconnu
+                    </span>
+                  )}
+                </div>
+                {selectedRequest.link_listing?.title && !selectedRequest.link_listing.title.startsWith('Nouvel article') && (
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-500">Article:</p>
+                    <p className="text-sm font-medium text-gray-900 mt-1">
+                      {selectedRequest.link_listing.title}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1046,14 +1126,48 @@ const PurchaseRequests: React.FC = () => {
       </div>
 
       {/* Modal pour afficher le contenu personnalisé */}
-      <ContentModal
-        isOpen={contentModalOpen}
-        onClose={() => setContentModalOpen(false)}
-        content={modalContent}
-        title="Contenu personnalisé"
-        allowEdit={true}
-        enableProfessionalEditor={true}
-      />
+      {contentModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900">Contenu personnalisé</h3>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsEditingContent(!isEditingContent)}
+                  className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors"
+                >
+                  {isEditingContent ? 'Voir' : 'Modifier'}
+                </button>
+                <button
+                  onClick={() => {
+                    setContentModalOpen(false);
+                    setIsEditingContent(false);
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              {isEditingContent ? (
+                <RichTextEditor
+                  value={modalContent}
+                  onChange={setModalContent}
+                  placeholder="Modifiez votre contenu personnalisé..."
+                  rows={8}
+                  className="w-full"
+                />
+              ) : (
+                <div className="prose max-w-none">
+                  <RichContentDisplay content={modalContent} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

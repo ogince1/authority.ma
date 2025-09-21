@@ -16,7 +16,8 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronUp,
-  MessageCircle
+  MessageCircle,
+  X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LinkPurchaseRequest, ConversationMessage } from '../../types';
@@ -35,7 +36,7 @@ import Favicon from '../Common/Favicon';
 import toast from 'react-hot-toast';
 import RichContentDisplay from '../Editor/RichContentDisplay';
 import Pagination from '../Common/Pagination';
-import ContentModal from '../Common/ContentModal';
+import RichTextEditor from '../Editor/RichTextEditor';
 
 const AdvertiserRequests: React.FC = () => {
   const [requests, setRequests] = React.useState<LinkPurchaseRequest[]>([]);
@@ -49,6 +50,7 @@ const AdvertiserRequests: React.FC = () => {
   const itemsPerPage = 10;
   const [contentModalOpen, setContentModalOpen] = React.useState(false);
   const [modalContent, setModalContent] = React.useState('');
+  const [isEditingContent, setIsEditingContent] = React.useState(false);
   const [showModal, setShowModal] = React.useState(false);
   const [expandedMessages, setExpandedMessages] = React.useState<Set<string>>(new Set());
   const [messages, setMessages] = React.useState<Record<string, ConversationMessage[]>>({});
@@ -269,6 +271,22 @@ const AdvertiserRequests: React.FC = () => {
     setContentModalOpen(true);
   };
 
+  // Fonction pour récupérer le nom du site
+  const getSiteName = (request: LinkPurchaseRequest) => {
+    // Si on a un link_listing avec un website
+    if (request.link_listing?.website?.name || request.link_listing?.website?.title) {
+      return request.link_listing.website.name || request.link_listing.website.title;
+    }
+    
+    // Si on a un link_listing avec un titre
+    if (request.link_listing?.title) {
+      return request.link_listing.title;
+    }
+    
+    // Fallback pour les cas non gérés
+    return 'Site inconnu';
+  };
+
   const handleConfirmLink = async (requestId: string) => {
     // Protection contre les clics multiples
     if (confirmingRequestId === requestId) {
@@ -399,7 +417,7 @@ const AdvertiserRequests: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="text-lg font-bold text-gray-900">
-                          {request.link_listing?.website?.title || request.link_listing?.website?.name || request.link_listing?.title || 'Site inconnu'}
+                          {getSiteName(request)}
                         </h3>
                         <p className="text-sm text-gray-600">
                           Demande #{request.id.slice(0, 8)}
@@ -691,7 +709,7 @@ const AdvertiserRequests: React.FC = () => {
                     )}
                     <div>
                       <h3 className="text-xl font-bold text-gray-900">
-                        {selectedRequest.link_listing?.website?.title || selectedRequest.link_listing?.website?.name || selectedRequest.link_listing?.title || 'Site inconnu'}
+                        {getSiteName(selectedRequest)}
                       </h3>
                       <p className="text-sm text-gray-600">
                         Demande #{selectedRequest.id.slice(0, 8)}
@@ -832,14 +850,48 @@ const AdvertiserRequests: React.FC = () => {
       </div>
 
       {/* Modal pour afficher le contenu personnalisé */}
-      <ContentModal
-        isOpen={contentModalOpen}
-        onClose={() => setContentModalOpen(false)}
-        content={modalContent}
-        title="Contenu personnalisé"
-        allowEdit={true}
-        enableProfessionalEditor={true}
-      />
+      {contentModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900">Contenu personnalisé</h3>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsEditingContent(!isEditingContent)}
+                  className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors"
+                >
+                  {isEditingContent ? 'Voir' : 'Modifier'}
+                </button>
+                <button
+                  onClick={() => {
+                    setContentModalOpen(false);
+                    setIsEditingContent(false);
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              {isEditingContent ? (
+                <RichTextEditor
+                  value={modalContent}
+                  onChange={setModalContent}
+                  placeholder="Modifiez votre contenu personnalisé..."
+                  rows={8}
+                  className="w-full"
+                />
+              ) : (
+                <div className="prose max-w-none">
+                  <RichContentDisplay content={modalContent} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

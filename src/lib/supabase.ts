@@ -1563,8 +1563,34 @@ export const getLinkPurchaseRequests = async (filters?: {
     const { data, error } = await query;
     if (error) throw error;
     
+    // Pour les demandes avec des nouveaux articles, enrichir les données manquantes
+    const enrichedData = await Promise.all((data || []).map(async (request) => {
+      // Si link_listing est null mais qu'on a un link_listing_id, 
+      // c'est probablement un nouveau article (website_id)
+      if (!request.link_listing && request.link_listing_id) {
+        try {
+          const { data: website } = await supabase
+            .from('websites')
+            .select('*')
+            .eq('id', request.link_listing_id)
+            .single();
+          
+          if (website) {
+            request.link_listing = {
+              id: request.link_listing_id,
+              title: `Nouvel article - ${website.name}`,
+              website: website
+            } as any;
+          }
+        } catch (websiteError) {
+          console.warn('Could not fetch website for virtual article:', websiteError);
+        }
+      }
+      return request;
+    }));
+    
     return {
-      data: data || [],
+      data: enrichedData,
       total,
       totalPages
     };

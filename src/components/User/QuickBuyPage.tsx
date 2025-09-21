@@ -386,6 +386,9 @@ const QuickBuyPage: React.FC = () => {
           publisher_id: publisherId,
           target_url: item.targetUrl,
           anchor_text: item.anchorText,
+          message: item.customContent || '',
+          custom_content: item.customContent,
+          content_option: item.contentOption,
           proposed_price: (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity,
           proposed_duration: 1
         });
