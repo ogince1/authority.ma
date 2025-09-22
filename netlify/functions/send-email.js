@@ -248,6 +248,358 @@ exports.handler = async (event, context) => {
 </body>
 </html>`
       },
+      
+      // ===== AUTHENTIFICATION & SÉCURITÉ =====
+      'PASSWORD_RESET': {
+        subject: '🔒 Réinitialisation de votre mot de passe Back.ma',
+        htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Réinitialisation Mot de Passe</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }
+    .logo { font-size: 32px; font-weight: 700; margin-bottom: 10px; }
+    .header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+    .content { padding: 40px 30px; }
+    .security-icon { text-align: center; margin-bottom: 30px; }
+    .security-icon .icon { display: inline-block; background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; width: 80px; height: 80px; border-radius: 50%; line-height: 80px; font-size: 36px; margin-bottom: 20px; }
+    .greeting { font-size: 24px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; text-align: center; }
+    .reset-section { background: #fff3e0; padding: 25px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #ff9800; }
+    .reset-section h3 { margin: 0 0 15px 0; color: #e65100; font-size: 18px; }
+    .cta-section { text-align: center; margin: 35px 0; }
+    .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 10px; transition: transform 0.2s ease; }
+    .button:hover { transform: translateY(-2px); }
+    .warning-section { background: #ffebee; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #f44336; }
+    .warning-section h4 { margin: 0 0 10px 0; color: #c62828; font-size: 16px; }
+    .footer { background: #2c3e50; color: white; padding: 30px; text-align: center; }
+    .footer .logo { font-size: 24px; margin-bottom: 15px; }
+    .footer p { margin: 5px 0; opacity: 0.8; font-size: 14px; }
+    @media (max-width: 600px) {
+      .container { margin: 10px; }
+      .header, .content, .footer { padding: 20px; }
+      .header h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">BACK.MA</div>
+      <h1>🔒 Réinitialisation de Mot de Passe</h1>
+    </div>
+    
+    <div class="content">
+      <div class="security-icon">
+        <div class="icon">🔑</div>
+      </div>
+      
+      <div class="greeting">Bonjour {{user_name}} !</div>
+      
+      <p style="text-align: center; font-size: 18px; color: #555; margin-bottom: 30px;">
+        Nous avons reçu une demande de réinitialisation de votre mot de passe Back.ma.
+      </p>
+      
+      <div class="reset-section">
+        <h3>🔐 Réinitialiser votre mot de passe</h3>
+        <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe sécurisé :</p>
+        <div class="cta-section">
+          <a href="{{reset_url}}" class="button">Réinitialiser mon mot de passe</a>
+        </div>
+        <p style="font-size: 14px; color: #666; margin-top: 15px;">
+          Ce lien expirera dans {{expires_in}} pour votre sécurité.
+        </p>
+      </div>
+      
+      <div class="warning-section">
+        <h4>⚠️ Important</h4>
+        <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email. Votre mot de passe restera inchangé.</p>
+        <p>Pour toute question, contactez-nous à {{support_email}}</p>
+      </div>
+      
+      <p style="text-align: center; color: #666; font-size: 14px; margin-top: 30px;">
+        Cet email a été envoyé automatiquement pour votre sécurité.
+      </p>
+    </div>
+    
+    <div class="footer">
+      <div class="logo">BACK.MA</div>
+      <p><strong>Back.ma</strong> - Votre partenaire SEO de confiance</p>
+      <p>Plateforme de liens de qualité pour améliorer votre référencement</p>
+    </div>
+  </div>
+</body>
+</html>`
+      },
+      
+      'EMAIL_VERIFICATION': {
+        subject: '✅ Vérifiez votre adresse email - Back.ma',
+        htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Vérification Email</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 40px 30px; text-align: center; }
+    .logo { font-size: 32px; font-weight: 700; margin-bottom: 10px; }
+    .header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+    .content { padding: 40px 30px; }
+    .verification-icon { text-align: center; margin-bottom: 30px; }
+    .verification-icon .icon { display: inline-block; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; width: 80px; height: 80px; border-radius: 50%; line-height: 80px; font-size: 36px; margin-bottom: 20px; }
+    .greeting { font-size: 24px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; text-align: center; }
+    .verify-section { background: #e8f5e8; padding: 25px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #4CAF50; }
+    .verify-section h3 { margin: 0 0 15px 0; color: #2e7d32; font-size: 18px; }
+    .cta-section { text-align: center; margin: 35px 0; }
+    .button { display: inline-block; background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 10px; transition: transform 0.2s ease; }
+    .button:hover { transform: translateY(-2px); }
+    .info-section { background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #2196f3; }
+    .info-section h4 { margin: 0 0 10px 0; color: #1976d2; font-size: 16px; }
+    .footer { background: #2c3e50; color: white; padding: 30px; text-align: center; }
+    .footer .logo { font-size: 24px; margin-bottom: 15px; }
+    .footer p { margin: 5px 0; opacity: 0.8; font-size: 14px; }
+    @media (max-width: 600px) {
+      .container { margin: 10px; }
+      .header, .content, .footer { padding: 20px; }
+      .header h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">BACK.MA</div>
+      <h1>✅ Vérification Email</h1>
+    </div>
+    
+    <div class="content">
+      <div class="verification-icon">
+        <div class="icon">✉️</div>
+      </div>
+      
+      <div class="greeting">Bienvenue {{user_name}} !</div>
+      
+      <p style="text-align: center; font-size: 18px; color: #555; margin-bottom: 30px;">
+        Merci de vous être inscrit sur Back.ma ! Vérifiez votre adresse email pour activer votre compte.
+      </p>
+      
+      <div class="verify-section">
+        <h3>📧 Vérifiez votre adresse email</h3>
+        <p>Cliquez sur le bouton ci-dessous pour confirmer votre adresse email et activer votre compte :</p>
+        <div class="cta-section">
+          <a href="{{verification_url}}" class="button">Vérifier mon email</a>
+        </div>
+        <p style="font-size: 14px; color: #666; margin-top: 15px;">
+          Ce lien expirera dans {{expires_in}} pour votre sécurité.
+        </p>
+      </div>
+      
+      <div class="info-section">
+        <h4>💡 Après vérification</h4>
+        <p>Une fois votre email vérifié, vous pourrez :</p>
+        <p>• Accéder à votre tableau de bord</p>
+        <p>• Acheter des liens de qualité</p>
+        <p>• Suivre vos performances SEO</p>
+      </div>
+      
+      <p style="text-align: center; color: #666; font-size: 14px; margin-top: 30px;">
+        Si vous n'avez pas créé de compte, ignorez cet email.
+      </p>
+    </div>
+    
+    <div class="footer">
+      <div class="logo">BACK.MA</div>
+      <p><strong>Back.ma</strong> - Votre partenaire SEO de confiance</p>
+      <p>Plateforme de liens de qualité pour améliorer votre référencement</p>
+    </div>
+  </div>
+</body>
+</html>`
+      },
+      
+      // ===== GESTION DU SOLDE =====
+      'ADVERTISER_LOW_BALANCE': {
+        subject: '⚠️ Solde faible - Rechargez votre compte Back.ma',
+        htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Solde Faible</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 40px 30px; text-align: center; }
+    .logo { font-size: 32px; font-weight: 700; margin-bottom: 10px; }
+    .header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+    .content { padding: 40px 30px; }
+    .warning-icon { text-align: center; margin-bottom: 30px; }
+    .warning-icon .icon { display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; width: 80px; height: 80px; border-radius: 50%; line-height: 80px; font-size: 36px; margin-bottom: 20px; }
+    .greeting { font-size: 24px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; text-align: center; }
+    .balance-section { background: #fff3e0; padding: 25px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #ff9800; }
+    .balance-section h3 { margin: 0 0 15px 0; color: #e65100; font-size: 18px; }
+    .balance-amount { font-size: 36px; font-weight: 700; color: #e65100; text-align: center; margin: 20px 0; }
+    .cta-section { text-align: center; margin: 35px 0; }
+    .button { display: inline-block; background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 10px; transition: transform 0.2s ease; }
+    .button:hover { transform: translateY(-2px); }
+    .info-section { background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #2196f3; }
+    .info-section h4 { margin: 0 0 10px 0; color: #1976d2; font-size: 16px; }
+    .footer { background: #2c3e50; color: white; padding: 30px; text-align: center; }
+    .footer .logo { font-size: 24px; margin-bottom: 15px; }
+    .footer p { margin: 5px 0; opacity: 0.8; font-size: 14px; }
+    @media (max-width: 600px) {
+      .container { margin: 10px; }
+      .header, .content, .footer { padding: 20px; }
+      .header h1 { font-size: 24px; }
+      .balance-amount { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">BACK.MA</div>
+      <h1>⚠️ Solde Faible</h1>
+    </div>
+    
+    <div class="content">
+      <div class="warning-icon">
+        <div class="icon">💰</div>
+      </div>
+      
+      <div class="greeting">Bonjour {{user_name}} !</div>
+      
+      <p style="text-align: center; font-size: 18px; color: #555; margin-bottom: 30px;">
+        Votre solde Back.ma est faible. Rechargez votre compte pour continuer vos achats de liens.
+      </p>
+      
+      <div class="balance-section">
+        <h3>💰 Votre solde actuel</h3>
+        <div class="balance-amount">{{current_balance}} MAD</div>
+        <p style="text-align: center; color: #666;">
+          Solde minimum recommandé : {{minimum_balance}} MAD
+        </p>
+      </div>
+      
+      <div class="cta-section">
+        <a href="{{top_up_url}}" class="button">Recharger mon compte</a>
+      </div>
+      
+      <div class="info-section">
+        <h4>💡 Pourquoi recharger maintenant ?</h4>
+        <p>• Continuer vos achats de liens de qualité</p>
+        <p>• Profiter des meilleures opportunités SEO</p>
+        <p>• Éviter les interruptions dans vos campagnes</p>
+        <p>• Maintenir vos positions de référencement</p>
+      </div>
+      
+      <p style="text-align: center; color: #666; font-size: 14px; margin-top: 30px;">
+        Rechargez dès maintenant pour ne pas manquer les meilleures opportunités !
+      </p>
+    </div>
+    
+    <div class="footer">
+      <div class="logo">BACK.MA</div>
+      <p><strong>Back.ma</strong> - Votre partenaire SEO de confiance</p>
+      <p>Plateforme de liens de qualité pour améliorer votre référencement</p>
+    </div>
+  </div>
+</body>
+</html>`
+      },
+      
+      'ADVERTISER_BALANCE_EMPTY': {
+        subject: '🚨 Solde à zéro - Rechargez immédiatement votre compte Back.ma',
+        htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Solde à Zéro</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f8f9fa; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .header { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; padding: 40px 30px; text-align: center; }
+    .logo { font-size: 32px; font-weight: 700; margin-bottom: 10px; }
+    .header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+    .content { padding: 40px 30px; }
+    .alert-icon { text-align: center; margin-bottom: 30px; }
+    .alert-icon .icon { display: inline-block; background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; width: 80px; height: 80px; border-radius: 50%; line-height: 80px; font-size: 36px; margin-bottom: 20px; }
+    .greeting { font-size: 24px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; text-align: center; }
+    .empty-section { background: #ffebee; padding: 25px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #f44336; }
+    .empty-section h3 { margin: 0 0 15px 0; color: #c62828; font-size: 18px; }
+    .zero-amount { font-size: 48px; font-weight: 700; color: #f44336; text-align: center; margin: 20px 0; }
+    .cta-section { text-align: center; margin: 35px 0; }
+    .button { display: inline-block; background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; margin: 10px; transition: transform 0.2s ease; }
+    .button:hover { transform: translateY(-2px); }
+    .urgent-section { background: #fff3e0; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #ff9800; }
+    .urgent-section h4 { margin: 0 0 10px 0; color: #e65100; font-size: 16px; }
+    .footer { background: #2c3e50; color: white; padding: 30px; text-align: center; }
+    .footer .logo { font-size: 24px; margin-bottom: 15px; }
+    .footer p { margin: 5px 0; opacity: 0.8; font-size: 14px; }
+    @media (max-width: 600px) {
+      .container { margin: 10px; }
+      .header, .content, .footer { padding: 20px; }
+      .header h1 { font-size: 24px; }
+      .zero-amount { font-size: 36px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">BACK.MA</div>
+      <h1>🚨 Solde à Zéro</h1>
+    </div>
+    
+    <div class="content">
+      <div class="alert-icon">
+        <div class="icon">💳</div>
+      </div>
+      
+      <div class="greeting">Bonjour {{user_name}} !</div>
+      
+      <p style="text-align: center; font-size: 18px; color: #555; margin-bottom: 30px;">
+        ⚠️ Votre solde Back.ma est maintenant à zéro. Rechargez immédiatement pour continuer vos achats.
+      </p>
+      
+      <div class="empty-section">
+        <h3>💳 Votre solde</h3>
+        <div class="zero-amount">0 MAD</div>
+        <p style="text-align: center; color: #666;">
+          Dernière transaction : {{last_transaction_date}}
+        </p>
+      </div>
+      
+      <div class="cta-section">
+        <a href="{{top_up_url}}" class="button">Recharger maintenant</a>
+      </div>
+      
+      <div class="urgent-section">
+        <h4>🚨 Action requise</h4>
+        <p>Votre compte est maintenant vide. Pour continuer à :</p>
+        <p>• Acheter des liens de qualité</p>
+        <p>• Maintenir vos campagnes SEO</p>
+        <p>• Profiter des nouvelles opportunités</p>
+        <p><strong>Rechargez votre compte dès maintenant !</strong></p>
+      </div>
+      
+      <p style="text-align: center; color: #666; font-size: 14px; margin-top: 30px;">
+        Ne manquez pas les meilleures opportunités de référencement !
+      </p>
+    </div>
+    
+    <div class="footer">
+      <div class="logo">BACK.MA</div>
+      <p><strong>Back.ma</strong> - Votre partenaire SEO de confiance</p>
+      <p>Plateforme de liens de qualité pour améliorer votre référencement</p>
+    </div>
+  </div>
+</body>
+</html>`
+      },
+      
       'ADVERTISER_BALANCE_ADDED': {
         subject: '💰 Votre solde a été rechargé de {{amount}} MAD !',
         htmlContent: `<!DOCTYPE html>
