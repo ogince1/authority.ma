@@ -446,11 +446,16 @@ class EmailServiceClient {
   public async sendEmail(data: EmailData): Promise<boolean> {
     const success = await this.sendViaBrevoAPI(data);
     
-    if (success) {
-      // Log email history
-      await this.logEmailHistory(data.to, data.subject, 'custom', 'sent', data.tags);
-    } else {
-      await this.logEmailHistory(data.to, data.subject, 'custom', 'failed', data.tags, 'Failed to send via Brevo API');
+    // Log email history (optionnel, ne pas bloquer si ça échoue)
+    try {
+      if (success) {
+        await this.logEmailHistory(data.to, data.subject, 'custom', 'sent', data.tags);
+      } else {
+        await this.logEmailHistory(data.to, data.subject, 'custom', 'failed', data.tags, 'Failed to send via Brevo API');
+      }
+    } catch (error) {
+      console.warn('Could not log email history:', error);
+      // Ne pas bloquer l'envoi d'email si le logging échoue
     }
     
     return success;
