@@ -366,13 +366,11 @@ const CartPage: React.FC = () => {
       const newBalance = await getUserBalance(user.id);
       setBalance(newBalance);
       
-      // Vider le panier et nettoyer les données de campagne
-      setCartItems([]);
-      localStorage.removeItem('cart');
-      localStorage.removeItem('quick-buy-cart');
-      localStorage.removeItem('current_campaign_id');
-
-      // Envoyer l'email de confirmation de commande
+      // Sauvegarder les données avant de vider le panier
+      const cartItemsCount = cartItems.length;
+      const finalTotal = total;
+      
+      // Envoyer l'email de confirmation de commande AVANT de vider le panier
       try {
         // Import dynamique avec gestion d'erreur améliorée
           const emailModule = await import('../../utils/emailServiceClient');
@@ -384,8 +382,8 @@ const CartPage: React.FC = () => {
           {
             user_name: user.user_metadata?.name || user.email,
             order_id: `CART-${Date.now()}`,
-            total_amount: total,
-            sites_count: cartItems.length,
+            total_amount: finalTotal,
+            sites_count: cartItemsCount,
             dashboard_url: `${window.location.origin}/dashboard`
           },
           ['order_placed', 'advertiser', 'confirmation']
@@ -394,6 +392,12 @@ const CartPage: React.FC = () => {
         console.error('Erreur envoi email commande:', emailError);
         // Ne pas bloquer le processus si l'email échoue
       }
+      
+      // Vider le panier et nettoyer les données de campagne APRÈS l'envoi de l'email
+      setCartItems([]);
+      localStorage.removeItem('cart');
+      localStorage.removeItem('quick-buy-cart');
+      localStorage.removeItem('current_campaign_id');
 
       toast.success('Achats traités avec succès ! Email de confirmation envoyé.');
       navigate('/dashboard');
