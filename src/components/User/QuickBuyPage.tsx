@@ -408,7 +408,33 @@ const QuickBuyPage: React.FC = () => {
         });
       }
 
-      // Vider le panier
+      // Sauvegarder les données avant de vider le panier
+      const cartItemsCount = cartItems.length;
+      const finalTotal = totalAmount;
+      
+      // Envoyer l'email de confirmation de commande AVANT de vider le panier
+      try {
+        const emailModule = await import('../../utils/emailServiceClient');
+        const { emailServiceClient } = emailModule;
+        
+        await emailServiceClient.sendTemplateEmail(
+          'ADVERTISER_ORDER_PLACED',
+          user.email,
+          {
+            user_name: user.user_metadata?.name || user.email,
+            order_id: `QUICKBUY-${Date.now()}`,
+            total_amount: finalTotal,
+            sites_count: cartItemsCount,
+            dashboard_url: `${window.location.origin}/dashboard`
+          },
+          ['order_placed', 'advertiser', 'quick_buy', 'confirmation']
+        );
+      } catch (emailError) {
+        console.error('Erreur envoi email commande Quick Buy:', emailError);
+        // Ne pas bloquer le processus si l'email échoue
+      }
+
+      // Vider le panier APRÈS l'envoi de l'email
       setCartItems([]);
       localStorage.removeItem('quick-buy-cart');
       localStorage.removeItem('cart');
@@ -417,7 +443,7 @@ const QuickBuyPage: React.FC = () => {
       const newBalance = await getUserBalance(user.id);
       setBalance(newBalance);
 
-      toast.success('Achat rapide effectué avec succès !');
+      toast.success('Achat rapide effectué avec succès ! Email de confirmation envoyé.');
       navigate('/dashboard/purchase-requests');
     } catch (error) {
       console.error('Error processing quick buy:', error);
