@@ -176,6 +176,53 @@ export const EMAIL_TEMPLATES: { [key: string]: EmailTemplate } = {
 </html>`,
     variables: ['user_name', 'site_name', 'request_id', 'proposed_price', 'dashboard_url']
   },
+  EDITOR_SITE_REJECTED: {
+    id: 'editor-site-rejected',
+    name: 'editor-site-rejected',
+    subject: '❌ Votre site {{site_name}} n\'a pas été approuvé',
+    htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Site Rejeté</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+    .rejection-reason { background: #ffebee; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #f44336; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>❌ Site non approuvé</h1>
+    </div>
+    <div class="content">
+      <p>Bonjour {{user_name}},</p>
+      <p>Malheureusement, votre site <strong>{{site_name}}</strong> n'a pas été approuvé pour figurer sur notre plateforme.</p>
+      
+      <div class="rejection-reason">
+        <h3>📋 Raison du rejet :</h3>
+        <p>{{rejection_reason}}</p>
+      </div>
+      
+      <p>Ne vous découragez pas ! Vous pouvez :</p>
+      <ul>
+        <li>✅ Corriger les problèmes mentionnés</li>
+        <li>🔄 Soumettre à nouveau votre site</li>
+        <li>📞 Nous contacter pour plus d'informations</li>
+      </ul>
+      
+      <p><a href="{{dashboard_url}}" class="button">Gérer mes sites</a></p>
+      <p>Notre équipe est là pour vous aider à améliorer votre site !</p>
+    </div>
+  </div>
+</body>
+</html>`,
+    variables: ['user_name', 'site_name', 'rejection_reason', 'dashboard_url']
+  },
   ADVERTISER_ORDER_PLACED: {
     id: 'advertiser-order-placed',
     name: 'advertiser-order-placed',
@@ -376,7 +423,7 @@ class EmailServiceClient {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            template: templateKey || 'ADVERTISER_BALANCE_ADDED',
+            template: templateKey,
             email: data.to,
             variables: variables || {}
           })
