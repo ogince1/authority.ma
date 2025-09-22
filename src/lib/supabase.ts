@@ -63,6 +63,62 @@ export const signOut = async () => {
   }
 };
 
+export const resetPassword = async (email: string) => {
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+
+  if (error) {
+    console.error('Error resetting password:', error);
+    throw error;
+  }
+
+  // Envoyer un email personnalisé de reset de mot de passe
+  try {
+    // Récupérer les infos utilisateur
+    const { data: userData } = await supabase
+      .from('users')
+      .select('name')
+      .eq('email', email)
+      .single();
+
+    const emailModule = await import('../utils/emailServiceClient');
+    const { emailServiceClient } = emailModule;
+    
+    await emailServiceClient.sendTemplateEmail(
+      'PASSWORD_RESET',
+      email,
+      {
+        user_name: userData?.name || email.split('@')[0],
+        reset_url: `${window.location.origin}/reset-password`,
+        expires_in: '24 heures',
+        support_email: 'contact@ogince.ma'
+      },
+      ['password_reset', 'security']
+    );
+    
+    console.log('Email de reset de mot de passe envoyé');
+  } catch (emailError) {
+    console.error('Erreur envoi email reset:', emailError);
+    // Ne pas bloquer le processus si l'email échoue
+  }
+
+  return data;
+};
+
+export const updatePassword = async (newPassword: string) => {
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword
+  });
+
+  if (error) {
+    console.error('Error updating password:', error);
+    throw error;
+  }
+
+  return data;
+};
+
 export const signUpWithEmail = async (email: string, password: string, name?: string, role: UserRole = 'advertiser') => {
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -78,6 +134,30 @@ export const signUpWithEmail = async (email: string, password: string, name?: st
   if (error) {
     console.error('Error signing up:', error);
     throw error;
+  }
+
+  // Envoyer un email de vérification personnalisé
+  if (data.user && !data.user.email_confirmed_at) {
+    try {
+      const emailModule = await import('../utils/emailServiceClient');
+      const { emailServiceClient } = emailModule;
+      
+      await emailServiceClient.sendTemplateEmail(
+        'EMAIL_VERIFICATION',
+        email,
+        {
+          user_name: name || email.split('@')[0],
+          verification_url: `${window.location.origin}/verify-email`,
+          expires_in: '48 heures'
+        },
+        ['email_verification', 'account_activation']
+      );
+      
+      console.log('Email de vérification envoyé');
+    } catch (emailError) {
+      console.error('Erreur envoi email vérification:', emailError);
+      // Ne pas bloquer l'inscription si l'email échoue
+    }
   }
 
   console.log('User signup successful, profile will be created by trigger');
