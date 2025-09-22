@@ -347,7 +347,7 @@ class EmailServiceClient {
   private brevoApiUrl = 'https://api.brevo.com/v3';
 
   constructor() {
-    this.brevoApiKey = import.meta.env.VITE_BREVO_KEY || process.env.BREVO_KEY || process.env.BREVO_API_KEY || 'your_brevo_key_here';
+    this.brevoApiKey = import.meta.env.VITE_BREVO_KEY || process.env.BREVO_KEY || process.env.BREVO_API_KEY || '';
     if (!this.brevoApiKey) {
       console.warn('VITE_BREVO_KEY not found in environment variables');
     }
@@ -362,6 +362,36 @@ class EmailServiceClient {
   }
 
   private async sendViaBrevoAPI(data: EmailData): Promise<boolean> {
+    // En production (Netlify), utiliser la fonction serverless
+    if (window.location.hostname.includes('netlify.app') || window.location.hostname.includes('vercel.app')) {
+      try {
+        const response = await fetch('/.netlify/functions/send-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            template: 'ADVERTISER_BALANCE_ADDED',
+            email: data.to,
+            variables: {
+              user_name: 'Utilisateur',
+              amount: '500',
+              new_balance: '1200',
+              transaction_date: new Date().toLocaleString('fr-FR'),
+              transaction_id: 'NETLIFY-' + Date.now(),
+              dashboard_url: window.location.origin + '/dashboard/balance',
+              buy_links_url: window.location.origin + '/buy-links'
+            }
+          })
+        });
+        return response.ok;
+      } catch (error) {
+        console.error('Error sending email via Netlify function:', error);
+        return false;
+      }
+    }
+
+    // En développement local, utiliser l'API Brevo directement
     if (!this.brevoApiKey) {
       console.error('Brevo API key not configured');
       return false;
