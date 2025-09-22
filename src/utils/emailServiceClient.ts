@@ -347,9 +347,9 @@ class EmailServiceClient {
   private brevoApiUrl = 'https://api.brevo.com/v3';
 
   constructor() {
-    this.brevoApiKey = import.meta.env.VITE_BREVO_API_KEY || '';
+    this.brevoApiKey = import.meta.env.VITE_BREVO_KEY || process.env.BREVO_KEY || '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';
     if (!this.brevoApiKey) {
-      console.warn('VITE_BREVO_API_KEY not found in environment variables');
+      console.warn('VITE_BREVO_KEY not found in environment variables');
     }
   }
 
