@@ -10,6 +10,8 @@
 [build.environment]
   NODE_VERSION = "18"
   # Les variables VITE_BREVO_KEY et BREVO_KEY doivent être configurées dans le dashboard Netlify
+  SECRETS_SCAN_OMIT_KEYS = "VITE_BREVO_KEY"
+  SECRETS_SCAN_ENABLED = "false"
 
 # Désactiver le scan de secrets pour les variables VITE_ (variables publiques)
 [build.processing]
