@@ -118,6 +118,30 @@ const PublisherDashboard: React.FC = () => {
         if (!result.success) {
           throw new Error(result.error || 'Erreur lors de l\'acceptation');
         }
+
+        // Envoyer un email de confirmation à l'annonceur
+        try {
+          const emailModule = await import('../../utils/emailServiceClient');
+          const { emailServiceClient } = emailModule;
+          
+          await emailServiceClient.sendTemplateEmail(
+            'ADVERTISER_ORDER_ACCEPTED',
+            request.user_email || '',
+            {
+              user_name: request.user_name || 'Utilisateur',
+              order_id: request.id,
+              sites_count: 1,
+              total_amount: request.proposed_price || 0,
+              dashboard_url: `${window.location.origin}/dashboard/orders`
+            },
+            ['order_accepted', 'advertiser', 'confirmation']
+          );
+          
+          console.log('Email de commande acceptée envoyé');
+        } catch (emailError) {
+          console.error('Erreur envoi email commande acceptée:', emailError);
+          // Ne pas bloquer le processus si l'email échoue
+        }
       } else {
         // Rejeter avec une réponse
         await updateLinkPurchaseRequestStatus(
@@ -125,6 +149,30 @@ const PublisherDashboard: React.FC = () => {
           'rejected', 
           responseText || 'Demande rejetée'
         );
+
+        // Envoyer un email de rejet à l'annonceur
+        try {
+          const emailModule = await import('../../utils/emailServiceClient');
+          const { emailServiceClient } = emailModule;
+          
+          await emailServiceClient.sendTemplateEmail(
+            'ADVERTISER_ORDER_REJECTED',
+            request.user_email || '',
+            {
+              user_name: request.user_name || 'Utilisateur',
+              order_id: request.id,
+              rejection_reason: responseText || 'Demande rejetée par l\'éditeur',
+              refund_amount: request.proposed_price || 0,
+              dashboard_url: `${window.location.origin}/dashboard/orders`
+            },
+            ['order_rejected', 'advertiser', 'notification']
+          );
+          
+          console.log('Email de commande rejetée envoyé');
+        } catch (emailError) {
+          console.error('Erreur envoi email commande rejetée:', emailError);
+          // Ne pas bloquer le processus si l'email échoue
+        }
       }
 
       // Recharger les données

@@ -29,7 +29,8 @@ import {
   confirmLinkPlacement,
   getConversationMessages,
   sendMessage,
-  markConversationAsRead
+  markConversationAsRead,
+  getPurchaseRequestDetails
 } from '../../lib/supabase';
 import { trackPageView } from '../../utils/analytics';
 import Favicon from '../Common/Favicon';
@@ -298,8 +299,37 @@ const AdvertiserRequests: React.FC = () => {
       setConfirmingRequestId(requestId);
       console.log(`🔒 [FRONTEND] Début de confirmation pour la demande: ${requestId.slice(0, 8)}...`);
       
+      // Récupérer les détails de la demande avant confirmation
+      const requestDetails = await getPurchaseRequestDetails(requestId);
+      
       const result = await confirmLinkPlacement(requestId);
       if (result.success) {
+        // Envoyer un email de commande terminée à l'annonceur
+        try {
+          const emailModule = await import('../../utils/emailServiceClient');
+          const { emailServiceClient } = emailModule;
+          
+          await emailServiceClient.sendTemplateEmail(
+            'ADVERTISER_ORDER_COMPLETED',
+            currentUser?.email || '',
+            {
+              user_name: currentUser?.user_metadata?.name || currentUser?.email || 'Utilisateur',
+              order_id: requestId,
+              links_placed: 1,
+              total_amount: requestDetails?.proposed_price || 0,
+              completion_date: new Date().toLocaleString('fr-FR'),
+              report_url: `${window.location.origin}/dashboard/reports/${requestId}`,
+              dashboard_url: `${window.location.origin}/dashboard/orders`
+            },
+            ['order_completed', 'advertiser', 'success']
+          );
+          
+          console.log('Email de commande terminée envoyé');
+        } catch (emailError) {
+          console.error('Erreur envoi email commande terminée:', emailError);
+          // Ne pas bloquer le processus si l'email échoue
+        }
+        
         toast.success('Lien confirmé avec succès ! Le paiement a été effectué.');
         loadRequests(); // Recharger la liste
       } else {
