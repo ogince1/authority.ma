@@ -347,9 +347,14 @@ class EmailServiceClient {
   private brevoApiUrl = 'https://api.brevo.com/v3';
 
   constructor() {
-    this.brevoApiKey = import.meta.env.VITE_BREVO_KEY || process.env.BREVO_KEY || process.env.BREVO_API_KEY || '';
-    if (!this.brevoApiKey) {
-      console.warn('VITE_BREVO_KEY not found in environment variables');
+    // En production, toujours utiliser les fonctions serverless
+    // En développement, utiliser la clé locale si disponible
+    this.brevoApiKey = window.location.hostname.includes('localhost') 
+      ? (import.meta.env.VITE_BREVO_KEY || '') 
+      : '';
+    
+    if (!this.brevoApiKey && window.location.hostname.includes('localhost')) {
+      console.warn('VITE_BREVO_KEY not found for local development');
     }
   }
 

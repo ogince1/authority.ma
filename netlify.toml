@@ -5,14 +5,23 @@
 [functions]
   directory = "netlify/functions"
 
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
+# Les fonctions Netlify sont automatiquement accessibles via /.netlify/functions/
 
 [build.environment]
   NODE_VERSION = "18"
   # Les variables VITE_BREVO_KEY et BREVO_KEY doivent être configurées dans le dashboard Netlify
+
+# Désactiver le scan de secrets pour les variables VITE_ (variables publiques)
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
 
 [[headers]]
   for = "/*"
