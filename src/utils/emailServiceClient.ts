@@ -367,8 +367,8 @@ class EmailServiceClient {
   }
 
   private async sendViaBrevoAPI(data: EmailData): Promise<boolean> {
-    // En production (Netlify), utiliser la fonction serverless
-    if (window.location.hostname.includes('netlify.app') || window.location.hostname.includes('vercel.app')) {
+    // Toujours utiliser les fonctions serverless en production (Netlify/Vercel)
+    if (!window.location.hostname.includes('localhost')) {
       try {
         const response = await fetch('/.netlify/functions/send-email', {
           method: 'POST',
@@ -389,16 +389,25 @@ class EmailServiceClient {
             }
           })
         });
-        return response.ok;
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Email sent via Netlify function:', result);
+          return true;
+        } else {
+          const error = await response.json();
+          console.error('Netlify function error:', error);
+          return false;
+        }
       } catch (error) {
         console.error('Error sending email via Netlify function:', error);
         return false;
       }
     }
 
-    // En développement local, utiliser l'API Brevo directement
+    // En développement local seulement, utiliser l'API Brevo directement
     if (!this.brevoApiKey) {
-      console.error('Brevo API key not configured');
+      console.error('Brevo API key not configured for local development');
       return false;
     }
 
