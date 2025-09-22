@@ -22,8 +22,188 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Templates d'email
+    // Templates d'email complets
     const emailTemplates = {
+      'ADVERTISER_WELCOME': {
+        subject: 'Bienvenue sur Back.ma - Boostez votre SEO ! 🎯',
+        htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bienvenue</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎯 Bienvenue {{user_name}} !</h1>
+    </div>
+    <div class="content">
+      <p>Votre compte annonceur est maintenant actif sur Back.ma !</p>
+      <p>Vous pouvez maintenant :</p>
+      <ul>
+        <li>✅ Acheter des liens de qualité pour améliorer votre SEO</li>
+        <li>📊 Suivre vos performances en temps réel</li>
+        <li>🎯 Cibler les sites les plus pertinents pour votre secteur</li>
+      </ul>
+      <p><a href="{{dashboard_url}}" class="button">Accéder à mon tableau de bord</a></p>
+      <p>Besoin d'aide ? Notre équipe est là pour vous accompagner !</p>
+    </div>
+  </div>
+</body>
+</html>`
+      },
+      'EDITOR_WELCOME': {
+        subject: 'Bienvenue sur Back.ma - Votre compte éditeur est prêt ! 🚀',
+        htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bienvenue</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 Bienvenue {{user_name}} !</h1>
+    </div>
+    <div class="content">
+      <p>Votre compte éditeur est maintenant actif sur Back.ma !</p>
+      <p>Vous pouvez maintenant :</p>
+      <ul>
+        <li>📝 Lister vos sites web et articles</li>
+        <li>💰 Recevoir des demandes de liens et générer des revenus</li>
+        <li>📊 Suivre vos performances et revenus</li>
+      </ul>
+      <p><a href="{{dashboard_url}}" class="button">Accéder à mon tableau de bord</a></p>
+      <p>Commencez par ajouter vos premiers sites !</p>
+    </div>
+  </div>
+</body>
+</html>`
+      },
+      'EDITOR_SITE_APPROVED': {
+        subject: '✅ Votre site {{site_name}} a été approuvé !',
+        htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Site Approuvé</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎉 Félicitations {{user_name}} !</h1>
+    </div>
+    <div class="content">
+      <p>Votre site <strong>{{site_name}}</strong> ({{site_url}}) a été approuvé et est maintenant visible sur la plateforme !</p>
+      <p>Vous pouvez maintenant :</p>
+      <ul>
+        <li>📝 Ajouter des annonces de liens pour ce site</li>
+        <li>💰 Recevoir des demandes d'achat</li>
+        <li>📊 Suivre vos revenus</li>
+      </ul>
+      <p><a href="{{dashboard_url}}" class="button">Gérer mes sites</a></p>
+    </div>
+  </div>
+</body>
+</html>`
+      },
+      'EDITOR_NEW_REQUEST': {
+        subject: '🔔 Nouvelle demande de lien reçue pour {{site_name}} !',
+        htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Nouvelle Demande</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #FF9800; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+    .request-details { background: white; padding: 20px; border-radius: 5px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔔 Nouvelle demande reçue !</h1>
+    </div>
+    <div class="content">
+      <p>Bonjour {{user_name}},</p>
+      <p>Vous avez reçu une nouvelle demande de lien pour votre site <strong>{{site_name}}</strong>.</p>
+      <div class="request-details">
+        <h3>📋 Détails de la demande :</h3>
+        <ul>
+          <li><strong>ID de la demande :</strong> {{request_id}}</li>
+          <li><strong>Prix proposé :</strong> {{proposed_price}} MAD</li>
+        </ul>
+      </div>
+      <p><a href="{{dashboard_url}}" class="button">Voir la demande</a></p>
+      <p>Répondez rapidement pour maximiser vos chances de conclure !</p>
+    </div>
+  </div>
+</body>
+</html>`
+      },
+      'ADVERTISER_ORDER_PLACED': {
+        subject: '📝 Votre commande #{{order_id}} a été enregistrée !',
+        htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Commande Enregistrée</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+    .order-details { background: white; padding: 20px; border-radius: 5px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📝 Commande enregistrée !</h1>
+    </div>
+    <div class="content">
+      <p>Merci {{user_name}} !</p>
+      <p>Votre commande <strong>#{{order_id}}</strong> a été enregistrée avec succès.</p>
+      <div class="order-details">
+        <h3>📋 Détails de la commande :</h3>
+        <ul>
+          <li><strong>Montant total :</strong> {{total_amount}} MAD</li>
+          <li><strong>Nombre de sites :</strong> {{sites_count}}</li>
+        </ul>
+      </div>
+      <p><a href="{{dashboard_url}}" class="button">Suivre ma commande</a></p>
+      <p>Nos éditeurs vont maintenant traiter votre demande. Vous recevrez des mises à jour par email.</p>
+    </div>
+  </div>
+</body>
+</html>`
+      },
       'ADVERTISER_BALANCE_ADDED': {
         subject: '💰 Votre solde a été rechargé de {{amount}} MAD !',
         htmlContent: `<!DOCTYPE html>

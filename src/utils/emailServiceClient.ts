@@ -366,7 +366,7 @@ class EmailServiceClient {
     return result;
   }
 
-  private async sendViaBrevoAPI(data: EmailData): Promise<boolean> {
+  private async sendViaBrevoAPI(data: EmailData, templateKey?: string, variables?: { [key: string]: string | number }): Promise<boolean> {
     // Toujours utiliser les fonctions serverless en production (Netlify/Vercel)
     if (!window.location.hostname.includes('localhost')) {
       try {
@@ -376,17 +376,9 @@ class EmailServiceClient {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            template: 'ADVERTISER_BALANCE_ADDED',
+            template: templateKey || 'ADVERTISER_BALANCE_ADDED',
             email: data.to,
-            variables: {
-              user_name: 'Utilisateur',
-              amount: '500',
-              new_balance: '1200',
-              transaction_date: new Date().toLocaleString('fr-FR'),
-              transaction_id: 'NETLIFY-' + Date.now(),
-              dashboard_url: window.location.origin + '/dashboard/balance',
-              buy_links_url: window.location.origin + '/buy-links'
-            }
+            variables: variables || {}
           })
         });
         
@@ -443,8 +435,8 @@ class EmailServiceClient {
     }
   }
 
-  public async sendEmail(data: EmailData): Promise<boolean> {
-    const success = await this.sendViaBrevoAPI(data);
+  public async sendEmail(data: EmailData, templateKey?: string, variables?: { [key: string]: string | number }): Promise<boolean> {
+    const success = await this.sendViaBrevoAPI(data, templateKey, variables);
     
     // Log email history (optionnel, ne pas bloquer si ça échoue)
     try {
@@ -484,7 +476,7 @@ class EmailServiceClient {
       tags: tags
     };
 
-    return await this.sendEmail(emailData);
+    return await this.sendEmail(emailData, String(templateKey), variables);
   }
 
   private async logEmailHistory(
