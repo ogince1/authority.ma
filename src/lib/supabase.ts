@@ -1439,9 +1439,9 @@ export const createCreditTransaction = async (transactionData: CreateCreditTrans
     let newBalance = currentBalance;
 
     // Calculer le nouveau solde selon le type de transaction
-    if (transactionData.type === 'deposit' || transactionData.type === 'refund') {
+    if (transactionData.type === 'deposit' || transactionData.type === 'refund' || transactionData.type === 'commission') {
       newBalance = currentBalance + transactionData.amount;
-    } else if (transactionData.type === 'withdrawal' || transactionData.type === 'purchase' || transactionData.type === 'commission') {
+    } else if (transactionData.type === 'withdrawal' || transactionData.type === 'purchase') {
       newBalance = currentBalance - transactionData.amount;
       
       // Vérifier que le solde ne devient pas négatif
