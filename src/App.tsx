@@ -27,6 +27,8 @@ import CreateDisputeForm from './components/User/CreateDisputeForm';
 import DisputeDetail from './components/User/DisputeDetail';
 import DisputeMessages from './components/User/DisputeMessages';
 import ErrorBoundary from './components/ErrorBoundary';
+import BrevoChatWidget from './components/Chat/BrevoChatWidget';
+import GoogleTagManager from './components/Analytics/GoogleTagManager';
 import { startCronJobs } from './utils/cronJobs';
 
 function App() {
@@ -124,6 +126,8 @@ function App() {
             <Route path="/project/:slug" element={<HomePage />} />
           </Routes>
             <Toaster position="top-right" />
+            <GoogleTagManager />
+            <BrevoChatWidget />
           </div>
         </Router>
       </ErrorBoundary>
