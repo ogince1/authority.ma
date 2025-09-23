@@ -1848,11 +1848,11 @@ export const acceptPurchaseRequest = async (requestId: string): Promise<{ succes
       throw new Error('Cette demande a déjà été traitée');
     }
 
-    // Mettre à jour le statut à 'pending_confirmation'
+    // Mettre à jour le statut à 'accepted' (plus de confirmation nécessaire)
     const { error: updateError } = await supabase
       .from('link_purchase_requests')
       .update({
-        status: 'pending_confirmation',
+        status: 'accepted',
         response_date: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -1860,11 +1860,24 @@ export const acceptPurchaseRequest = async (requestId: string): Promise<{ succes
 
     if (updateError) throw updateError;
 
+    // CRÉDIT IMMÉDIAT DE L'ÉDITEUR - Plus besoin d'attendre la confirmation
+    const publisherCommission = request.proposed_price * 0.7; // 70% pour l'éditeur
+    
+    await createCreditTransaction({
+      user_id: request.publisher_id,
+      type: 'commission',
+      amount: publisherCommission,
+      description: `Commission pour lien: ${request.link_listings?.title}`,
+      status: 'completed'
+    });
+
+    console.log(`💰 Éditeur crédité: ${publisherCommission} MAD pour la demande ${requestId}`);
+
     // Créer une notification pour l'annonceur
     await createNotification({
       user_id: request.user_id,
-      type: 'info',
-      message: `Votre demande pour le lien "${request.link_listings?.title}" a été acceptée. Veuillez confirmer le placement.`,
+      type: 'success',
+      message: `Votre demande pour le lien "${request.link_listings?.title}" a été acceptée et le paiement effectué.`,
       action_type: 'link_purchase',
       action_id: requestId
     });
@@ -1879,24 +1892,81 @@ export const acceptPurchaseRequest = async (requestId: string): Promise<{ succes
   }
 };
 
+// ===== ANNULATION DE DEMANDE =====
+
+export const cancelPurchaseRequest = async (requestId: string): Promise<{ success: boolean; error?: string; refund_amount?: number }> => {
+  try {
+    // Récupérer la demande
+    const { data: request, error: requestError } = await supabase
+      .from('link_purchase_requests')
+      .select('*')
+      .eq('id', requestId)
+      .single();
+
+    if (requestError || !request) {
+      throw new Error('Demande non trouvée');
+    }
+
+    // Vérifier que la demande peut être annulée (seulement si pending)
+    if (request.status !== 'pending') {
+      throw new Error('Cette demande ne peut plus être annulée');
+    }
+
+    // Mettre à jour le statut à 'cancelled'
+    const { error: updateError } = await supabase
+      .from('link_purchase_requests')
+      .update({
+        status: 'cancelled',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', requestId);
+
+    if (updateError) throw updateError;
+
+    // REMBOURSEMENT IMMÉDIAT - Rembourser l'annonceur
+    const refundAmount = request.proposed_price;
+    
+    await createCreditTransaction({
+      user_id: request.user_id,
+      type: 'refund',
+      amount: refundAmount,
+      description: `Remboursement pour annulation: ${requestId}`,
+      status: 'completed'
+    });
+
+    console.log(`💰 Remboursement effectué: ${refundAmount} MAD pour l'annulation de la demande ${requestId}`);
+
+    // Créer une notification pour l'annonceur
+    await createNotification({
+      user_id: request.user_id,
+      type: 'info',
+      message: `Votre demande a été annulée et vous avez été remboursé de ${refundAmount} MAD.`,
+      action_type: 'link_purchase',
+      action_id: requestId
+    });
+
+    return { success: true, refund_amount: refundAmount };
+  } catch (error) {
+    console.error('Error cancelling purchase request:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erreur lors de l\'annulation de la demande'
+    };
+  }
+};
+
 // Verrou global pour éviter les appels multiples
 const confirmationLocks = new Set<string>();
 
 export const confirmLinkPlacement = async (
   requestId: string
 ): Promise<{ success: boolean; error?: string; transaction_id?: string }> => {
-  // Vérifier si une confirmation est déjà en cours pour cette demande
-  if (confirmationLocks.has(requestId)) {
-    console.log(`🔒 [CONFIRMATION] Confirmation déjà en cours pour la demande: ${requestId.slice(0, 8)}...`);
-    return { success: false, error: 'Confirmation déjà en cours' };
-  }
-
+  // Cette fonction n'est plus nécessaire avec le nouveau workflow
+  // Le paiement se fait automatiquement lors de l'acceptation
+  console.log(`⚠️  [CONFIRMATION] Fonction obsolète - Le paiement se fait automatiquement lors de l'acceptation`);
+  
   try {
-    // Ajouter le verrou
-    confirmationLocks.add(requestId);
-    console.log(`🔒 [CONFIRMATION] Début de confirmation pour la demande: ${requestId.slice(0, 8)}...`);
-    
-    // Récupérer la demande avec les détails du lien
+    // Récupérer la demande pour vérifier son statut
     const { data: request, error: requestError } = await supabase
       .from('link_purchase_requests')
       .select(`
@@ -1911,9 +1981,14 @@ export const confirmLinkPlacement = async (
       throw new Error('Demande non trouvée');
     }
 
+    if (request.status === 'accepted') {
+      console.log(`✅ [CONFIRMATION] Demande déjà acceptée et payée: ${request.status}`);
+      return { success: true, transaction_id: 'already_processed' };
+    }
+
     if (request.status !== 'pending_confirmation') {
-      console.log(`⚠️  [CONFIRMATION] Demande déjà traitée: ${request.status}`);
-      throw new Error('Cette demande n\'est pas en attente de confirmation');
+      console.log(`⚠️  [CONFIRMATION] Demande dans un état inattendu: ${request.status}`);
+      throw new Error(`Cette demande est dans l'état: ${request.status}`);
     }
 
     // Vérifier que la demande n'a pas expiré (48h)
@@ -2440,11 +2515,29 @@ export const acceptPurchaseRequestWithUrl = async (
   placedUrl: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    // Mettre à jour le statut et l'URL en une seule opération
+    // Récupérer les détails de la demande
+    const { data: request, error: requestError } = await supabase
+      .from('link_purchase_requests')
+      .select(`
+        *,
+        link_listings(title)
+      `)
+      .eq('id', requestId)
+      .single();
+
+    if (requestError || !request) {
+      throw new Error('Demande non trouvée');
+    }
+
+    if (request.status !== 'pending') {
+      throw new Error('Cette demande a déjà été traitée');
+    }
+
+    // Mettre à jour le statut à 'accepted' (plus de confirmation nécessaire)
     const { error: updateError } = await supabase
       .from('link_purchase_requests')
       .update({ 
-        status: 'pending_confirmation',
+        status: 'accepted',
         placed_url: placedUrl,
         placed_at: new Date().toISOString(),
         accepted_at: new Date().toISOString(),
@@ -2456,6 +2549,28 @@ export const acceptPurchaseRequestWithUrl = async (
       console.error('Error accepting request:', updateError);
       return { success: false, error: updateError.message };
     }
+
+    // CRÉDIT IMMÉDIAT DE L'ÉDITEUR - Plus besoin d'attendre la confirmation
+    const publisherCommission = request.proposed_price * 0.7; // 70% pour l'éditeur
+    
+    await createCreditTransaction({
+      user_id: request.publisher_id,
+      type: 'commission',
+      amount: publisherCommission,
+      description: `Commission pour lien: ${request.link_listings?.title}`,
+      status: 'completed'
+    });
+
+    console.log(`💰 Éditeur crédité: ${publisherCommission} MAD pour la demande ${requestId}`);
+
+    // Créer une notification pour l'annonceur
+    await createNotification({
+      user_id: request.user_id,
+      type: 'success',
+      message: `Votre demande pour le lien "${request.link_listings?.title}" a été acceptée et le paiement effectué.`,
+      action_type: 'link_purchase',
+      action_id: requestId
+    });
 
     return { success: true };
   } catch (error) {

@@ -307,6 +307,19 @@ const CartPage: React.FC = () => {
 
           console.log(`Demande d'achat créée pour: ${item.listing.title} - ID: ${purchaseRequest.id}`);
 
+          // DÉBIT IMMÉDIAT - L'annonceur est débité dès la création de la demande
+          const totalPrice = (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity;
+          
+          const transaction = await createCreditTransaction({
+            user_id: user.id,
+            type: 'purchase',
+            amount: totalPrice,
+            description: `Achat de lien: ${item.listing.title}`,
+            status: 'completed'
+          });
+
+          console.log(`Débit immédiat effectué pour: ${item.listing.title} - ${totalPrice} MAD`);
+
           results.push({
             success: true,
             item: item.listing.title,

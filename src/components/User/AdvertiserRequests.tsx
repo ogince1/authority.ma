@@ -30,7 +30,8 @@ import {
   getConversationMessages,
   sendMessage,
   markConversationAsRead,
-  getPurchaseRequestDetails
+  getPurchaseRequestDetails,
+  cancelPurchaseRequest
 } from '../../lib/supabase';
 import { trackPageView } from '../../utils/analytics';
 import Favicon from '../Common/Favicon';
@@ -118,13 +119,8 @@ const AdvertiserRequests: React.FC = () => {
             Acceptée
           </span>
         );
-      case 'pending_confirmation':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-            <Clock className="h-3 w-3 mr-1" />
-            En attente de confirmation
-          </span>
-        );
+      // Le statut 'pending_confirmation' n'existe plus avec le nouveau workflow
+      // Le paiement se fait automatiquement lors de l'acceptation
       case 'rejected':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -149,7 +145,7 @@ const AdvertiserRequests: React.FC = () => {
     setShowModal(true);
   };
 
-  const [confirmingRequestId, setConfirmingRequestId] = React.useState<string | null>(null);
+  // confirmingRequestId n'est plus nécessaire avec le nouveau workflow
 
   // Fonctions pour gérer les messages
   const toggleMessages = async (requestId: string) => {
@@ -288,58 +284,19 @@ const AdvertiserRequests: React.FC = () => {
     return 'Site inconnu';
   };
 
-  const handleConfirmLink = async (requestId: string) => {
-    // Protection contre les clics multiples
-    if (confirmingRequestId === requestId) {
-      console.log('⚠️  Confirmation déjà en cours pour cette demande');
-      return;
-    }
-
+  // Fonction pour annuler une demande (avec remboursement immédiat)
+  const handleCancelRequest = async (requestId: string) => {
     try {
-      setConfirmingRequestId(requestId);
-      console.log(`🔒 [FRONTEND] Début de confirmation pour la demande: ${requestId.slice(0, 8)}...`);
-      
-      // Récupérer les détails de la demande avant confirmation
-      const requestDetails = await getPurchaseRequestDetails(requestId);
-      
-      const result = await confirmLinkPlacement(requestId);
+      const result = await cancelPurchaseRequest(requestId);
       if (result.success) {
-        // Envoyer un email de commande terminée à l'annonceur
-        try {
-          const emailModule = await import('../../utils/emailServiceClient');
-          const { emailServiceClient } = emailModule;
-          
-          await emailServiceClient.sendTemplateEmail(
-            'ADVERTISER_ORDER_COMPLETED',
-            currentUser?.email || '',
-            {
-              user_name: currentUser?.user_metadata?.name || currentUser?.email || 'Utilisateur',
-              order_id: requestId,
-              links_placed: 1,
-              total_amount: requestDetails?.proposed_price || 0,
-              completion_date: new Date().toLocaleString('fr-FR'),
-              report_url: `${window.location.origin}/dashboard/reports/${requestId}`,
-              dashboard_url: `${window.location.origin}/dashboard/orders`
-            },
-            ['order_completed', 'advertiser', 'success']
-          );
-          
-          console.log('Email de commande terminée envoyé');
-        } catch (emailError) {
-          console.error('Erreur envoi email commande terminée:', emailError);
-          // Ne pas bloquer le processus si l'email échoue
-        }
-        
-        toast.success('Lien confirmé avec succès ! Le paiement a été effectué.');
+        toast.success(`Demande annulée et remboursement de ${result.refund_amount} MAD effectué !`);
         loadRequests(); // Recharger la liste
       } else {
-        toast.error(result.error || 'Erreur lors de la confirmation');
+        toast.error(result.error || 'Erreur lors de l\'annulation');
       }
     } catch (error) {
-      console.error('Error confirming link:', error);
-      toast.error('Erreur lors de la confirmation du lien');
-    } finally {
-      setConfirmingRequestId(null);
+      console.error('Error cancelling request:', error);
+      toast.error('Erreur lors de l\'annulation de la demande');
     }
   };
 
@@ -574,28 +531,15 @@ const AdvertiserRequests: React.FC = () => {
                     <MessageCircle className="h-5 w-5" />
                   </button>
                   
-                  {request.status === 'pending_confirmation' && (
+                  {/* Bouton d'annulation pour les demandes en attente */}
+                  {request.status === 'pending' && (
                     <button
-                      onClick={() => handleConfirmLink(request.id)}
-                      disabled={confirmingRequestId === request.id}
-                      className={`px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors flex items-center space-x-2 ${
-                        confirmingRequestId === request.id
-                          ? 'bg-gray-400 cursor-not-allowed'
-                          : 'bg-emerald-600 hover:bg-emerald-700'
-                      }`}
-                      title="Confirmer le placement du lien"
+                      onClick={() => handleCancelRequest(request.id)}
+                      className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors flex items-center space-x-2 bg-red-600 hover:bg-red-700"
+                      title="Annuler la demande (remboursement immédiat)"
                     >
-                      {confirmingRequestId === request.id ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          <span>Confirmation...</span>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="h-4 w-4" />
-                          <span>Confirmer</span>
-                        </>
-                      )}
+                      <XCircle className="h-4 w-4" />
+                      <span>Annuler</span>
                     </button>
                   )}
                   <button

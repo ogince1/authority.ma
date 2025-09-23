@@ -393,9 +393,18 @@ const QuickBuyPage: React.FC = () => {
           proposed_duration: 1
         });
 
-        // NE PAS créer de transaction de crédit ici - le débit se fera lors de la confirmation
-        // L'annonceur sera débité uniquement quand l'éditeur acceptera ET que l'annonceur confirmera
-        console.log(`Achat rapide créé pour: ${item.listing.title} - Le paiement se fera lors de la confirmation`);
+        // DÉBIT IMMÉDIAT - L'annonceur est débité dès la création de la demande
+        const totalPrice = (item.listing.price + (item.isVirtual && item.contentOption === 'platform' ? (item.platformContentPrice || 0) : 0)) * item.quantity;
+        
+        const transaction = await createCreditTransaction({
+          user_id: user.id,
+          type: 'purchase',
+          amount: totalPrice,
+          description: `Achat rapide: ${item.listing.title}`,
+          status: 'completed'
+        });
+
+        console.log(`Débit immédiat effectué pour: ${item.listing.title} - ${totalPrice} MAD`);
 
         // Créer une notification pour l'éditeur
         await createNotification({

@@ -191,9 +191,16 @@ const NewCartPage: React.FC = () => {
 
           console.log(`Demande d'achat créée: ${purchaseRequest.id}`);
 
-          // NE PAS créer de transaction de crédit ici - le débit se fera lors de la confirmation
-          // L'annonceur sera débité uniquement quand l'éditeur acceptera ET que l'annonceur confirmera
-          console.log(`Demande d'achat créée pour: ${item.listing.title} - Le paiement se fera lors de la confirmation`);
+          // DÉBIT IMMÉDIAT - L'annonceur est débité dès la création de la demande
+          const transaction = await createCreditTransaction({
+            user_id: user.id,
+            type: 'purchase',
+            amount: item.listing.price * item.quantity,
+            description: `Achat de lien: ${item.listing.title}`,
+            status: 'completed'
+          });
+
+          console.log(`Débit immédiat effectué pour: ${item.listing.title} - ${item.listing.price * item.quantity} MAD`);
 
           results.push({
             success: true,
