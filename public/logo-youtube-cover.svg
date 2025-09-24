@@ -1,0 +1,109 @@
+<svg width="2048" height="1152" viewBox="0 0 2048 1152" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient principal pour le fond -->
+    <linearGradient id="backgroundGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E3A8A;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#1E40AF;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#60A5FA;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradient pour le logo -->
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F8FAFC;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradient pour l'icône -->
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Ombre portée -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+    
+    <!-- Effet de brillance -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Fond avec gradient -->
+  <rect width="2048" height="1152" fill="url(#backgroundGradient)"/>
+  
+  <!-- Motifs décoratifs en arrière-plan -->
+  <g opacity="0.1">
+    <!-- Cercles décoratifs -->
+    <circle cx="200" cy="200" r="150" fill="white" opacity="0.1"/>
+    <circle cx="1848" cy="300" r="200" fill="white" opacity="0.08"/>
+    <circle cx="300" cy="952" r="180" fill="white" opacity="0.06"/>
+    <circle cx="1748" cy="852" r="120" fill="white" opacity="0.1"/>
+    
+    <!-- Lignes décoratives -->
+    <line x1="0" y1="400" x2="2048" y2="400" stroke="white" stroke-width="2" opacity="0.1"/>
+    <line x1="0" y1="752" x2="2048" y2="752" stroke="white" stroke-width="2" opacity="0.1"/>
+  </g>
+  
+  <!-- Logo principal centré -->
+  <g transform="translate(1024, 400)">
+    <!-- Icône de lien -->
+    <g transform="translate(-120, -80)">
+      <!-- Lien principal -->
+      <path d="M120 60C120 27 147 0 180 0S240 27 240 60C240 93 213 120 180 120H120V150H180C213 150 240 123 240 90S213 30 180 30S120 57 120 90V120H120V60Z" fill="url(#iconGradient)" filter="url(#shadow)"/>
+      <path d="M120 210C120 177 147 150 180 150S240 177 240 210C240 243 213 270 180 270H120V300H180C213 300 240 273 240 240S213 180 180 180S120 207 120 240V270H120V210Z" fill="url(#iconGradient)" filter="url(#shadow)"/>
+      <line x1="180" y1="120" x2="180" y2="150" stroke="url(#iconGradient)" stroke-width="12" filter="url(#shadow)"/>
+      
+      <!-- Points de connexion -->
+      <circle cx="180" cy="60" r="18" fill="white" opacity="0.9" filter="url(#glow)"/>
+      <circle cx="180" cy="210" r="18" fill="white" opacity="0.9" filter="url(#glow)"/>
+    </g>
+    
+    <!-- Texte "Back" -->
+    <text x="0" y="50" font-family="Arial, sans-serif" font-size="180" font-weight="bold" fill="url(#logoGradient)" text-anchor="middle" filter="url(#shadow)">
+      Back
+    </text>
+    
+    <!-- Texte ".ma" -->
+    <text x="0" y="150" font-family="Arial, sans-serif" font-size="120" font-weight="normal" fill="url(#logoGradient)" text-anchor="middle" opacity="0.9" filter="url(#shadow)">
+      .ma
+    </text>
+  </g>
+  
+  <!-- Sous-titre principal -->
+  <text x="1024" y="700" font-family="Arial, sans-serif" font-size="80" font-weight="normal" fill="white" text-anchor="middle" opacity="0.9" filter="url(#shadow)">
+    La première plateforme marocaine de liens de qualité
+  </text>
+  
+  <!-- Sous-titre secondaire -->
+  <text x="1024" y="800" font-family="Arial, sans-serif" font-size="48" font-weight="normal" fill="white" text-anchor="middle" opacity="0.8">
+    Boostez votre référencement naturel avec Back.ma
+  </text>
+  
+  <!-- Éléments décoratifs -->
+  <g opacity="0.3">
+    <!-- Flèches directionnelles -->
+    <path d="M100 576 L200 576 L180 556 M200 576 L180 596" stroke="white" stroke-width="4" fill="none"/>
+    <path d="M1948 576 L1848 576 L1868 556 M1848 576 L1868 596" stroke="white" stroke-width="4" fill="none"/>
+    
+    <!-- Points de connexion décoratifs -->
+    <circle cx="150" cy="200" r="8" fill="white"/>
+    <circle cx="150" cy="952" r="8" fill="white"/>
+    <circle cx="1898" cy="200" r="8" fill="white"/>
+    <circle cx="1898" cy="952" r="8" fill="white"/>
+  </g>
+  
+  <!-- Badge de qualité -->
+  <g transform="translate(1024, 950)">
+    <rect x="-200" y="-30" width="400" height="60" rx="30" ry="30" fill="white" opacity="0.2"/>
+    <text x="0" y="10" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="white" text-anchor="middle">
+      ✓ Liens de qualité garantis
+    </text>
+  </g>
+</svg>

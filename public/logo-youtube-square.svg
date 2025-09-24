@@ -1,0 +1,40 @@
+<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient principal -->
+    <linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradient pour l'icône -->
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Fond carré avec coins arrondis -->
+  <rect x="0" y="0" width="400" height="400" rx="60" ry="60" fill="url(#mainGradient)"/>
+  
+  <!-- Icône de lien centrée -->
+  <g transform="translate(160, 120)">
+    <!-- Lien principal -->
+    <path d="M40 20C40 9 49 0 60 0S80 9 80 20C80 31 71 40 60 40H40V50H60C71 50 80 41 80 30S71 10 60 10S40 19 40 30V40H40V20Z" fill="url(#iconGradient)"/>
+    <path d="M40 70C40 59 49 50 60 50S80 59 80 70C80 81 71 90 60 90H40V100H60C71 100 80 91 80 80S71 60 60 60S40 69 40 80V90H40V70Z" fill="url(#iconGradient)"/>
+    <line x1="60" y1="40" x2="60" y2="50" stroke="url(#iconGradient)" stroke-width="4"/>
+    
+    <!-- Points de connexion -->
+    <circle cx="60" cy="20" r="6" fill="white" opacity="0.9"/>
+    <circle cx="60" cy="70" r="6" fill="white" opacity="0.9"/>
+  </g>
+  
+  <!-- Texte "Back" -->
+  <text x="200" y="240" font-family="Arial, sans-serif" font-size="60" font-weight="bold" fill="white" text-anchor="middle">
+    Back
+  </text>
+  
+  <!-- Texte ".ma" -->
+  <text x="200" y="290" font-family="Arial, sans-serif" font-size="40" font-weight="normal" fill="white" text-anchor="middle" opacity="0.9">
+    .ma
+  </text>
+</svg>

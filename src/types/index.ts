@@ -39,8 +39,8 @@ export type LinkPosition = 'header' | 'footer' | 'sidebar' | 'content' | 'menu' 
 // Types de niches
 export type WebsiteNiche = 'immobilier' | 'sante' | 'beaute' | 'mode' | 'tech' | 'finance' | 'education' | 'voyage' | 'cuisine' | 'sport' | 'automobile' | 'lifestyle' | 'business' | 'actualites' | 'culture' | 'politique' | 'economie' | 'art' | 'musique' | 'cinema';
 
-// Statut du propriétaire du site
-export type OwnerStatus = 'professionnel' | 'particulier' | 'entreprise' | 'agence';
+// Statut du propriétaire du site (supprimé du formulaire)
+// export type OwnerStatus = 'professionnel' | 'particulier' | 'entreprise' | 'agence';
 
 // Interface pour les métriques du site
 export interface WebsiteMetrics {
@@ -56,13 +56,8 @@ export interface Website {
   description: string;
   url: string;
   category: WebsiteCategory;
-  owner_status: OwnerStatus;
-  
   // Métriques du site
   metrics?: WebsiteMetrics;
-  
-  // Images et médias
-  logo?: string;
   
   // Informations SEO
   meta_title?: string;
@@ -79,9 +74,7 @@ export interface Website {
   
   // Champs spécifiques aux liens
   available_link_spots: number; // Nombre d'emplacements disponibles
-  average_response_time?: number; // Temps de réponse moyen en heures
   languages: string[]; // Langues du site
-  content_quality: 'excellent' | 'good' | 'average' | 'poor'; // Qualité du contenu
 }
 
 // Interface pour une annonce de lien

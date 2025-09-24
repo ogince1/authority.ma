@@ -382,16 +382,27 @@ export const createWebsite = async (websiteData: CreateWebsiteData): Promise<Web
       throw new Error('Utilisateur non connecté');
     }
 
-    // Ajouter l'user_id automatiquement et définir le statut à 'active'
-    const websiteDataWithUser = {
-      ...websiteData,
+    // Filtrer les champs valides (exclure les champs supprimés)
+    const validFields = {
+      title: websiteData.title,
+      description: websiteData.description,
+      url: websiteData.url,
+      category: websiteData.category,
+      available_link_spots: websiteData.available_link_spots,
+      languages: websiteData.languages,
+      metrics: websiteData.metrics,
+      new_article_price: websiteData.new_article_price,
+      is_new_article: websiteData.is_new_article,
       user_id: user.id,
-      status: 'active'
+      status: 'active',
+      slug: websiteData.slug,
+      meta_title: websiteData.meta_title,
+      meta_description: websiteData.meta_description
     };
 
     const { data, error } = await supabase
       .from('websites')
-      .insert([websiteDataWithUser])
+      .insert([validFields])
       .select()
       .single();
 

@@ -24,7 +24,8 @@ import {
   Link as LinkIcon,
   Activity,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Upload
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Website } from '../types';
@@ -32,6 +33,7 @@ import { getWebsites, deleteWebsite } from '../lib/supabase';
 import { getCurrentUser } from '../lib/supabase';
 import WebsiteCard from '../components/Websites/WebsiteCard';
 import WebsiteForm from '../components/Websites/WebsiteForm';
+import BulkWebsiteForm from '../components/Websites/BulkWebsiteForm';
 import { trackPageView } from '../utils/analytics';
 import { getCategoryOptions } from '../utils/categories';
 import toast from 'react-hot-toast';
@@ -40,6 +42,7 @@ const UserWebsitesPage: React.FC = () => {
   const [websites, setWebsites] = React.useState<Website[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [showForm, setShowForm] = React.useState(false);
+  const [showBulkForm, setShowBulkForm] = React.useState(false);
   const [editingWebsite, setEditingWebsite] = React.useState<Website | null>(null);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<string>('all');
@@ -93,6 +96,11 @@ const UserWebsitesPage: React.FC = () => {
     }
     setShowForm(false);
     setEditingWebsite(null);
+  };
+
+  const handleBulkFormSuccess = () => {
+    setShowBulkForm(false);
+    fetchWebsites(); // Recharger la liste des sites web
   };
 
   const filteredAndSortedWebsites = React.useMemo(() => {
@@ -183,6 +191,19 @@ const UserWebsitesPage: React.FC = () => {
           setShowForm(false);
           setEditingWebsite(null);
         }}
+        onBulkImport={() => {
+          setShowForm(false);
+          setShowBulkForm(true);
+        }}
+      />
+    );
+  }
+
+  if (showBulkForm) {
+    return (
+      <BulkWebsiteForm
+        onSuccess={handleBulkFormSuccess}
+        onCancel={() => setShowBulkForm(false)}
       />
     );
   }
@@ -355,6 +376,7 @@ const UserWebsitesPage: React.FC = () => {
                 <span>{sortOrder === 'asc' ? 'Croissant' : 'Décroissant'}</span>
               </button>
             </div>
+            
           </div>
         </motion.div>
 
@@ -393,9 +415,10 @@ const UserWebsitesPage: React.FC = () => {
             </p>
             <button
               onClick={() => setShowForm(true)}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center space-x-2"
             >
-              Ajouter un site web
+              <Plus className="h-5 w-5" />
+              <span>Ajouter un site web</span>
             </button>
           </motion.div>
         ) : (

@@ -2,7 +2,6 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { 
   Globe, 
-  Upload, 
   X, 
   Plus,
   Save,
@@ -14,8 +13,8 @@ import {
   Star
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Website, CreateWebsiteData, WebsiteCategory, WebsiteNiche, OwnerStatus } from '../../types';
-import { createWebsite, updateWebsite, uploadImage, uploadMultipleImages } from '../../lib/supabase';
+import { Website, CreateWebsiteData, WebsiteCategory, WebsiteNiche } from '../../types';
+import { createWebsite, updateWebsite } from '../../lib/supabase';
 import { WEBSITE_CATEGORIES } from '../../utils/categories';
 import toast from 'react-hot-toast';
 
@@ -24,6 +23,7 @@ interface WebsiteFormProps {
   isEdit?: boolean;
   onSuccess?: (website: Website) => void;
   onCancel?: () => void;
+  onBulkImport?: () => void;
 }
 
 interface FormData {
@@ -31,10 +31,7 @@ interface FormData {
   description: string;
   url: string;
   category: WebsiteCategory;
-  owner_status: OwnerStatus;
   available_link_spots: number;
-  average_response_time: number;
-  content_quality: 'excellent' | 'good' | 'average' | 'poor';
   languages: string[];
   metrics: {
     monthly_traffic: number;
@@ -47,11 +44,10 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
   website, 
   isEdit = false, 
   onSuccess, 
-  onCancel 
+  onCancel,
+  onBulkImport
 }) => {
   const [loading, setLoading] = React.useState(false);
-  const [uploadingImages, setUploadingImages] = React.useState(false);
-  const [logo, setLogo] = React.useState<string>(website?.logo || '');
 
   const {
     register,
@@ -66,10 +62,7 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
       description: website?.description || '',
       url: website?.url || '',
       category: website?.category || 'blog',
-      owner_status: website?.owner_status || 'particulier',
       available_link_spots: website?.available_link_spots || 1,
-      average_response_time: website?.average_response_time || 24,
-      content_quality: website?.content_quality || 'good',
       languages: website?.languages || ['Français'],
       metrics: {
         monthly_traffic: website?.metrics?.monthly_traffic || 0,
@@ -84,38 +77,9 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
   const categories = WEBSITE_CATEGORIES;
 
 
-  const ownerStatuses: { value: OwnerStatus; label: string }[] = [
-    { value: 'particulier', label: 'Particulier' },
-    { value: 'professionnel', label: 'Professionnel' },
-    { value: 'entreprise', label: 'Entreprise' },
-    { value: 'agence', label: 'Agence' }
-  ];
-
-  const contentQualities = [
-    { value: 'excellent', label: 'Excellent' },
-    { value: 'good', label: 'Bon' },
-    { value: 'average', label: 'Moyen' },
-    { value: 'poor', label: 'Faible' }
-  ];
 
   const commonLanguages = ['Français', 'Anglais', 'Arabe', 'Espagnol', 'Allemand', 'Italien'];
 
-  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploadingImages(true);
-    try {
-      const uploadedUrl = await uploadImage(file, 'website-logos');
-      setLogo(uploadedUrl);
-      toast.success('Logo téléchargé avec succès');
-    } catch (error) {
-      console.error('Error uploading logo:', error);
-      toast.error('Erreur lors du téléchargement du logo');
-    } finally {
-      setUploadingImages(false);
-    }
-  };
 
 
   const addLanguage = (language: string) => {
@@ -142,7 +106,6 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
       const websiteData: CreateWebsiteData = {
         ...data,
         slug: generateSlug(data.title),
-        logo: logo || undefined,
         status: 'active',
         meta_title: data.title,
         meta_description: data.description.substring(0, 160)
@@ -244,62 +207,8 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
               </div>
 
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Statut du propriétaire *
-                </label>
-                <select
-                  {...register('owner_status', { required: 'Le statut est requis' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {ownerStatuses.map(status => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.owner_status && (
-                  <p className="text-red-600 text-sm mt-1">{errors.owner_status.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Qualité du contenu *
-                </label>
-                <select
-                  {...register('content_quality', { required: 'La qualité est requise' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {contentQualities.map(quality => (
-                    <option key={quality.value} value={quality.value}>
-                      {quality.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.content_quality && (
-                  <p className="text-red-600 text-sm mt-1">{errors.content_quality.message}</p>
-                )}
-              </div>
             </div>
 
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description *
-              </label>
-              <textarea
-                {...register('description', { 
-                  required: 'La description est requise',
-                  minLength: { value: 50, message: 'La description doit faire au moins 50 caractères' }
-                })}
-                rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Décrivez votre site web, son contenu, son audience..."
-              />
-              {errors.description && (
-                <p className="text-red-600 text-sm mt-1">{errors.description.message}</p>
-              )}
-            </div>
           </div>
 
           {/* Configuration des liens */}
@@ -318,8 +227,9 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
                     min: { value: 10, message: 'Le prix minimum est de 10 MAD' }
                   })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="80"
+                  placeholder="Prix en MAD"
                   min="10"
+                  onFocus={(e) => e.target.select()}
                 />
                 {errors.new_article_price && (
                   <p className="text-red-600 text-sm mt-1">{errors.new_article_price.message}</p>
@@ -354,29 +264,13 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
                   type="number"
                   min="1"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onFocus={(e) => e.target.select()}
                 />
                 {errors.available_link_spots && (
                   <p className="text-red-600 text-sm mt-1">{errors.available_link_spots.message}</p>
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Temps de réponse moyen (heures) *
-                </label>
-                <input
-                  {...register('average_response_time', { 
-                    required: 'Le temps de réponse est requis',
-                    min: { value: 1, message: 'Au moins 1 heure' }
-                  })}
-                  type="number"
-                  min="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                {errors.average_response_time && (
-                  <p className="text-red-600 text-sm mt-1">{errors.average_response_time.message}</p>
-                )}
-              </div>
             </div>
           </div>
 
@@ -394,6 +288,7 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
                   min="0"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="10000"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -408,6 +303,7 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
                   max="100"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="50"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
 
@@ -421,6 +317,7 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
                   min="0"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="500"
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
             </div>
@@ -464,54 +361,28 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
 
 
 
-          {/* Images */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Images</h2>
-            
-            {/* Logo */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Logo du site web
-              </label>
-              <div className="flex items-center space-x-4">
-                {logo && (
-                  <img 
-                    src={logo} 
-                    alt="Logo" 
-                    className="w-16 h-16 rounded-lg object-cover"
-                  />
-                )}
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    disabled={uploadingImages}
-                    className="hidden"
-                    id="logo-upload"
-                  />
-                  <label
-                    htmlFor="logo-upload"
-                    className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    <span>{uploadingImages ? 'Téléchargement...' : 'Télécharger un logo'}</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-          </div>
 
           {/* Actions */}
           <div className="flex items-center justify-between pt-6 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Annuler
-            </button>
+            <div className="flex items-center space-x-3">
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Annuler
+              </button>
+              {!isEdit && onBulkImport && (
+                <button
+                  type="button"
+                  onClick={onBulkImport}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Ajout multiple</span>
+                </button>
+              )}
+            </div>
             <button
               type="submit"
               disabled={loading}
