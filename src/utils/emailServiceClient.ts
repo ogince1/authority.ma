@@ -1139,6 +1139,69 @@ export const EMAIL_TEMPLATES: { [key: string]: EmailTemplate } = {
 </body>
 </html>`,
     variables: ['user_name', 'order_id', 'links_placed', 'total_amount', 'completion_date', 'report_url', 'dashboard_url']
+  },
+
+  NEW_MESSAGE_NOTIFICATION: {
+    id: 'new-message-notification',
+    name: 'new-message-notification',
+    subject: 'Nouveau message reçu - {{sender_name}} 📩',
+    htmlContent: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Nouveau message</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+    .button { display: inline-block; background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+    .message-box { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin: 20px 0; }
+    .sender-info { background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 15px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📩 Nouveau message reçu</h1>
+      <p>Vous avez reçu un nouveau message de {{sender_name}}</p>
+    </div>
+    <div class="content">
+      <div class="sender-info">
+        <h3>👤 De : {{sender_name}}</h3>
+        <p><strong>Demande :</strong> #{{request_id}}</p>
+        <p><strong>Site web :</strong> {{website_title}}</p>
+      </div>
+      
+      <div class="message-box">
+        <h3>💬 Message :</h3>
+        <p style="font-style: italic; color: #666; border-left: 3px solid #667eea; padding-left: 15px;">
+          "{{message_content}}"
+        </p>
+      </div>
+      
+      <p>Répondez rapidement pour maintenir une communication fluide avec votre partenaire.</p>
+      
+      <div style="text-align: center;">
+        <a href="{{conversation_url}}" class="button">💬 Voir la conversation</a>
+      </div>
+      
+      <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+        <h4>💡 Conseil</h4>
+        <p>Une communication rapide et claire améliore les chances d'acceptation de votre demande et renforce la relation avec l'éditeur.</p>
+      </div>
+      
+      <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
+      
+      <p style="text-align: center; color: #666; font-size: 14px;">
+        <strong>Back.ma</strong> - Votre partenaire SEO de confiance<br>
+        Plateforme de liens de qualité pour améliorer votre référencement
+      </p>
+    </div>
+  </div>
+</body>
+</html>`,
+    variables: ['sender_name', 'request_id', 'website_title', 'message_content', 'conversation_url']
   }
 };
 

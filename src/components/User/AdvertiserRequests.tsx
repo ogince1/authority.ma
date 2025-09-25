@@ -58,6 +58,7 @@ const AdvertiserRequests: React.FC = () => {
   const [newMessage, setNewMessage] = React.useState<Record<string, string>>({});
   const [sendingMessage, setSendingMessage] = React.useState<Set<string>>(new Set());
   const [currentUser, setCurrentUser] = React.useState<any>(null);
+  const [unreadCounts, setUnreadCounts] = React.useState<Record<string, number>>({});
 
   React.useEffect(() => {
     trackPageView('/dashboard/purchase-requests', 'Mes Demandes | Back.ma');
@@ -101,11 +102,43 @@ const AdvertiserRequests: React.FC = () => {
       setRequests(uniqueRequests);
       setTotalPages(result.totalPages);
       setTotalItems(result.total);
+      
+      // Charger les messages non lus pour chaque demande
+      if (uniqueRequests && uniqueRequests.length > 0) {
+        await loadUnreadCountsForRequests(uniqueRequests);
+      }
     } catch (error) {
       console.error('Error loading requests:', error);
       toast.error('Erreur lors du chargement des demandes');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUnreadCountsForRequests = async (requests: LinkPurchaseRequest[]) => {
+    try {
+      const { supabase } = await import('../../lib/supabase');
+      const unreadCountsMap: Record<string, number> = {};
+
+      for (const request of requests) {
+        // Trouver la conversation liée à cette demande
+        const { data: conversation } = await supabase
+          .from('conversations')
+          .select('id, unread_count_advertiser')
+          .eq('purchase_request_id', request.id)
+          .single();
+
+        if (conversation) {
+          unreadCountsMap[request.id] = conversation.unread_count_advertiser || 0;
+        } else {
+          unreadCountsMap[request.id] = 0;
+        }
+      }
+
+      setUnreadCounts(unreadCountsMap);
+      console.log('📧 Messages non lus par demande (Advertiser):', unreadCountsMap);
+    } catch (error) {
+      console.error('Error loading unread counts:', error);
     }
   };
 
@@ -184,6 +217,11 @@ const AdvertiserRequests: React.FC = () => {
         // Marquer comme lu
         if (currentUser) {
           await markConversationAsRead(conversation.id, currentUser.id);
+          // Rafraîchir le compteur de messages non lus
+          setUnreadCounts(prev => ({
+            ...prev,
+            [requestId]: 0
+          }));
         }
       }
     } catch (error) {
@@ -514,14 +552,21 @@ const AdvertiserRequests: React.FC = () => {
 
                 {/* Actions */}
                 <div className="flex items-center space-x-2 ml-6">
-                  {/* Bouton Messages */}
-                  <button
-                    onClick={() => toggleMessages(request.id)}
-                    className="p-2 text-gray-400 hover:text-emerald-600 transition-colors"
-                    title="Voir les messages"
-                  >
-                    <MessageCircle className="h-5 w-5" />
-                  </button>
+                  {/* Bouton Messages avec badge de notification */}
+                  <div className="relative">
+                    <button
+                      onClick={() => toggleMessages(request.id)}
+                      className="p-2 text-gray-400 hover:text-emerald-600 transition-colors"
+                      title="Voir les messages"
+                    >
+                      <MessageCircle className="h-5 w-5" />
+                    </button>
+                    {unreadCounts[request.id] > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1 min-w-[20px] text-center">
+                        {unreadCounts[request.id]}
+                      </span>
+                    )}
+                  </div>
                   
                   {/* Bouton d'annulation pour les demandes en attente */}
                   {request.status === 'pending' && (

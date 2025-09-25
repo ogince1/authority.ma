@@ -835,11 +835,16 @@ export const getNotifications = async (userId: string, filters?: {
 
     const { data, error } = await query.order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching notifications:', error);
+      // Retourner un tableau vide si la table n'existe pas
+      return [];
+    }
     return data || [];
   } catch (error) {
     console.error('Error fetching notifications:', error);
-    throw error;
+    // Retourner un tableau vide en cas d'erreur
+    return [];
   }
 };
 
@@ -852,11 +857,14 @@ export const markNotificationAsRead = async (id: string): Promise<any> => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error marking notification as read:', error);
+      return null;
+    }
     return data;
   } catch (error) {
     console.error('Error marking notification as read:', error);
-    throw error;
+    return null;
   }
 };
 
@@ -868,10 +876,11 @@ export const markAllNotificationsAsRead = async (userId: string): Promise<void> 
       .eq('user_id', userId)
       .eq('read', false);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
-    throw error;
   }
 };
 
@@ -886,10 +895,52 @@ export const createMessage = async (messageData: {
   related_website_id?: string;
 }): Promise<any> => {
   try {
+    // Trouver ou créer une conversation entre les deux utilisateurs
+    let { data: conversation, error: conversationError } = await supabase
+      .from('conversations')
+      .select('id')
+      .or(`advertiser_id.eq.${messageData.sender_id},publisher_id.eq.${messageData.sender_id}`)
+      .or(`advertiser_id.eq.${messageData.receiver_id},publisher_id.eq.${messageData.receiver_id}`)
+      .single();
+
+    if (conversationError && conversationError.code !== 'PGRST116') {
+      console.error('Error finding conversation:', conversationError);
+      return null;
+    }
+
+    // Si aucune conversation n'existe, en créer une
+    if (!conversation) {
+      const { data: newConversation, error: createError } = await supabase
+        .from('conversations')
+        .insert([{
+          advertiser_id: messageData.sender_id,
+          publisher_id: messageData.receiver_id,
+          subject: messageData.subject,
+          is_active: true,
+          unread_count_advertiser: 0,
+          unread_count_publisher: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Error creating conversation:', createError);
+        return null;
+      }
+      conversation = newConversation;
+    }
+
+    // Créer le message dans la conversation
     const { data, error } = await supabase
-      .from('messages')
+      .from('conversation_messages')
       .insert([{
-        ...messageData,
+        conversation_id: conversation.id,
+        sender_id: messageData.sender_id,
+        receiver_id: messageData.receiver_id,
+        content: messageData.content,
+        message_type: 'text',
         read: false,
         created_at: new Date().toISOString()
       }])
@@ -897,6 +948,21 @@ export const createMessage = async (messageData: {
       .single();
 
     if (error) throw error;
+
+    // Envoyer un email de notification au destinataire
+    try {
+      await sendNewMessageNotificationEmail({
+        conversationId: conversation.id,
+        senderId: messageData.sender_id,
+        receiverId: messageData.receiver_id,
+        messageContent: messageData.content,
+        requestId: messageData.related_purchase_request_id
+      });
+    } catch (emailError) {
+      console.error('Error sending notification email:', emailError);
+      // Ne pas faire échouer l'envoi du message si l'email échoue
+    }
+
     return data;
   } catch (error) {
     console.error('Error creating message:', error);
@@ -909,32 +975,65 @@ export const getMessages = async (userId: string, filters?: {
   read?: boolean;
 }): Promise<any[]> => {
   try {
+    // Récupérer les conversations de l'utilisateur
+    const { data: conversations, error: conversationsError } = await supabase
+      .from('conversations')
+      .select('id')
+      .or(`advertiser_id.eq.${userId},publisher_id.eq.${userId}`);
+
+    if (conversationsError) {
+      console.error('Error fetching conversations:', conversationsError);
+      return [];
+    }
+
+    if (!conversations || conversations.length === 0) {
+      return [];
+    }
+
+    const conversationIds = conversations.map(c => c.id);
+
+    // Récupérer les messages des conversations
     let query = supabase
-      .from('messages')
-      .select('*')
-      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`);
+      .from('conversation_messages')
+      .select(`
+        *,
+        sender:users!conversation_messages_sender_id_fkey(id, name, email),
+        receiver:users!conversation_messages_receiver_id_fkey(id, name, email)
+      `)
+      .in('conversation_id', conversationIds);
 
     if (filters?.conversation_with) {
-      query = query.or(`sender_id.eq.${filters.conversation_with},receiver_id.eq.${filters.conversation_with}`);
-    }
-    if (filters?.read !== undefined) {
-      query = query.eq('read', filters.read);
+      // Filtrer par conversation spécifique si nécessaire
+      const { data: specificConversation } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`advertiser_id.eq.${filters.conversation_with},publisher_id.eq.${filters.conversation_with}`)
+        .or(`advertiser_id.eq.${userId},publisher_id.eq.${userId}`)
+        .single();
+      
+      if (specificConversation) {
+        query = query.eq('conversation_id', specificConversation.id);
+      }
     }
 
     const { data, error } = await query.order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching conversation messages:', error);
+      return [];
+    }
+
     return data || [];
   } catch (error) {
     console.error('Error fetching messages:', error);
-    throw error;
+    return [];
   }
 };
 
 export const markMessageAsRead = async (id: string): Promise<any> => {
   try {
     const { data, error } = await supabase
-      .from('messages')
+      .from('conversation_messages')
       .update({ read: true })
       .eq('id', id)
       .select()
@@ -2339,6 +2438,21 @@ export const sendMessage = async (messageData: {
       .single();
 
     if (error) throw error;
+
+    // Envoyer un email de notification au destinataire
+    try {
+      await sendNewMessageNotificationEmail({
+        conversationId: messageData.conversation_id,
+        senderId: messageData.sender_id,
+        receiverId: messageData.receiver_id,
+        messageContent: messageData.content,
+        requestId: messageData.related_purchase_request_id
+      });
+    } catch (emailError) {
+      console.error('Error sending notification email:', emailError);
+      // Ne pas faire échouer l'envoi du message si l'email échoue
+    }
+
     return data;
   } catch (error) {
     console.error('Error sending message:', error);
@@ -3349,5 +3463,88 @@ export const createBulkLinkListings = async (listingsData: CreateLinkListingData
       created: [],
       errors: [{ index: 0, error: 'Erreur lors de la création en masse' }]
     };
+  }
+};
+
+// ===== FONCTION POUR ENVOYER UN EMAIL DE NOTIFICATION DE NOUVEAU MESSAGE =====
+
+export const sendNewMessageNotificationEmail = async (data: {
+  conversationId: string;
+  senderId: string;
+  receiverId: string;
+  messageContent: string;
+  requestId?: string;
+}) => {
+  try {
+    // Récupérer les informations de l'expéditeur et du destinataire
+    const { data: sender, error: senderError } = await supabase
+      .from('users')
+      .select('name, email')
+      .eq('id', data.senderId)
+      .single();
+
+    const { data: receiver, error: receiverError } = await supabase
+      .from('users')
+      .select('name, email')
+      .eq('id', data.receiverId)
+      .single();
+
+    if (senderError || receiverError) {
+      console.error('Error fetching user data:', senderError || receiverError);
+      return;
+    }
+
+    // Récupérer les informations de la demande d'achat si disponible
+    let websiteTitle = 'Demande de lien';
+    if (data.requestId) {
+      const { data: request, error: requestError } = await supabase
+        .from('link_purchase_requests')
+        .select(`
+          id,
+          link_listing:link_listings(
+            website:websites(title)
+          )
+        `)
+        .eq('id', data.requestId)
+        .single();
+
+      if (!requestError && request?.link_listing?.website?.title) {
+        websiteTitle = request.link_listing.website.title;
+      }
+    }
+
+    // Construire l'URL de la conversation
+    const conversationUrl = `${window.location.origin}/dashboard/purchase-requests`;
+
+    // Préparer les variables pour l'email
+    const emailVariables = {
+      sender_name: sender.name || 'Utilisateur',
+      request_id: data.requestId ? data.requestId.slice(0, 8) : 'N/A',
+      website_title: websiteTitle,
+      message_content: data.messageContent,
+      conversation_url: conversationUrl
+    };
+
+    // Envoyer l'email de notification
+    const { EmailServiceClient } = await import('../utils/emailServiceClient');
+    const emailService = new EmailServiceClient();
+    
+    const success = await emailService.sendTemplateEmail(
+      'NEW_MESSAGE_NOTIFICATION',
+      receiver.email,
+      emailVariables,
+      ['new-message', 'notification']
+    );
+
+    if (success) {
+      console.log('📧 Email de notification envoyé à:', receiver.email);
+    } else {
+      console.error('❌ Échec de l\'envoi de l\'email de notification');
+    }
+
+    return success;
+  } catch (error) {
+    console.error('Error sending new message notification email:', error);
+    return false;
   }
 }; 

@@ -43,6 +43,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
   const [cartCount, setCartCount] = React.useState<number>(0);
   const [showProfileDropdown, setShowProfileDropdown] = React.useState<boolean>(false);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [unreadMessages, setUnreadMessages] = React.useState<number>(0);
 
   // Fermer le dropdown quand on clique à l'extérieur
   React.useEffect(() => {
@@ -75,6 +76,38 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
     }
   };
 
+  // Fonction pour charger les messages non lus
+  const loadUnreadMessages = async () => {
+    if (user) {
+      try {
+        const { supabase } = await import('../../lib/supabase');
+        const { data: conversations, error } = await supabase
+          .from('conversations')
+          .select('advertiser_id, publisher_id, unread_count_advertiser, unread_count_publisher')
+          .or(`advertiser_id.eq.${user.id},publisher_id.eq.${user.id}`);
+
+        if (error) {
+          console.error('Error loading unread messages:', error);
+          return;
+        }
+
+        let totalUnread = 0;
+        conversations?.forEach(conv => {
+          if (conv.advertiser_id === user.id) {
+            totalUnread += conv.unread_count_advertiser || 0;
+          } else if (conv.publisher_id === user.id) {
+            totalUnread += conv.unread_count_publisher || 0;
+          }
+        });
+
+        console.log('📧 Messages non lus chargés:', totalUnread, 'conversations:', conversations?.length);
+        setUnreadMessages(totalUnread);
+      } catch (error) {
+        console.error('Error loading unread messages:', error);
+      }
+    }
+  };
+
   React.useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -92,6 +125,9 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
           } catch (error) {
             console.error('Error fetching balance:', error);
           }
+
+          // Charger les messages non lus
+          loadUnreadMessages();
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -100,7 +136,18 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
       }
     };
     fetchUser();
-  }, []);
+
+    // Rafraîchir les notifications toutes les 30 secondes
+    const notificationInterval = setInterval(() => {
+      if (user) {
+        loadUnreadMessages();
+      }
+    }, 30000);
+
+    return () => {
+      clearInterval(notificationInterval);
+    };
+  }, [user]);
 
   // Écouter les événements de mise à jour du solde
   React.useEffect(() => {
@@ -157,7 +204,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
           { name: 'Tableau de Bord', href: '/dashboard', icon: LayoutDashboard },
           { name: 'Mes Sites Web', href: '/dashboard/websites', icon: FolderOpen },
           { name: 'Mes Liens Existants', href: '/dashboard/link-listings', icon: FileText },
-          { name: 'Demandes Reçues', href: '/dashboard/purchase-requests', icon: MessageSquare },
+          { name: 'Demandes Reçues', href: '/dashboard/purchase-requests', icon: MessageSquare, badge: unreadMessages > 0 ? unreadMessages : undefined },
           { name: 'Mon Solde', href: '/dashboard/balance', icon: Wallet },
           { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },
         ];
@@ -165,7 +212,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
              return [
                { name: 'Tableau de Bord', href: '/dashboard', icon: LayoutDashboard },
               { name: 'Trouver des Médias', href: '/dashboard/quick-buy', icon: Zap },
-              { name: 'Mes Demandes', href: '/dashboard/purchase-requests', icon: FileText },
+              { name: 'Mes Demandes', href: '/dashboard/purchase-requests', icon: FileText, badge: unreadMessages > 0 ? unreadMessages : undefined },
               { name: 'Services', href: '/dashboard/services', icon: Settings },
                { name: 'Mon Solde', href: '/dashboard/balance', icon: Wallet },
                { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },
@@ -374,6 +421,11 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
                           : 'text-gray-500 group-hover:text-gray-700'
                       }`} />
                       <span className="font-medium text-sm">{item.name}</span>
+                      {item.badge && (
+                        <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1 min-w-[20px] text-center">
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   </motion.div>
                 );
@@ -403,7 +455,12 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
                         onClick={() => setSidebarOpen(false)}
                       >
                         <item.icon className="h-4 w-4 mr-3" />
-                        {item.name}
+                        <span className="flex-1">{item.name}</span>
+                        {item.badge && (
+                          <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1 min-w-[20px] text-center">
+                            {item.badge}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}

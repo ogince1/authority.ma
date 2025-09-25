@@ -50,6 +50,7 @@ const UserDashboard: React.FC = () => {
   const [user, setUser] = React.useState<any>(null);
   const [userProfile, setUserProfile] = React.useState<any>(null);
   const [balance, setBalance] = React.useState<number>(0);
+  const [unreadMessages, setUnreadMessages] = React.useState<number>(0);
   const [stats, setStats] = React.useState({
     totalPurchases: 0,
     totalSpent: 0,
@@ -87,6 +88,30 @@ const UserDashboard: React.FC = () => {
           // Récupérer le solde
           const userBalance = await getUserBalance(currentUser.id);
           setBalance(userBalance);
+
+          // Charger les messages non lus
+          try {
+            const { supabase } = await import('../../lib/supabase');
+            const { data: conversations, error } = await supabase
+              .from('conversations')
+              .select('advertiser_id, publisher_id, unread_count_advertiser, unread_count_publisher')
+              .or(`advertiser_id.eq.${currentUser.id},publisher_id.eq.${currentUser.id}`);
+
+            if (!error && conversations) {
+              let totalUnread = 0;
+              conversations.forEach(conv => {
+                if (conv.advertiser_id === currentUser.id) {
+                  totalUnread += conv.unread_count_advertiser || 0;
+                } else if (conv.publisher_id === currentUser.id) {
+                  totalUnread += conv.unread_count_publisher || 0;
+                }
+              });
+              console.log('📧 Messages non lus (Dashboard):', totalUnread, 'conversations:', conversations.length);
+              setUnreadMessages(totalUnread);
+            }
+          } catch (error) {
+            console.error('Error loading unread messages:', error);
+          }
 
           // Si c'est un éditeur, charger ses données spécifiques
           if (profile?.role === 'publisher') {
@@ -190,7 +215,8 @@ const UserDashboard: React.FC = () => {
       value: publisherData.purchaseRequestsCount,
       icon: MessageSquare,
       color: 'bg-purple-500',
-      href: '/dashboard/purchase-requests'
+      href: '/dashboard/purchase-requests',
+      badge: unreadMessages > 0 ? unreadMessages : undefined
     },
     {
       name: 'Revenus Totaux',
@@ -246,7 +272,8 @@ const UserDashboard: React.FC = () => {
       color: 'bg-gradient-to-r from-orange-500 to-red-500',
       href: '/dashboard/purchase-requests',
       trend: '+3',
-      trendUp: true
+      trendUp: true,
+      badge: unreadMessages > 0 ? unreadMessages : undefined
     },
     {
       name: 'Services Demandés',
@@ -376,8 +403,13 @@ const UserDashboard: React.FC = () => {
               <Link to={stat.href} className="block">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-lg hover:shadow-gray-200/50 transition-all duration-300 hover:-translate-y-1">
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`p-3 rounded-xl ${stat.color} group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`p-3 rounded-xl ${stat.color} group-hover:scale-110 transition-transform duration-300 relative`}>
                       <stat.icon className="h-6 w-6 text-white" />
+                      {stat.badge && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1 min-w-[20px] text-center">
+                          {stat.badge}
+                        </span>
+                      )}
                     </div>
                     {stat.trend && (
                       <div className={`flex items-center space-x-1 text-sm font-medium ${
