@@ -19,7 +19,6 @@ import {
   DollarSign,
   Calendar,
   Star,
-  RefreshCw,
   Settings,
   Link as LinkIcon,
   Activity,
@@ -227,13 +226,6 @@ const UserWebsitesPage: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={fetchWebsites}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-white rounded-lg border border-gray-200 transition-all duration-200 flex items-center space-x-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                <span>Actualiser</span>
-              </button>
               <button
                 onClick={() => setShowForm(true)}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"

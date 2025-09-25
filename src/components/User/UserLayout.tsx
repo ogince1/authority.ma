@@ -159,7 +159,6 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
           { name: 'Mes Liens Existants', href: '/dashboard/link-listings', icon: FileText },
           { name: 'Demandes Reçues', href: '/dashboard/purchase-requests', icon: MessageSquare },
           { name: 'Mon Solde', href: '/dashboard/balance', icon: Wallet },
-          { name: 'Préférences Email', href: '/dashboard/email-preferences', icon: Mail },
           { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },
         ];
            case 'advertiser':
@@ -169,7 +168,6 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
               { name: 'Mes Demandes', href: '/dashboard/purchase-requests', icon: FileText },
               { name: 'Services', href: '/dashboard/services', icon: Settings },
                { name: 'Mon Solde', href: '/dashboard/balance', icon: Wallet },
-               { name: 'Préférences Email', href: '/dashboard/email-preferences', icon: Mail },
                { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },
              ];
       default:

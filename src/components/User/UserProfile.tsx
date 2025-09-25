@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Save, User, Mail, Phone, Globe, FileText, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getCurrentUser, updateUserProfile, getUserProfile } from '../../lib/supabase';
+// import EmailPreferences from './EmailPreferences';
 import toast from 'react-hot-toast';
 import PublisherPaymentSettings from './PublisherPaymentSettings';
 
@@ -88,21 +89,21 @@ const UserProfile: React.FC = () => {
         <p className="text-gray-600">Gérez vos informations personnelles et de paiement</p>
       </div>
 
-      {/* Onglets - Seulement pour les éditeurs */}
-      {profile?.role === 'publisher' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`px-6 py-3 text-sm font-medium ${
-                activeTab === 'profile'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <User className="h-4 w-4 inline mr-2" />
-              Informations Personnelles
-            </button>
+      {/* Onglets */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`px-6 py-3 text-sm font-medium ${
+              activeTab === 'profile'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <User className="h-4 w-4 inline mr-2" />
+            Informations Personnelles
+          </button>
+          {profile?.role === 'publisher' && (
             <button
               onClick={() => setActiveTab('payment')}
               className={`px-6 py-3 text-sm font-medium ${
@@ -114,12 +115,101 @@ const UserProfile: React.FC = () => {
               <CreditCard className="h-4 w-4 inline mr-2" />
               Informations de Paiement
             </button>
-          </div>
+          )}
+          <button
+            onClick={() => setActiveTab('email')}
+            className={`px-6 py-3 text-sm font-medium ${
+              activeTab === 'email'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Mail className="h-4 w-4 inline mr-2" />
+            Préférences Email
+          </button>
         </div>
-      )}
+      </div>
 
       {/* Contenu selon l'onglet */}
-      {(!profile?.role || profile?.role !== 'publisher' || activeTab === 'profile') && (
+      {activeTab === 'email' ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Mail className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Préférences Email</h2>
+              <p className="text-gray-600">Gérez vos préférences de notification par email</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Mail className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-900">Emails de bienvenue</h3>
+                  <p className="text-sm text-gray-600">Recevoir des emails de bienvenue et d'onboarding</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-medium text-green-600">Activé</span>
+                <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-blue-600">
+                  <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Mail className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-900">Notifications de commandes</h3>
+                  <p className="text-sm text-gray-600">Être notifié des nouvelles commandes et de leur statut</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-medium text-green-600">Activé</span>
+                <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-blue-600">
+                  <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Mail className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-900">Emails marketing</h3>
+                  <p className="text-sm text-gray-600">Recevoir des offres spéciales et des nouveautés (toujours activé)</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <span className="text-sm font-medium text-green-600">Activé</span>
+                <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-blue-600 cursor-not-allowed opacity-75">
+                  <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="text-sm font-medium text-blue-900 mb-2">Informations importantes</h3>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Les emails de sécurité (réinitialisation de mot de passe) sont toujours envoyés</li>
+              <li>• Les emails marketing sont toujours activés pour vous tenir informé des nouveautés</li>
+              <li>• Vous pouvez modifier vos préférences à tout moment</li>
+              <li>• Vous recevrez toujours les notifications critiques</li>
+            </ul>
+          </div>
+        </div>
+      ) : (!profile?.role || profile?.role !== 'publisher' || activeTab === 'profile') && (
         <>
         {/* Profile Form */}
         <motion.div

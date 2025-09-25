@@ -53,6 +53,9 @@ const QuickBuyPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 50000 });
+  const [trafficRange, setTrafficRange] = useState<{ min: number; max: number }>({ min: 0, max: 1000000 });
+  const [trustFlowRange, setTrustFlowRange] = useState<{ min: number; max: number }>({ min: 0, max: 100 });
+  const [keywordsRange, setKeywordsRange] = useState<{ min: number; max: number }>({ min: 0, max: 100000 });
   const [localFilters, setLocalFilters] = useState<Record<string, { search: string; priceRange: { min: number; max: number } }>>({});
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState<number>(0);
@@ -68,7 +71,7 @@ const QuickBuyPage: React.FC = () => {
   // Réinitialiser la page quand les filtres changent
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, priceRange]);
+  }, [searchTerm, selectedCategory, priceRange, trafficRange, trustFlowRange, keywordsRange]);
 
   const loadData = async () => {
     try {
@@ -106,9 +109,11 @@ const QuickBuyPage: React.FC = () => {
               name: website.title || website.name || 'Site sans nom',
               url: website.url || '',
               category: website.category || 'various',
-              tf: website.domain_authority || 0,
+              tf: website.metrics?.domain_authority || 0, // Trust Flow
               cf: 0, // Pas de CF dans websites
-              description: website.description || ''
+              description: website.description || '',
+              monthly_traffic: website.metrics?.monthly_traffic || 0,
+              organic_keywords: website.metrics?.organic_keywords || 0
             },
             existingArticles: siteArticles,
             newArticle: {
@@ -162,7 +167,12 @@ const QuickBuyPage: React.FC = () => {
     const matchesPrice = (newArticle?.price || 0) >= priceRange.min && (newArticle?.price || 0) <= priceRange.max ||
                          existingArticles.some(article => (article?.price || 0) >= priceRange.min && (article?.price || 0) <= priceRange.max);
     
-    return matchesSearch && matchesCategory && matchesPrice;
+    // Filtres pour les métriques
+    const matchesTraffic = (website?.monthly_traffic || 0) >= trafficRange.min && (website?.monthly_traffic || 0) <= trafficRange.max;
+    const matchesTrustFlow = (website?.tf || 0) >= trustFlowRange.min && (website?.tf || 0) <= trustFlowRange.max;
+    const matchesKeywords = (website?.organic_keywords || 0) >= keywordsRange.min && (website?.organic_keywords || 0) <= keywordsRange.max;
+    
+    return matchesSearch && matchesCategory && matchesPrice && matchesTraffic && matchesTrustFlow && matchesKeywords;
   }) : [];
 
   // Trier les sites web pour afficher ceux avec des articles en premier
@@ -588,8 +598,89 @@ const QuickBuyPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Filtres pour les métriques */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {/* Filtre Trafic mensuel (TR) */}
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-blue-800">Trafic mensuel (TR)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={trafficRange.min}
+                    onChange={(e) => setTrafficRange({ ...trafficRange, min: Number(e.target.value) })}
+                    className="w-20 px-2 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
+                  />
+                  <span className="text-blue-400">-</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={trafficRange.max}
+                    onChange={(e) => setTrafficRange({ ...trafficRange, max: Number(e.target.value) })}
+                    className="w-20 px-2 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
+                  />
+                  <span className="text-xs text-blue-600">visiteurs</span>
+                </div>
+              </div>
+
+              {/* Filtre Trust Flow (TF) */}
+              <div className="bg-purple-50 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-purple-800">Trust Flow (TF)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={trustFlowRange.min}
+                    onChange={(e) => setTrustFlowRange({ ...trustFlowRange, min: Number(e.target.value) })}
+                    className="w-20 px-2 py-2 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-sm"
+                  />
+                  <span className="text-purple-400">-</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={trustFlowRange.max}
+                    onChange={(e) => setTrustFlowRange({ ...trustFlowRange, max: Number(e.target.value) })}
+                    className="w-20 px-2 py-2 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-sm"
+                  />
+                  <span className="text-xs text-purple-600">/100</span>
+                </div>
+              </div>
+
+              {/* Filtre Mots-clés organiques (MO) */}
+              <div className="bg-emerald-50 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-emerald-800">Mots-clés (MO)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={keywordsRange.min}
+                    onChange={(e) => setKeywordsRange({ ...keywordsRange, min: Number(e.target.value) })}
+                    className="w-20 px-2 py-2 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white text-sm"
+                  />
+                  <span className="text-emerald-400">-</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={keywordsRange.max}
+                    onChange={(e) => setKeywordsRange({ ...keywordsRange, max: Number(e.target.value) })}
+                    className="w-20 px-2 py-2 border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white text-sm"
+                  />
+                  <span className="text-xs text-emerald-600">mots-clés</span>
+                </div>
+              </div>
+            </div>
+
             {/* Résumé des filtres actifs */}
-            {(searchTerm || selectedCategory !== 'all' || priceRange.min > 0 || priceRange.max < 50000) && (
+            {(searchTerm || selectedCategory !== 'all' || priceRange.min > 0 || priceRange.max < 50000 || trafficRange.min > 0 || trafficRange.max < 1000000 || trustFlowRange.min > 0 || trustFlowRange.max < 100 || keywordsRange.min > 0 || keywordsRange.max < 100000) && (
               <div className="flex flex-wrap items-center gap-2 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
                 <span className="text-sm font-medium text-emerald-800">Filtres actifs:</span>
                 {searchTerm && (
@@ -619,6 +710,39 @@ const QuickBuyPage: React.FC = () => {
                     Prix: {priceRange.min} - {priceRange.max} MAD
                     <button
                       onClick={() => setPriceRange({ min: 0, max: 50000 })}
+                      className="ml-1 text-emerald-600 hover:text-emerald-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {(trafficRange.min > 0 || trafficRange.max < 1000000) && (
+                  <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                    TR: {trafficRange.min.toLocaleString()} - {trafficRange.max.toLocaleString()} visiteurs
+                    <button
+                      onClick={() => setTrafficRange({ min: 0, max: 1000000 })}
+                      className="ml-1 text-blue-600 hover:text-blue-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {(trustFlowRange.min > 0 || trustFlowRange.max < 100) && (
+                  <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+                    TF: {trustFlowRange.min} - {trustFlowRange.max}
+                    <button
+                      onClick={() => setTrustFlowRange({ min: 0, max: 100 })}
+                      className="ml-1 text-purple-600 hover:text-purple-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {(keywordsRange.min > 0 || keywordsRange.max < 100000) && (
+                  <span className="inline-flex items-center px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
+                    MO: {keywordsRange.min.toLocaleString()} - {keywordsRange.max.toLocaleString()} mots-clés
+                    <button
+                      onClick={() => setKeywordsRange({ min: 0, max: 100000 })}
                       className="ml-1 text-emerald-600 hover:text-emerald-800"
                     >
                       <X className="h-3 w-3" />
@@ -684,20 +808,20 @@ const QuickBuyPage: React.FC = () => {
                         <p className="font-semibold text-gray-900 text-xs leading-tight truncate">{getCategoryLabel(data.website.category)}</p>
                       </div>
                       <div className="text-center bg-blue-50 rounded-md p-1.5 min-w-[45px]">
-                        <span className="text-gray-500 text-xs">TF</span>
-                        <p className="font-bold text-blue-600 text-sm">{data.website.tf}</p>
+                        <span className="text-gray-500 text-xs">TR</span>
+                        <p className="font-bold text-blue-600 text-sm">{data.website.monthly_traffic?.toLocaleString() || '0'}</p>
                       </div>
                       <div className="text-center bg-purple-50 rounded-md p-1.5 min-w-[45px]">
-                        <span className="text-gray-500 text-xs">CF</span>
-                        <p className="font-bold text-purple-600 text-sm">{data.website.cf}</p>
+                        <span className="text-gray-500 text-xs">TF</span>
+                        <p className="font-bold text-purple-600 text-sm">{data.website.tf}</p>
                       </div>
-                      <div className="text-center bg-emerald-50 rounded-md p-1.5 min-w-[55px]">
-                        <span className="text-gray-500 text-xs">Articles</span>
-                        <p className="font-bold text-emerald-600 text-sm">{data.existingArticles.length + (data.newArticle ? 1 : 0)}</p>
+                      <div className="text-center bg-emerald-50 rounded-md p-1.5 min-w-[45px]">
+                        <span className="text-gray-500 text-xs">MO</span>
+                        <p className="font-bold text-emerald-600 text-sm">{data.website.organic_keywords?.toLocaleString() || '0'}</p>
                       </div>
                       {data.newArticle && (
                         <div className="text-center bg-green-50 rounded-md p-1.5 min-w-[70px]">
-                          <span className="text-gray-500 text-xs">Nouveau</span>
+                          <span className="text-gray-500 text-xs">Prix</span>
                           <p className="font-bold text-green-600 text-xs">{data.newArticle.price.toLocaleString()} MAD</p>
                         </div>
                       )}
@@ -796,9 +920,6 @@ const QuickBuyPage: React.FC = () => {
                           <thead>
                             <tr className="border-b border-gray-200">
                               <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Site</th>
-                              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Catégorie</th>
-                              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">TF</th>
-                              <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">CF</th>
                               <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Prix</th>
                               <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Actions</th>
                             </tr>
@@ -811,15 +932,6 @@ const QuickBuyPage: React.FC = () => {
                                     <p className="font-medium text-gray-900 text-sm">{article.title}</p>
                                     <p className="text-xs text-gray-500 truncate max-w-[200px]">{article.target_url}</p>
                                   </div>
-                                </td>
-                                <td className="py-3 px-4">
-                                  <span className="text-xs text-gray-600">{getCategoryLabel(article.category || 'various')}</span>
-                                </td>
-                                <td className="py-3 px-4">
-                                  <span className="text-sm font-medium text-blue-600">{article.tf || 0}</span>
-                                </td>
-                                <td className="py-3 px-4">
-                                  <span className="text-sm font-medium text-purple-600">{article.cf || 0}</span>
                                 </td>
                                 <td className="py-3 px-4">
                                   <span className="text-sm font-bold text-emerald-600">{article.price} MAD</span>

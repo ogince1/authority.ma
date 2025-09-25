@@ -23,10 +23,17 @@ const EmailPreferences: React.FC = () => {
   const [localPreferences, setLocalPreferences] = useState(preferences);
 
   React.useEffect(() => {
-    setLocalPreferences(preferences);
+    setLocalPreferences(prev => ({
+      ...preferences,
+      marketing_emails: true // Toujours activé
+    }));
   }, [preferences]);
 
   const handlePreferenceChange = (key: keyof typeof preferences, value: boolean) => {
+    // Empêcher la modification de marketing_emails
+    if (key === 'marketing_emails') {
+      return;
+    }
     setLocalPreferences(prev => ({
       ...prev,
       [key]: value
@@ -76,7 +83,7 @@ const EmailPreferences: React.FC = () => {
     {
       key: 'marketing_emails' as const,
       title: 'Emails marketing',
-      description: 'Recevoir des offres spéciales et des nouveautés',
+      description: 'Recevoir des offres spéciales et des nouveautés (toujours activé)',
       icon: Bell
     }
   ];
@@ -131,18 +138,24 @@ const EmailPreferences: React.FC = () => {
                     {localPreferences[option.key] ? 'Activé' : 'Désactivé'}
                   </span>
                   
-                  <button
-                    onClick={() => handlePreferenceChange(option.key, !localPreferences[option.key])}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      localPreferences[option.key] ? 'bg-blue-600' : 'bg-gray-200'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        localPreferences[option.key] ? 'translate-x-6' : 'translate-x-1'
+                  {option.key === 'marketing_emails' ? (
+                    <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-blue-600 cursor-not-allowed opacity-75">
+                      <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-6" />
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handlePreferenceChange(option.key, !localPreferences[option.key])}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        localPreferences[option.key] ? 'bg-blue-600' : 'bg-gray-200'
                       }`}
-                    />
-                  </button>
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          localPreferences[option.key] ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  )}
                 </div>
               </motion.div>
             ))}

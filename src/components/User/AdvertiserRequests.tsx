@@ -13,7 +13,6 @@ import {
   Calendar,
   User,
   Globe,
-  RefreshCw,
   ChevronDown,
   ChevronUp,
   MessageCircle,
@@ -364,13 +363,6 @@ const AdvertiserRequests: React.FC = () => {
                 {requests.length} demande{requests.length > 1 ? 's' : ''} envoyée{requests.length > 1 ? 's' : ''}
               </p>
             </div>
-            <button
-              onClick={loadRequests}
-              className="flex items-center space-x-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span>Actualiser</span>
-            </button>
           </div>
         </motion.div>
 
