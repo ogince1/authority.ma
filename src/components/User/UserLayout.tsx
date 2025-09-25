@@ -111,20 +111,20 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
   React.useEffect(() => {
     const fetchUser = async () => {
       try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+      
+      if (currentUser) {
+        const profile = await getCurrentUserProfile();
+        setUserProfile(profile);
         
-        if (currentUser) {
-          const profile = await getCurrentUserProfile();
-          setUserProfile(profile);
-          
-          // Charger le solde de l'utilisateur
-          try {
-            const userBalance = await getUserBalance(currentUser.id);
-            setBalance(userBalance);
-          } catch (error) {
-            console.error('Error fetching balance:', error);
-          }
+        // Charger le solde de l'utilisateur
+        try {
+          const userBalance = await getUserBalance(currentUser.id);
+          setBalance(userBalance);
+        } catch (error) {
+          console.error('Error fetching balance:', error);
+        }
 
           // Charger les messages non lus
           loadUnreadMessages();
@@ -248,7 +248,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
 
   // Afficher un indicateur de chargement pendant que les données utilisateur sont chargées
   if (isLoading) {
-    return (
+  return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -267,13 +267,13 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
             
             {/* Logo et Menu Mobile */}
             <div className="flex items-center space-x-4">
-              <button
+            <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-              
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            
               {/* Logo Back.ma - Même que la homepage */}
               <Link to="/" className="flex items-center group">
                 <div className="relative">
@@ -301,17 +301,17 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
               
               {/* Panier - Seulement pour les annonceurs */}
               {userProfile?.role === 'advertiser' && (
-                <Link
-                  to="/panier"
-                  className="relative text-gray-700 hover:text-blue-600 transition-colors"
-                >
-                  <ShoppingCart className="h-5 w-5" />
+              <Link
+                to="/panier"
+                className="relative text-gray-700 hover:text-blue-600 transition-colors"
+              >
+                <ShoppingCart className="h-5 w-5" />
                   {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {cartCount}
-                  </span>
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartCount}
+                </span>
                   )}
-                </Link>
+              </Link>
               )}
               
               {/* Avatar avec Menu */}
@@ -386,10 +386,10 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
                 </div>
                 )}
               </div>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
       {/* Navigation Horizontale sous le Header */}
       <nav className="bg-white border-b border-gray-200 sticky top-16 z-30">
