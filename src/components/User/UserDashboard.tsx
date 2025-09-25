@@ -36,7 +36,13 @@ import {
   getCurrentUserProfile,
   getUserBalance,
   getLinkPurchaseTransactions,
-  getUserServiceRequests
+  getUserServiceRequests,
+  getWebsites,
+  getLinkListings,
+  getLinkPurchaseRequests,
+  getCreditTransactions,
+  getMessages,
+  getNotifications
 } from '../../lib/supabase';
 
 const UserDashboard: React.FC = () => {
@@ -50,6 +56,21 @@ const UserDashboard: React.FC = () => {
     activeLinks: 0,
     pendingRequests: 0,
     serviceRequests: 0
+  });
+
+  // États pour les données des éditeurs
+  const [publisherData, setPublisherData] = React.useState({
+    websitesCount: 0,
+    linkListingsCount: 0,
+    purchaseRequestsCount: 0,
+    totalEarnings: 0
+  });
+
+  // États pour les données communes
+  const [commonData, setCommonData] = React.useState({
+    messagesCount: 0,
+    notificationsCount: 0,
+    disputesCount: 0
   });
 
   React.useEffect(() => {
@@ -66,6 +87,59 @@ const UserDashboard: React.FC = () => {
           // Récupérer le solde
           const userBalance = await getUserBalance(currentUser.id);
           setBalance(userBalance);
+
+          // Si c'est un éditeur, charger ses données spécifiques
+          if (profile?.role === 'publisher') {
+            try {
+              const [websites, linkListings, purchaseRequests, transactions] = await Promise.all([
+                getWebsites({ user_id: currentUser.id }),
+                getLinkListings({ user_id: currentUser.id }),
+                getLinkPurchaseRequests({ publisher_id: currentUser.id }),
+                getCreditTransactions(currentUser.id)
+              ]);
+
+              const totalEarnings = transactions
+                .filter(t => t.type === 'commission' || t.type === 'deposit')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+              setPublisherData({
+                websitesCount: websites.length,
+                linkListingsCount: linkListings.length,
+                purchaseRequestsCount: purchaseRequests.length,
+                totalEarnings
+              });
+
+              console.log('📊 Données éditeur chargées:', {
+                websites: websites.length,
+                linkListings: linkListings.length,
+                purchaseRequests: purchaseRequests.length,
+                totalEarnings
+              });
+            } catch (error) {
+              console.error('Erreur lors du chargement des données éditeur:', error);
+            }
+          }
+
+          // Charger les données communes (messages, notifications, disputes)
+          try {
+            const [messages, notifications] = await Promise.all([
+              getMessages(currentUser.id),
+              getNotifications(currentUser.id)
+            ]);
+
+            setCommonData({
+              messagesCount: messages.length,
+              notificationsCount: notifications.length,
+              disputesCount: 0 // Pas de fonction disputes pour l'instant
+            });
+
+            console.log('📊 Données communes chargées:', {
+              messages: messages.length,
+              notifications: notifications.length
+            });
+          } catch (error) {
+            console.error('Erreur lors du chargement des données communes:', error);
+          }
 
           // Récupérer les statistiques
           const [purchases, serviceRequests] = await Promise.all([
@@ -99,28 +173,28 @@ const UserDashboard: React.FC = () => {
   const publisherStats = [
     {
       name: 'Mes Sites Web',
-      value: 0,
+      value: publisherData.websitesCount,
       icon: Globe,
       color: 'bg-blue-500',
       href: '/dashboard/websites'
     },
     {
       name: 'Mes Liens Existants',
-      value: 0,
+      value: publisherData.linkListingsCount,
       icon: LinkIcon,
       color: 'bg-green-500',
       href: '/dashboard/link-listings'
     },
     {
       name: 'Demandes Reçues',
-      value: 0,
+      value: publisherData.purchaseRequestsCount,
       icon: MessageSquare,
       color: 'bg-purple-500',
       href: '/dashboard/purchase-requests'
     },
     {
       name: 'Revenus Totaux',
-      value: '0 MAD',
+      value: `${publisherData.totalEarnings} MAD`,
       icon: DollarSign,
       color: 'bg-yellow-500',
       href: '/dashboard/transactions'
@@ -189,21 +263,21 @@ const UserDashboard: React.FC = () => {
   const commonStats = [
     {
       name: 'Messages',
-      value: 0,
+      value: commonData.messagesCount,
       icon: MessageSquare,
       color: 'bg-indigo-500',
       href: '/dashboard/messages'
     },
     {
       name: 'Notifications',
-      value: 0,
+      value: commonData.notificationsCount,
       icon: Bell,
       color: 'bg-red-500',
       href: '/dashboard/notifications'
     },
     {
       name: 'Mes Disputes',
-      value: 0,
+      value: commonData.disputesCount,
       icon: AlertTriangle,
       color: 'bg-orange-500',
       href: '/disputes'

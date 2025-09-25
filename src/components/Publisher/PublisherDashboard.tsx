@@ -10,6 +10,7 @@ import {
   getCurrentUserProfile
 } from '../../lib/supabase';
 import { LinkPurchaseRequest, CreditTransaction, User } from '../../types';
+import { RefreshCw, Bell, DollarSign, TrendingUp, Users, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 const PublisherDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +25,8 @@ const PublisherDashboard: React.FC = () => {
   const [responseText, setResponseText] = useState('');
   const [placedUrl, setPlacedUrl] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   // Fonction pour recharger le solde
   const refreshBalance = async () => {
@@ -35,6 +38,32 @@ const PublisherDashboard: React.FC = () => {
       } catch (error) {
         console.error('Error refreshing publisher balance:', error);
       }
+    }
+  };
+
+  // Fonction pour recharger toutes les données
+  const refreshAllData = async () => {
+    if (!user) return;
+    
+    setRefreshing(true);
+    try {
+      // Recharger les demandes d'achat
+      const requests = await getLinkPurchaseRequests(user.id);
+      setPurchaseRequests(requests);
+      
+      // Recharger le solde
+      await refreshBalance();
+      
+      // Recharger les transactions
+      const userTransactions = await getCreditTransactions(user.id);
+      setTransactions(userTransactions);
+      
+      setLastSyncTime(new Date());
+      console.log('🔄 Données éditeur synchronisées');
+    } catch (error) {
+      console.error('Error refreshing publisher data:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -71,6 +100,9 @@ const PublisherDashboard: React.FC = () => {
           date_from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() // 30 derniers jours
         });
         setTransactions(userTransactions.slice(0, 10)); // 10 plus récentes
+        
+        // Initialiser le temps de synchronisation
+        setLastSyncTime(new Date());
 
       } catch (error) {
         console.error('Erreur lors du chargement des données:', error);
@@ -81,7 +113,16 @@ const PublisherDashboard: React.FC = () => {
     };
 
     loadData();
-  }, [navigate]);
+
+    // Rafraîchissement automatique toutes les 30 secondes
+    const interval = setInterval(() => {
+      if (user) {
+        refreshAllData();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [navigate, user]);
 
   // Écouter les événements de mise à jour du solde
   useEffect(() => {
@@ -264,34 +305,70 @@ const PublisherDashboard: React.FC = () => {
     <div className="max-w-7xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-lg p-8">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Dashboard Éditeur
-          </h1>
-          <div className="text-right">
-            <p className="text-sm text-gray-600">Bonjour, {user?.name}</p>
-            <p className="text-lg font-medium text-green-600">
-              Solde: {balance} MAD
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Dashboard Éditeur
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">
+              Dernière mise à jour: {lastSyncTime ? lastSyncTime.toLocaleTimeString() : 'Jamais'}
+              {refreshing && <span className="ml-2 text-blue-600">🔄 Synchronisation en cours...</span>}
             </p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={refreshAllData}
+              disabled={refreshing}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>{refreshing ? 'Synchronisation...' : 'Synchroniser'}</span>
+            </button>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Bonjour, {user?.name}</p>
+              <p className="text-lg font-medium text-green-600">
+                Solde: {balance} MAD
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Statistiques */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-blue-50 p-6 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600">{stats.totalRequests}</div>
-            <div className="text-sm text-gray-600">Total demandes</div>
+          <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-blue-600">{stats.totalRequests}</div>
+                <div className="text-sm text-gray-600">Total demandes</div>
+              </div>
+              <Bell className="h-8 w-8 text-blue-600" />
+            </div>
           </div>
-          <div className="bg-yellow-50 p-6 rounded-lg">
-            <div className="text-2xl font-bold text-yellow-600">{stats.pendingRequests}</div>
-            <div className="text-sm text-gray-600">En attente</div>
+          <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-yellow-600">{stats.pendingRequests}</div>
+                <div className="text-sm text-gray-600">En attente</div>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-600" />
+            </div>
           </div>
-          <div className="bg-green-50 p-6 rounded-lg">
-            <div className="text-2xl font-bold text-green-600">{stats.acceptedRequests}</div>
-            <div className="text-sm text-gray-600">Acceptées</div>
+          <div className="bg-green-50 p-6 rounded-lg border border-green-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-green-600">{stats.acceptedRequests}</div>
+                <div className="text-sm text-gray-600">Acceptées</div>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
           </div>
-          <div className="bg-purple-50 p-6 rounded-lg">
-            <div className="text-2xl font-bold text-purple-600">{stats.totalEarnings} MAD</div>
-            <div className="text-sm text-gray-600">Gains totaux</div>
+          <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-2xl font-bold text-purple-600">{stats.totalEarnings} MAD</div>
+                <div className="text-sm text-gray-600">Gains totaux</div>
+              </div>
+              <DollarSign className="h-8 w-8 text-purple-600" />
+            </div>
           </div>
         </div>
 

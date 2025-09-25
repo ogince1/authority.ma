@@ -116,12 +116,18 @@ const BalanceManager: React.FC = () => {
     console.log('🔍 Debug - Méthode de paiement sélectionnée:', paymentMethod);
     console.log('🔍 Debug - Montant:', amount);
 
-    // Pour PayPal et Stripe, ouvrir le modal de paiement
-    if (paymentMethod === 'paypal' || paymentMethod === 'stripe') {
+    // Pour PayPal, ouvrir le modal de paiement
+    if (paymentMethod === 'paypal') {
       console.log('🔍 Debug - Ouverture du modal de paiement pour:', paymentMethod);
       setSelectedPaymentMethod(paymentMethod);
       setShowPaymentModal(true);
       console.log('🔍 Debug - showPaymentModal mis à true');
+      return;
+    }
+
+    // Empêcher le paiement par carte bancaire
+    if (paymentMethod === 'stripe') {
+      toast.error('Le paiement par carte bancaire est temporairement indisponible. Veuillez choisir une autre méthode.');
       return;
     }
 
@@ -319,109 +325,164 @@ const BalanceManager: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion du Solde</h1>
-          <p className="text-gray-600 mt-1">
-            Gérez votre solde et consultez vos transactions
-          </p>
-        </div>
-      </div>
-
-      {/* Solde actuel */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-lg p-6 text-white"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-blue-100 text-sm font-medium">Solde actuel</p>
-            <p className="text-3xl font-bold">{balance.toLocaleString()} MAD</p>
-            <p className="text-blue-100 text-sm mt-1">
-              {balance > 0 ? 'Fonds disponibles' : 'Solde insuffisant'}
-            </p>
-          </div>
-          <Wallet className="h-12 w-12 text-blue-200" />
-        </div>
-      </motion.div>
-
-      {/* Actions selon le rôle */}
-      <div className={`grid gap-4 ${userRole === 'publisher' || userRole === 'advertiser' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
-        {/* Annonceurs : Seulement ajouter des fonds */}
-        {userRole === 'advertiser' && (
-          <button
-            onClick={() => setShowAddFunds(true)}
-            className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Ajouter des fonds</span>
-          </button>
-        )}
-        
-        {/* Éditeurs : Seulement retirer des fonds */}
-        {userRole === 'publisher' && (
-          <div className="space-y-3">
-            <button
-              onClick={() => setShowWithdraw(true)}
-              disabled={balance <= 0}
-              className="w-full bg-red-600 text-white p-4 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Minus className="h-5 w-5" />
-              <span>Retirer mes revenus</span>
-            </button>
-            <div className="text-xs text-gray-500 text-center">
-              ⚠️ Frais de plateforme : 20% déduits automatiquement
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header moderne */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Gestion du Solde
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Gérez votre solde et consultez vos transactions
+              </p>
             </div>
           </div>
-        )}
-        
-        {/* Admin ou rôle non défini : Les deux boutons */}
-        {(!userRole || (userRole !== 'advertiser' && userRole !== 'publisher')) && (
-          <>
-            <button
-              onClick={() => setShowAddFunds(true)}
-              className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
-            >
-              <Plus className="h-5 w-5" />
-              <span>Ajouter des fonds</span>
-            </button>
-            <button
-              onClick={() => setShowWithdraw(true)}
-              disabled={balance <= 0}
-              className="bg-red-600 text-white p-4 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Minus className="h-5 w-5" />
-              <span>Retirer des fonds</span>
-            </button>
-          </>
-        )}
-      </div>
+        </motion.div>
 
-      {/* Historique des transactions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-100">
+        {/* Solde actuel */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg border border-white/20 mb-8"
+        >
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Historique des transactions</h2>
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">Toutes</option>
-                <option value="deposit">Dépôts</option>
-                <option value="withdrawal">Retraits</option>
-                <option value="purchase">Achats</option>
-                <option value="refund">Remboursements</option>
-                <option value="commission">Commissions</option>
-              </select>
+            <div>
+              <p className="text-gray-600 text-sm font-medium mb-2">Solde actuel</p>
+              <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                {balance.toLocaleString()} MAD
+              </p>
+              <p className="text-gray-600 text-sm mt-2">
+                {balance > 0 ? 'Fonds disponibles' : 'Solde insuffisant'}
+              </p>
+            </div>
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl flex items-center justify-center">
+              <Wallet className="h-8 w-8 text-blue-600" />
             </div>
           </div>
-        </div>
+        </motion.div>
+
+        {/* Actions selon le rôle */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className={`grid gap-6 ${userRole === 'publisher' || userRole === 'advertiser' ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} mb-8`}
+        >
+          {/* Annonceurs : Seulement ajouter des fonds */}
+          {userRole === 'advertiser' && (
+            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Plus className="h-6 w-6 text-green-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Ajouter des fonds</h3>
+                <p className="text-gray-600 text-sm mb-4">Rechargez votre compte pour effectuer des achats</p>
+                <button
+                  onClick={() => setShowAddFunds(true)}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  <Plus className="h-5 w-5" />
+                  <span>Ajouter des fonds</span>
+                </button>
+              </div>
+            </div>
+          )}
+        
+          {/* Éditeurs : Seulement retirer des fonds */}
+          {userRole === 'publisher' && (
+            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-red-100 to-pink-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Minus className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Retirer mes revenus</h3>
+                <p className="text-gray-600 text-sm mb-4">Retirez vos gains de la plateforme</p>
+                <button
+                  onClick={() => setShowWithdraw(true)}
+                  disabled={balance <= 0}
+                  className="w-full bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  <Minus className="h-5 w-5" />
+                  <span>Retirer mes revenus</span>
+                </button>
+              </div>
+            </div>
+          )}
+        
+          {/* Admin ou rôle non défini : Les deux boutons */}
+          {(!userRole || (userRole !== 'advertiser' && userRole !== 'publisher')) && (
+            <>
+              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Plus className="h-6 w-6 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Ajouter des fonds</h3>
+                  <p className="text-gray-600 text-sm mb-4">Rechargez votre compte</p>
+                  <button
+                    onClick={() => setShowAddFunds(true)}
+                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  >
+                    <Plus className="h-5 w-5" />
+                    <span>Ajouter des fonds</span>
+                  </button>
+                </div>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/20">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-100 to-pink-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Minus className="h-6 w-6 text-red-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Retirer des fonds</h3>
+                  <p className="text-gray-600 text-sm mb-4">Retirez des fonds de votre compte</p>
+                  <button
+                    onClick={() => setShowWithdraw(true)}
+                    disabled={balance <= 0}
+                    className="w-full bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    <Minus className="h-5 w-5" />
+                    <span>Retirer des fonds</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </motion.div>
+
+        {/* Historique des transactions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20"
+        >
+          <div className="p-6 border-b border-gray-100/50">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">Historique des transactions</h2>
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-gray-400" />
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="text-sm border border-gray-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50 backdrop-blur-sm transition-all duration-200"
+                >
+                  <option value="all">Toutes</option>
+                  <option value="deposit">Dépôts</option>
+                  <option value="withdrawal">Retraits</option>
+                  <option value="purchase">Achats</option>
+                  <option value="refund">Remboursements</option>
+                  <option value="commission">Commissions</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
         <div className="p-6">
           {filteredTransactions.length === 0 ? (
@@ -461,6 +522,7 @@ const BalanceManager: React.FC = () => {
             </div>
           )}
         </div>
+        </motion.div>
       </div>
 
       {/* Modal Ajouter des fonds - Seulement pour annonceurs */}
@@ -495,14 +557,52 @@ const BalanceManager: React.FC = () => {
                 </label>
                 <select
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value as any)}
+                  onChange={(e) => {
+                    const selectedMethod = e.target.value as any;
+                    // Empêcher la sélection de Stripe (carte bancaire)
+                    if (selectedMethod === 'stripe') {
+                      toast.error('Le paiement par carte bancaire est temporairement indisponible');
+                      return;
+                    }
+                    setPaymentMethod(selectedMethod);
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="bank_transfer">Virement bancaire</option>
                   <option value="paypal">PayPal</option>
-                  <option value="stripe">Carte bancaire</option>
+                  <option value="stripe" disabled>Carte bancaire (Temporairement indisponible)</option>
                 </select>
                 
+                {/* Note d'information sur les méthodes de paiement */}
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <div className="text-blue-600 mt-0.5">💳</div>
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium">Options de paiement disponibles</p>
+                      <p>• <strong>PayPal :</strong> Vous pouvez payer avec votre compte PayPal ou directement avec votre carte bancaire</p>
+                      <p>• <strong>Virement bancaire :</strong> Paiement sécurisé par virement (traitement manuel)</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Informations PayPal */}
+                {paymentMethod === 'paypal' && (
+                  <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-start space-x-2 mb-3">
+                      <div className="text-green-600 mt-0.5">💳</div>
+                      <div className="text-sm text-green-800">
+                        <p className="font-medium">Paiement via PayPal</p>
+                        <p>Vous serez redirigé vers PayPal où vous pourrez choisir de payer avec :</p>
+                        <ul className="mt-2 ml-4 list-disc">
+                          <li>Votre compte PayPal</li>
+                          <li>Votre carte bancaire (Visa, Mastercard, etc.)</li>
+                          <li>Votre compte bancaire</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Informations bancaires pour virement */}
                 {paymentMethod === 'bank_transfer' && (
                   <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -580,15 +680,6 @@ const BalanceManager: React.FC = () => {
             
             {userRole === 'publisher' && (
               <div className="space-y-3">
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="flex items-start space-x-2">
-                    <div className="text-yellow-600 mt-0.5">⚠️</div>
-                    <div className="text-sm text-yellow-800">
-                      <p className="font-medium">Frais de plateforme</p>
-                      <p>Une commission de 20% sera déduite automatiquement de votre retrait.</p>
-                    </div>
-                  </div>
-                </div>
                 
                 {/* Informations de paiement manquantes */}
                 {(!publisherPaymentInfo?.bank_account_info?.iban && !publisherPaymentInfo?.paypal_email) && (
@@ -636,14 +727,6 @@ const BalanceManager: React.FC = () => {
                     <div className="flex justify-between">
                       <span>Montant demandé:</span>
                       <span className="font-medium">{parseFloat(amount).toLocaleString()} MAD</span>
-                    </div>
-                    <div className="flex justify-between text-red-600">
-                      <span>Frais de plateforme (20%):</span>
-                      <span className="font-medium">-{(parseFloat(amount) * 0.20).toLocaleString()} MAD</span>
-                    </div>
-                    <div className="flex justify-between border-t border-gray-200 pt-1 mt-1 font-semibold text-green-600">
-                      <span>Montant net reçu:</span>
-                      <span>{(parseFloat(amount) * 0.80).toLocaleString()} MAD</span>
                     </div>
                   </div>
                 )}

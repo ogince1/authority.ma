@@ -209,7 +209,7 @@ const LinkListingForm: React.FC<LinkListingFormProps> = ({
               {/* Titre */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Titre de l'annonce *
+                  Titre de l'article (H1) *
                 </label>
                 <input
                   type="text"
@@ -217,22 +217,7 @@ const LinkListingForm: React.FC<LinkListingFormProps> = ({
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ex: Titre de la page"
-                />
-              </div>
-
-              {/* Description */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  required
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Décrivez votre annonce de lien..."
+                  placeholder="Ex: Titre de l'article"
                 />
               </div>
 
@@ -281,43 +266,7 @@ const LinkListingForm: React.FC<LinkListingFormProps> = ({
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Type de lien */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Type de lien *
-                </label>
-                <select
-                  value={formData.link_type}
-                  onChange={(e) => handleInputChange('link_type', e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="dofollow">Dofollow</option>
-                  <option value="nofollow">Nofollow</option>
-                  <option value="sponsored">Sponsored</option>
-                  <option value="ugc">UGC</option>
-                </select>
-              </div>
 
-              {/* Position */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Position *
-                </label>
-                <select
-                  value={formData.position}
-                  onChange={(e) => handleInputChange('position', e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="header">Header</option>
-                  <option value="footer">Footer</option>
-                  <option value="sidebar">Sidebar</option>
-                  <option value="content">Content</option>
-                  <option value="menu">Menu</option>
-                  <option value="popup">Popup</option>
-                </select>
-              </div>
 
               {/* Prix */}
               <div>
@@ -337,21 +286,6 @@ const LinkListingForm: React.FC<LinkListingFormProps> = ({
                 <p className="text-xs text-gray-500 mt-1">Prix unique à payer une fois</p>
               </div>
 
-              {/* Durée minimale */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Durée minimale (mois)
-                </label>
-                <input
-                  type="number"
-                  value={formData.minimum_contract_duration}
-                  onChange={(e) => handleInputChange('minimum_contract_duration', parseInt(e.target.value))}
-                  min="1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="1"
-                />
-                <p className="text-xs text-gray-500 mt-1">Durée minimale d'engagement</p>
-              </div>
 
               {/* Max liens par page */}
               <div>
