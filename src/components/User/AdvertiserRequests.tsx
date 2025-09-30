@@ -501,7 +501,7 @@ const AdvertiserRequests: React.FC<AdvertiserRequestsProps> = ({ initialUser }) 
                     </div>
                     
                     {/* Lien de l'article existant */}
-                    {request.link_listing?.target_url && (
+                    {request.link_listing?.target_url && !request.content_option && (
                       <div className="bg-blue-50 rounded-xl p-4">
                         <div className="flex items-center space-x-2 mb-2">
                           <ExternalLink className="h-4 w-4 text-blue-600" />
@@ -869,7 +869,7 @@ const AdvertiserRequests: React.FC<AdvertiserRequestsProps> = ({ initialUser }) 
                   </div>
                   
                   {/* Lien de l'article existant dans le modal */}
-                  {selectedRequest.link_listing?.target_url && (
+                  {selectedRequest.link_listing?.target_url && !selectedRequest.content_option && (
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                       <div className="flex items-center space-x-2 mb-2">
                         <ExternalLink className="h-4 w-4 text-blue-600" />

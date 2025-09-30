@@ -942,7 +942,7 @@ const PurchaseRequests: React.FC<PurchaseRequestsProps> = ({ initialUser }) => {
                     <div>
                       <span className="text-sm text-gray-600">Type de demande</span>
                       <div className="mt-1">
-                        {request.link_listing?.title && request.link_listing.title.startsWith('Nouvel article') ? (
+                        {request.content_option === 'platform' || request.content_option === 'custom' ? (
                           <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
                             📝 Nouvel article à créer
                           </span>
@@ -1393,7 +1393,7 @@ const PurchaseRequests: React.FC<PurchaseRequestsProps> = ({ initialUser }) => {
               <div>
                 <p className="text-sm text-gray-600">Type de demande</p>
                 <div className="mt-1">
-                  {selectedRequest.link_listing?.title && selectedRequest.link_listing.title.startsWith('Nouvel article') ? (
+                  {selectedRequest.content_option === 'platform' || selectedRequest.content_option === 'custom' ? (
                     <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
                       📝 Nouvel article à créer
                     </span>
