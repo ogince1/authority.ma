@@ -32,6 +32,8 @@ interface FormData {
   url: string;
   category: WebsiteCategory;
   available_link_spots: number;
+  new_article_price: number;
+  is_new_article: boolean;
   languages: string[];
   metrics: {
     monthly_traffic: number;
@@ -63,6 +65,8 @@ const WebsiteForm: React.FC<WebsiteFormProps> = ({
       url: website?.url || '',
       category: website?.category || 'blog',
       available_link_spots: website?.available_link_spots || 1,
+      new_article_price: website?.new_article_price || 10,
+      is_new_article: website?.is_new_article || false,
       languages: website?.languages || ['Français'],
       metrics: {
         monthly_traffic: website?.metrics?.monthly_traffic || 0,
