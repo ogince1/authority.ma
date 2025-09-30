@@ -18,6 +18,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 import { LinkPurchaseRequest } from '../../types';
+import RichTextEditor from '../Editor/RichTextEditor';
 
 const PurchaseRequestsManagement: React.FC = () => {
   const [requests, setRequests] = useState<LinkPurchaseRequest[]>([]);
@@ -493,15 +494,15 @@ const PurchaseRequestsManagement: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Contenu de l'article
                 </label>
-                <textarea
+                <RichTextEditor
                   value={articleContent}
-                  onChange={(e) => setArticleContent(e.target.value)}
+                  onChange={setArticleContent}
+                  placeholder="Rédigez l'article complet ici avec formatage professionnel..."
                   rows={15}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Rédigez ici le contenu de l'article..."
+                  className="w-full"
                 />
                 <p className="text-sm text-gray-500 mt-1">
-                  {articleContent.length} caractères
+                  {articleContent.replace(/<[^>]*>/g, '').length} caractères
                 </p>
               </div>
             </div>

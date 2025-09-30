@@ -416,9 +416,9 @@ const CartPage: React.FC = () => {
       window.dispatchEvent(new CustomEvent('balance-updated'));
       window.dispatchEvent(new CustomEvent('purchase-completed'));
       
-      // Rediriger vers le dashboard
+      // Rediriger vers l'onglet "Mes demandes" pour l'annonceur
       setTimeout(() => {
-        navigate('/dashboard', { replace: true });
+        navigate('/dashboard/purchase-requests', { replace: true });
       }, 1000);
     } catch (error) {
       console.error('Error processing purchases:', error);

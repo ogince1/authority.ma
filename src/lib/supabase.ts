@@ -1988,17 +1988,28 @@ export const acceptPurchaseRequest = async (requestId: string): Promise<{ succes
     // Récupérer le taux de commission depuis les paramètres de la plateforme
     const settings = await getPlatformSettings();
     const commissionRate = (settings.commission_rate || 15) / 100; // 15% par défaut
-    const publisherCommission = request.proposed_price * (1 - commissionRate); // Montant après commission
     
-    console.log(`💰 Commission calculée: ${(request.proposed_price * commissionRate).toFixed(2)} MAD (${(commissionRate * 100).toFixed(1)}%)`);
+    // Vérifier si c'est un article avec rédaction par la plateforme
+    const isPlatformContent = request.content_option === 'platform';
+    const platformContentRevenue = isPlatformContent ? 90 : 0; // Bénéfice de la rédaction pour la plateforme
+    
+    // ✅ CORRECTION: La commission est calculée UNIQUEMENT sur le prix du lien
+    const linkPrice = isPlatformContent ? request.proposed_price - 90 : request.proposed_price; // Prix du lien seul
+    const commissionAmount = linkPrice * commissionRate; // Commission uniquement sur le prix du lien
+    const publisherCommission = linkPrice - commissionAmount; // L'éditeur reçoit le prix du lien moins la commission
+    const platformNetAmount = commissionAmount + platformContentRevenue; // La plateforme garde la commission + le bénéfice de la rédaction
+    
+    console.log(`💰 Prix du lien: ${linkPrice.toFixed(2)} MAD`);
+    console.log(`💰 Commission calculée: ${commissionAmount.toFixed(2)} MAD (${(commissionRate * 100).toFixed(1)}% sur le lien)`);
+    console.log(`💰 Bénéfice rédaction plateforme: ${platformContentRevenue.toFixed(2)} MAD`);
     console.log(`💰 Montant éditeur: ${publisherCommission.toFixed(2)} MAD`);
+    console.log(`💰 Bénéfice total plateforme: ${platformNetAmount.toFixed(2)} MAD`);
     
     await createCreditTransaction({
       user_id: request.publisher_id,
       type: 'commission',
       amount: publisherCommission,
-      description: `Commission pour lien: ${request.link_listings?.title}`,
-      status: 'completed'
+      description: `Commission pour lien: ${request.link_listings?.title}`
     });
 
     console.log(`💰 Éditeur crédité: ${publisherCommission} MAD pour la demande ${requestId}`);
@@ -3748,21 +3759,28 @@ export const acceptPurchaseRequestWithUrl = async (requestId: string, placedUrl:
     const settings = await getPlatformSettings();
     const commissionRate = (settings.commission_rate || 15) / 100; // 15% par défaut
     
-    // Calculer le montant de la commission
-    const totalAmount = request.proposed_price;
-    const commissionAmount = totalAmount * commissionRate;
-    const publisherAmount = totalAmount - commissionAmount;
+    // Vérifier si c'est un article avec rédaction par la plateforme
+    const isPlatformContent = request.content_option === 'platform';
+    const platformContentRevenue = isPlatformContent ? 90 : 0; // Bénéfice de la rédaction pour la plateforme
+    
+    // ✅ CORRECTION: La commission est calculée UNIQUEMENT sur le prix du lien
+    const linkPrice = isPlatformContent ? request.proposed_price - 90 : request.proposed_price; // Prix du lien seul
+    const commissionAmount = linkPrice * commissionRate; // Commission uniquement sur le prix du lien
+    const publisherAmount = linkPrice - commissionAmount; // L'éditeur reçoit le prix du lien moins la commission
+    const platformNetAmount = commissionAmount + platformContentRevenue; // La plateforme garde la commission + le bénéfice de la rédaction
 
-    console.log(`💰 Commission calculée: ${commissionAmount.toFixed(2)} MAD (${(commissionRate * 100).toFixed(1)}%)`);
+    console.log(`💰 Prix du lien: ${linkPrice.toFixed(2)} MAD`);
+    console.log(`💰 Commission calculée: ${commissionAmount.toFixed(2)} MAD (${(commissionRate * 100).toFixed(1)}% sur le lien)`);
+    console.log(`💰 Bénéfice rédaction plateforme: ${platformContentRevenue.toFixed(2)} MAD`);
     console.log(`💰 Montant éditeur: ${publisherAmount.toFixed(2)} MAD`);
+    console.log(`💰 Bénéfice total plateforme: ${platformNetAmount.toFixed(2)} MAD`);
 
-    // Créditer l'éditeur avec le montant après commission
+    // Créditer l'éditeur avec le montant après commission (sans le bénéfice de la rédaction)
     await createCreditTransaction({
       user_id: request.publisher_id,
       type: 'commission',
       amount: publisherAmount,
-      description: `Commission pour lien: ${request.link_listings?.title}`,
-      status: 'completed'
+      description: `Commission pour lien: ${request.link_listings?.title}`
     });
 
     // Mettre à jour le statut de la demande avec l'URL placée
