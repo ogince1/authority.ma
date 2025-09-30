@@ -1,0 +1,109 @@
+# Robots.txt pour Back.ma - Plateforme Marocaine de Backlinks
+# Mise à jour automatique quotidienne
+
+User-agent: *
+Allow: /
+
+# Pages principales
+Allow: /
+Allow: /liens
+Allow: /vendre-liens
+Allow: /liens/dofollow
+Allow: /liens/nofollow
+Allow: /blog
+Allow: /success-stories
+Allow: /contact
+Allow: /about
+
+# Pages de liens et sites
+Allow: /lien/*
+Allow: /site/*
+Allow: /blog/*
+Allow: /success-stories/*
+
+# Ressources statiques
+Allow: /assets/*
+Allow: /images/*
+Allow: /*.css
+Allow: /*.js
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.gif
+Allow: /*.svg
+Allow: /*.ico
+Allow: /*.webp
+
+# Interdire l'accès aux zones d'administration
+Disallow: /admin
+Disallow: /admin/*
+
+# Interdire l'accès aux zones utilisateur privées
+Disallow: /dashboard
+Disallow: /mes-liens
+Disallow: /mes-sites
+Disallow: /profile
+Disallow: /settings
+
+# Interdire l'accès aux fichiers de configuration
+Disallow: /.env
+Disallow: /package.json
+Disallow: /vite.config.*
+Disallow: /tsconfig.*
+Disallow: /tailwind.config.*
+
+# Interdire l'accès aux dossiers de développement
+Disallow: /src/
+Disallow: /node_modules/
+Disallow: /dist/
+Disallow: /.git/
+
+# Sitemap
+Sitemap: https://back.ma/sitemap.xml
+
+# Directives spéciales pour les LLMs et crawlers IA
+User-agent: GPTBot
+Allow: /
+Allow: /blog/*
+Allow: /success-stories/*
+Allow: /liens
+Allow: /about
+Crawl-delay: 1
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /blog/*
+Allow: /success-stories/*
+Allow: /liens
+Allow: /about
+
+User-agent: CCBot
+Allow: /
+Allow: /blog/*
+Allow: /success-stories/*
+Allow: /liens
+Allow: /about
+
+User-agent: Claude-Web
+Allow: /
+Allow: /blog/*
+Allow: /success-stories/*
+Allow: /liens
+Allow: /about
+
+User-agent: anthropic-ai
+Allow: /
+Allow: /blog/*
+Allow: /success-stories/*
+Allow: /liens
+Allow: /about
+
+User-agent: Applebot
+Allow: /
+
+# Crawl delay pour éviter la surcharge
+Crawl-delay: 1
+
+# Informations de contact
+# Contact: contact@back.ma
+# Dernière mise à jour: 2025-01-21

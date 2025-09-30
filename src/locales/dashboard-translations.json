@@ -1,0 +1,44 @@
+{
+  "fr": {
+    "Tableau de bord": "Tableau de bord",
+    "Mes Demandes": "Mes Demandes",
+    "Mon Solde": "Mon Solde",
+    "Mon Profil": "Mon Profil",
+    "Trouver des Médias": "Trouver des Médias",
+    "Mes Sites Web": "Mes Sites Web",
+    "Demandes Reçues": "Demandes Reçues",
+    "Services": "Services",
+    "Déconnexion": "Déconnexion",
+    "Bienvenue": "Bienvenue",
+    "Dernière connexion": "Dernière connexion",
+    "Solde": "Solde"
+  },
+  "en": {
+    "Tableau de bord": "Dashboard",
+    "Mes Demandes": "My Requests",
+    "Mon Solde": "My Balance",
+    "Mon Profil": "My Profile",
+    "Trouver des Médias": "Find Media",
+    "Mes Sites Web": "Websites",
+    "Demandes Reçues": "Received Requests",
+    "Services": "Services\"",
+    "Déconnexion": "Log out",
+    "Bienvenue": "Welcome",
+    "Dernière connexion": "Last login",
+    "Solde": "Discount"
+  },
+  "ar": {
+    "Tableau de bord": "لوحة القيادة",
+    "Mes Demandes": "طلباتي",
+    "Mon Solde": "رصيدي",
+    "Mon Profil": "الملف الشخصي الخاص بي",
+    "Trouver des Médias": "العثور على وسائل الإعلام",
+    "Mes Sites Web": "مواقعي على الويب",
+    "Demandes Reçues": "الطلبات المستلمة",
+    "Services": "الخدمات",
+    "Déconnexion": "فصل الاتصال",
+    "Bienvenue": "مرحباً",
+    "Dernière connexion": "آخر تسجيل دخول",
+    "Solde": "تخفيضات"
+  }
+}
