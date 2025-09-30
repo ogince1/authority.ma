@@ -251,7 +251,7 @@ const BalanceManager: React.FC = () => {
       case 'refund':
         return <Upload className="h-4 w-4 text-green-600" />;
       case 'commission':
-        return <DollarSign className="h-4 w-4 text-purple-600" />;
+        return <TrendingUp className="h-4 w-4 text-green-600" />;
       default:
         return <DollarSign className="h-4 w-4 text-gray-600" />;
     }
@@ -261,10 +261,10 @@ const BalanceManager: React.FC = () => {
     switch (type) {
       case 'deposit':
       case 'refund':
+      case 'commission':
         return 'text-green-600';
       case 'withdrawal':
       case 'purchase':
-      case 'commission':
         return 'text-red-600';
       default:
         return 'text-gray-600';
@@ -507,7 +507,7 @@ const BalanceManager: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <p className={`font-semibold ${getTransactionColor(transaction.type)}`}>
-                      {transaction.type === 'deposit' || transaction.type === 'refund' ? '+' : '-'}
+                      {transaction.type === 'deposit' || transaction.type === 'refund' || transaction.type === 'commission' ? '+' : '-'}
                       {transaction.amount.toLocaleString()} MAD
                     </p>
                     <p className="text-xs text-gray-500">
