@@ -70,8 +70,7 @@ const UserDashboard: React.FC = () => {
   // États pour les données communes
   const [commonData, setCommonData] = React.useState({
     messagesCount: 0,
-    notificationsCount: 0,
-    disputesCount: 0
+    notificationsCount: 0
   });
 
   React.useEffect(() => {
@@ -145,7 +144,7 @@ const UserDashboard: React.FC = () => {
             }
           }
 
-          // Charger les données communes (messages, notifications, disputes)
+          // Charger les données communes (messages, notifications)
           try {
             const [messages, notifications] = await Promise.all([
               getMessages(currentUser.id),
@@ -154,8 +153,7 @@ const UserDashboard: React.FC = () => {
 
             setCommonData({
               messagesCount: messages.length,
-              notificationsCount: notifications.length,
-              disputesCount: 0 // Pas de fonction disputes pour l'instant
+              notificationsCount: notifications.length
             });
 
             console.log('📊 Données communes chargées:', {
@@ -302,13 +300,6 @@ const UserDashboard: React.FC = () => {
       color: 'bg-red-500',
       href: '/dashboard/notifications'
     },
-    {
-      name: 'Mes Disputes',
-      value: commonData.disputesCount,
-      icon: AlertTriangle,
-      color: 'bg-orange-500',
-      href: '/disputes'
-    }
   ];
 
   const dashboardStats = userProfile?.role === 'publisher' 
@@ -516,15 +507,6 @@ const UserDashboard: React.FC = () => {
               <span className="text-sm font-medium text-gray-900">Messages</span>
             </Link>
             
-            <Link
-              to="/dashboard/disputes"
-              className="group flex items-center space-x-3 p-4 border border-gray-200 rounded-xl hover:border-orange-300 hover:bg-orange-50 transition-all duration-300 hover:shadow-md"
-            >
-              <div className="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
-                <AlertTriangle className="h-5 w-5 text-orange-600" />
-              </div>
-              <span className="text-sm font-medium text-gray-900">Mes Disputes</span>
-            </Link>
             
             <Link
               to="/dashboard/profile"

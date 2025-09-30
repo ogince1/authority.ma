@@ -10,10 +10,6 @@ import QuickBuyPage from '../components/User/QuickBuyPage';
 import AdvertiserServices from '../components/User/AdvertiserServices';
 import BalanceManager from '../components/User/BalanceManager';
 import PurchaseRequests from '../components/User/PurchaseRequests';
-import DisputesList from '../components/User/DisputesList';
-import CreateDisputeForm from '../components/User/CreateDisputeForm';
-import DisputeDetail from '../components/User/DisputeDetail';
-import DisputeMessages from '../components/User/DisputeMessages';
 import PurchaseHistory from '../components/User/PurchaseHistory';
 import EmailPreferences from '../components/User/EmailPreferences';
 
@@ -133,27 +129,6 @@ const UserDashboardPage: React.FC = () => {
         </ProtectedRoute>
       } />
       
-      {/* Routes pour les disputes */}
-      <Route path="/disputes" element={
-        <ProtectedRoute>
-          <DisputesList />
-        </ProtectedRoute>
-      } />
-      <Route path="/disputes/new" element={
-        <ProtectedRoute>
-          <CreateDisputeForm />
-        </ProtectedRoute>
-      } />
-      <Route path="/disputes/:id" element={
-        <ProtectedRoute>
-          <DisputeDetail />
-        </ProtectedRoute>
-      } />
-      <Route path="/disputes/:id/messages" element={
-        <ProtectedRoute>
-          <DisputeMessages />
-        </ProtectedRoute>
-      } />
       
       {/* Routes pour les annonceurs (advertisers) */}
       <Route path="/purchases" element={

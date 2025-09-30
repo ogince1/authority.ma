@@ -51,7 +51,6 @@ interface PlatformSettings {
   // Contenu
   auto_approve_websites: boolean;
   auto_approve_listings: boolean;
-  require_admin_approval_for_disputes: boolean;
   
   // Maintenance
   maintenance_mode: boolean;
@@ -80,7 +79,6 @@ const PlatformSettings: React.FC = () => {
     session_timeout_minutes: 60,
     auto_approve_websites: false,
     auto_approve_listings: true,
-    require_admin_approval_for_disputes: true,
     maintenance_mode: false,
     maintenance_message: 'La plateforme est en maintenance. Veuillez réessayer plus tard.'
   });
@@ -590,17 +588,6 @@ const PlatformSettings: React.FC = () => {
                 </label>
               </div>
               
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={settings.require_admin_approval_for_disputes}
-                  onChange={(e) => setSettings({...settings, require_admin_approval_for_disputes: e.target.checked})}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label className="ml-2 text-sm text-gray-700">
-                  Exiger l'approbation admin pour les disputes
-                </label>
-              </div>
             </div>
           </motion.div>
         )}

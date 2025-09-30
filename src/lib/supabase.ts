@@ -3717,7 +3717,6 @@ export const resetPlatformSettingsToDefaults = async (): Promise<void> => {
       { setting_key: 'session_timeout_minutes', setting_value: '60', setting_type: 'number', description: 'Durée de session en minutes', category: 'security' },
       { setting_key: 'auto_approve_websites', setting_value: 'true', setting_type: 'boolean', description: 'Approbation automatique des sites', category: 'content' },
       { setting_key: 'auto_approve_listings', setting_value: 'true', setting_type: 'boolean', description: 'Approbation automatique des annonces', category: 'content' },
-      { setting_key: 'require_admin_approval_for_disputes', setting_value: 'true', setting_type: 'boolean', description: 'Approbation admin pour les litiges', category: 'content' },
       { setting_key: 'maintenance_mode', setting_value: 'false', setting_type: 'boolean', description: 'Mode maintenance activé', category: 'maintenance' },
       { setting_key: 'maintenance_message', setting_value: 'La plateforme est en maintenance. Veuillez réessayer plus tard.', setting_type: 'string', description: 'Message de maintenance', category: 'maintenance' }
     ];

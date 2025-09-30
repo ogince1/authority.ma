@@ -184,14 +184,6 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
                       <MessageCircle className="w-4 h-4 mr-2" />
                       Mes Messages
                     </Link>
-                    <Link
-                      to="/dashboard/disputes"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <AlertTriangle className="w-4 h-4 mr-2" />
-                      Mes Disputes
-                    </Link>
                     {user.user_metadata?.role === 'admin' && (
                       <Link
                         to="/admin"

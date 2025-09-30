@@ -22,10 +22,6 @@ import PrivacyPage from './pages/PrivacyPage';
 import SitemapGenerator from './components/SEO/SitemapGenerator';
 import CartPage from './components/Cart/CartPage';
 import PaymentPage from './components/Payment/PaymentPage';
-import DisputesList from './components/User/DisputesList';
-import CreateDisputeForm from './components/User/CreateDisputeForm';
-import DisputeDetail from './components/User/DisputeDetail';
-import DisputeMessages from './components/User/DisputeMessages';
 import ErrorBoundary from './components/ErrorBoundary';
 import BrevoChatWidget from './components/Chat/BrevoChatWidget';
 import GoogleTagManager from './components/Analytics/GoogleTagManager';
@@ -95,15 +91,6 @@ function App() {
             <Route path="/dashboard/*" element={<UserDashboardPage />} />
             <Route path="/profile" element={<UserDashboardPage />} />
             
-            {/* Routes pour les disputes */}
-            <Route path="/dashboard/disputes" element={<DisputesList />} />
-            <Route path="/dashboard/disputes/new" element={<CreateDisputeForm />} />
-            <Route path="/dashboard/disputes/:id" element={<DisputeDetail />} />
-            <Route path="/dashboard/disputes/:id/messages" element={<DisputeMessages />} />
-            <Route path="/disputes" element={<DisputesList />} />
-            <Route path="/disputes/new" element={<CreateDisputeForm />} />
-            <Route path="/disputes/:id" element={<DisputeDetail />} />
-            <Route path="/disputes/:id/messages" element={<DisputeMessages />} />
             
             {/* Routes d'administration */}
             <Route path="/admin/*" element={<AdminPage />} />
