@@ -24,6 +24,15 @@ interface RichTextEditorProps {
   rows?: number;
 }
 
+interface ToolbarButton {
+  icon: any;
+  command?: string;
+  value?: string;
+  onClick?: () => void;
+  title: string;
+  label?: string;
+}
+
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
@@ -33,30 +42,60 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const isTypingRef = useRef(false); // Flag pour savoir si l'utilisateur est en train de taper
+  const isInitializedRef = useRef(false); // Flag pour savoir si l'éditeur est initialisé
+
+  // ✅ FIX: Initialisation au montage
+  useEffect(() => {
+    if (editorRef.current && !isInitializedRef.current) {
+      editorRef.current.innerHTML = value || '';
+      isInitializedRef.current = true;
+    }
+  }, []);
+
+  // ✅ FIX: Sauvegarder et restaurer la position du curseur
+  const saveCursorPosition = () => {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      return selection.getRangeAt(0);
+    }
+    return null;
+  };
+
+  const restoreCursorPosition = (range: Range | null) => {
+    if (range) {
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    }
+  };
 
   useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== value) {
+    // ✅ FIX: Ne pas réinitialiser si l'utilisateur est en train de taper
+    // Seulement mettre à jour si le contenu vient de l'extérieur (ex: chargement de données)
+    if (editorRef.current && editorRef.current.innerHTML !== value && !isTypingRef.current && isInitializedRef.current) {
+      const cursorPosition = saveCursorPosition();
       editorRef.current.innerHTML = value;
+      restoreCursorPosition(cursorPosition);
     }
   }, [value]);
 
   const handleInput = () => {
     if (editorRef.current) {
-      // S'assurer que le contenu est bien formaté en HTML
-      let content = editorRef.current.innerHTML;
+      // ✅ FIX: Indiquer que l'utilisateur est en train de taper
+      isTypingRef.current = true;
       
-      // Si le contenu est du texte brut, l'entourer de balises <p>
-      if (!content.includes('<') || content.trim() === '') {
-        content = `<p>${content}</p>`;
-      } else {
-        // S'assurer que chaque ligne de texte est dans un paragraphe
-        const lines = content.split('\n').filter(line => line.trim() !== '');
-        if (lines.length > 0 && !content.includes('<p>') && !content.includes('<div>')) {
-          content = `<p>${content.replace(/\n/g, '</p><p>')}</p>`;
-        }
-      }
-      
+      // ✅ FIX: Capturer le contenu SANS le reformater
+      // Cela préserve les balises HTML créées par execCommand (liens, listes, titres, etc.)
+      const content = editorRef.current.innerHTML;
       onChange(content);
+      
+      // ✅ FIX: Réinitialiser le flag après un court délai
+      setTimeout(() => {
+        isTypingRef.current = false;
+      }, 50);
     }
   };
 
@@ -67,8 +106,19 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   };
 
   const insertLink = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.toString().trim() === '') {
+      alert('⚠️ Veuillez d\'abord sélectionner du texte avant d\'ajouter un lien');
+      return;
+    }
+    
     const url = prompt('Entrez l\'URL du lien:');
-    if (url) {
+    if (url && url.trim()) {
+      // Valider l'URL
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        alert('⚠️ L\'URL doit commencer par http:// ou https://');
+        return;
+      }
       execCommand('createLink', url);
     }
   };
@@ -76,25 +126,31 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const insertImage = () => {
     const url = prompt('Entrez l\'URL de l\'image:');
     if (url) {
+      // Valider l'URL
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        alert('L\'URL doit commencer par http:// ou https://');
+        return;
+      }
       execCommand('insertImage', url);
     }
   };
 
   const insertHeading = (level: number) => {
-    execCommand('formatBlock', `h${level}`);
+    execCommand('formatBlock', `<h${level}>`);
   };
 
   const toolbarButtons = [
-    { icon: Bold, command: 'bold', title: 'Gras' },
-    { icon: Italic, command: 'italic', title: 'Italique' },
-    { icon: Underline, command: 'underline', title: 'Souligné' },
-    { icon: Type, onClick: () => insertHeading(2), title: 'Titre H2' },
-    { icon: Type, onClick: () => insertHeading(3), title: 'Titre H3' },
-    { icon: Link, onClick: insertLink, title: 'Insérer un lien' },
+    { icon: Bold, command: 'bold', title: 'Gras (Ctrl+B)' },
+    { icon: Italic, command: 'italic', title: 'Italique (Ctrl+I)' },
+    { icon: Underline, command: 'underline', title: 'Souligné (Ctrl+U)' },
+    { icon: Type, onClick: () => insertHeading(1), title: 'Titre H1', label: 'H1' },
+    { icon: Type, onClick: () => insertHeading(2), title: 'Titre H2', label: 'H2' },
+    { icon: Type, onClick: () => insertHeading(3), title: 'Titre H3', label: 'H3' },
+    { icon: Link, onClick: insertLink, title: 'Insérer un lien (sélectionnez d\'abord du texte)' },
     { icon: Image, onClick: insertImage, title: 'Insérer une image' },
     { icon: List, command: 'insertUnorderedList', title: 'Liste à puces' },
     { icon: ListOrdered, command: 'insertOrderedList', title: 'Liste numérotée' },
-    { icon: Quote, command: 'formatBlock', value: 'blockquote', title: 'Citation' },
+    { icon: Quote, onClick: () => execCommand('formatBlock', '<blockquote>'), title: 'Citation' },
     { icon: AlignLeft, command: 'justifyLeft', title: 'Aligner à gauche' },
     { icon: AlignCenter, command: 'justifyCenter', title: 'Centrer' },
     { icon: AlignRight, command: 'justifyRight', title: 'Aligner à droite' },
@@ -112,11 +168,23 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <button
               key={index}
               type="button"
-              onClick={() => button.onClick ? button.onClick() : execCommand(button.command!, button.value)}
-              className="p-2 hover:bg-gray-200 rounded transition-colors"
+              onClick={(e) => {
+                e.preventDefault();
+                if (button.onClick) {
+                  button.onClick();
+                } else if (button.command) {
+                  execCommand(button.command, button.value);
+                }
+              }}
+              className="p-2 hover:bg-gray-200 rounded transition-colors relative group"
               title={button.title}
             >
               <Icon className="h-4 w-4" />
+              {button.label && (
+                <span className="absolute -bottom-1 -right-1 text-[8px] font-bold bg-blue-500 text-white px-1 rounded">
+                  {button.label}
+                </span>
+              )}
             </button>
           );
         })}
@@ -134,15 +202,103 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         }`}
         style={{ minHeight: `${rows * 1.5}rem` }}
         data-placeholder={placeholder}
-        dangerouslySetInnerHTML={{ __html: value }}
+        suppressContentEditableWarning
       />
 
-      {/* Styles pour le placeholder */}
+      {/* Styles pour le placeholder et le formatage */}
       <style>{`
         [contenteditable]:empty:before {
           content: attr(data-placeholder);
           color: #9ca3af;
           pointer-events: none;
+        }
+        
+        /* Styles pour les titres */
+        [contenteditable] h1 {
+          font-size: 2em;
+          font-weight: bold;
+          margin: 0.67em 0;
+          line-height: 1.2;
+        }
+        
+        [contenteditable] h2 {
+          font-size: 1.5em;
+          font-weight: bold;
+          margin: 0.75em 0;
+          line-height: 1.3;
+        }
+        
+        [contenteditable] h3 {
+          font-size: 1.17em;
+          font-weight: bold;
+          margin: 0.83em 0;
+          line-height: 1.4;
+        }
+        
+        /* Styles pour les listes */
+        [contenteditable] ul {
+          list-style-type: disc;
+          margin: 1em 0;
+          padding-left: 2em;
+        }
+        
+        [contenteditable] ol {
+          list-style-type: decimal;
+          margin: 1em 0;
+          padding-left: 2em;
+        }
+        
+        [contenteditable] li {
+          margin: 0.5em 0;
+        }
+        
+        /* Styles pour les citations */
+        [contenteditable] blockquote {
+          border-left: 4px solid #e5e7eb;
+          padding-left: 1em;
+          margin: 1em 0;
+          color: #6b7280;
+          font-style: italic;
+        }
+        
+        /* Styles pour les liens */
+        [contenteditable] a {
+          color: #2563eb;
+          text-decoration: underline;
+          cursor: pointer;
+        }
+        
+        [contenteditable] a:hover {
+          color: #1d4ed8;
+        }
+        
+        /* Styles pour les images */
+        [contenteditable] img {
+          max-width: 100%;
+          height: auto;
+          margin: 1em 0;
+          border-radius: 0.5rem;
+        }
+        
+        /* Styles pour le texte formaté */
+        [contenteditable] strong,
+        [contenteditable] b {
+          font-weight: bold;
+        }
+        
+        [contenteditable] em,
+        [contenteditable] i {
+          font-style: italic;
+        }
+        
+        [contenteditable] u {
+          text-decoration: underline;
+        }
+        
+        /* Styles pour les paragraphes */
+        [contenteditable] p {
+          margin: 0.5em 0;
+          line-height: 1.6;
         }
       `}</style>
     </div>
