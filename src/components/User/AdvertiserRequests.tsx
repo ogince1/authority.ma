@@ -626,21 +626,35 @@ const AdvertiserRequests: React.FC<AdvertiserRequestsProps> = ({ initialUser }) 
                     </span>
                   </div>
 
-                  {/* URL placée si disponible */}
-                  {request.placed_url && (
+                  {/* URL placée si disponible - Placement terminé */}
+                  {request.placed_url && (request.status === 'placement_completed' || request.status === 'accepted' || request.status === 'confirmed') && (
                     <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <ExternalLink className="h-4 w-4 text-green-600" />
-                        <span className="text-sm font-medium text-green-800">Lien placé</span>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <span className="text-base font-semibold text-green-800">✅ Placement terminé</span>
+                        </div>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Lien publié
+                        </span>
                       </div>
-                      <a 
-                        href={request.placed_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-sm font-medium text-green-600 hover:text-green-700 break-all"
-                      >
-                        {request.placed_url}
-                      </a>
+                      <div className="bg-white border border-green-200 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <ExternalLink className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-gray-700">URL du lien placé</span>
+                        </div>
+                        <a 
+                          href={request.placed_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          <span>Voir le lien placé</span>
+                        </a>
+                        <p className="text-xs text-gray-500 mt-2 break-all">{request.placed_url}</p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -934,18 +948,32 @@ const AdvertiserRequests: React.FC<AdvertiserRequestsProps> = ({ initialUser }) 
                   
                   {selectedRequest.placed_url && (
                     <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <ExternalLink className="h-4 w-4 text-green-600" />
-                        <span className="text-sm font-medium text-green-800">URL placée</span>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <span className="text-base font-semibold text-green-800">✅ Placement terminé</span>
+                        </div>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Lien publié
+                        </span>
                       </div>
-                      <a 
-                        href={selectedRequest.placed_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-sm font-medium text-green-600 hover:text-green-700 break-all"
-                      >
-                        {selectedRequest.placed_url}
-                      </a>
+                      <div className="bg-white border border-green-200 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <ExternalLink className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-gray-700">URL du lien placé</span>
+                        </div>
+                        <a 
+                          href={selectedRequest.placed_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          <span>Voir le lien placé</span>
+                        </a>
+                        <p className="text-xs text-gray-500 mt-2 break-all">{selectedRequest.placed_url}</p>
+                      </div>
                     </div>
                   )}
                 </div>

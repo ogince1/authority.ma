@@ -295,7 +295,7 @@ const PurchaseRequests: React.FC<PurchaseRequestsProps> = ({ initialUser }) => {
         .from('link_purchase_requests')
         .update({
           status: 'placement_completed',
-          placement_url: placedUrl.trim(),
+          placed_url: placedUrl.trim(),
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedRequestId);
@@ -390,7 +390,7 @@ const PurchaseRequests: React.FC<PurchaseRequestsProps> = ({ initialUser }) => {
         .update({
           extended_status: 'placement_completed',
           status: 'accepted', // Garder le statut original pour la compatibilité
-          placement_url: placementUrl.trim(),
+          placed_url: placementUrl.trim(),
           placement_notes: placementNotes.trim() || null,
           updated_at: new Date().toISOString()
         })
@@ -1222,9 +1222,9 @@ const PurchaseRequests: React.FC<PurchaseRequestsProps> = ({ initialUser }) => {
                       Placement terminé
                     </div>
                     <div className="text-sm text-gray-500">
-                      {request.placement_url && (
+                      {request.placed_url && (
                         <a 
-                          href={request.placement_url} 
+                          href={request.placed_url} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:text-blue-700 underline"
