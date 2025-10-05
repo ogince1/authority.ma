@@ -8,6 +8,7 @@ import UserWebsitesPage from './UserWebsitesPage';
 import UserLinkListingsPage from './UserLinkListingsPage';
 import QuickBuyPage from '../components/User/QuickBuyPage';
 import AdvertiserServices from '../components/User/AdvertiserServices';
+import ReviewExchangeDashboard from '../components/User/ReviewExchange/ReviewExchangeDashboard';
 import BalanceManager from '../components/User/BalanceManager';
 import PurchaseRequests from '../components/User/PurchaseRequests';
 import PurchaseHistory from '../components/User/PurchaseHistory';
@@ -84,6 +85,13 @@ const UserDashboardPage: React.FC = () => {
       <Route path="/balance" element={
         <ProtectedRoute>
           <BalanceManager />
+        </ProtectedRoute>
+      } />
+      
+      {/* Route pour l'échange d'avis */}
+      <Route path="/review-exchange" element={
+        <ProtectedRoute>
+          <ReviewExchangeDashboard />
         </ProtectedRoute>
       } />
       

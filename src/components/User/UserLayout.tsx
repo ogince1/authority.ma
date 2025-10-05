@@ -22,7 +22,8 @@ import {
   Wallet,
   Zap,
   Package,
-  Mail
+  Mail,
+  Star
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { signOut, getCurrentUser, getCurrentUserProfile, getUserBalance } from '../../lib/supabase';
@@ -222,6 +223,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
           { name: 'Mes Sites Web', href: '/dashboard/websites', icon: FolderOpen },
           { name: 'Mes Liens Existants', href: '/dashboard/link-listings', icon: FileText },
           { name: 'Demandes Reçues', href: '/dashboard/purchase-requests', icon: MessageSquare, badge: unreadMessages > 0 ? unreadMessages : undefined },
+          { name: 'Échange d\'Avis', href: '/dashboard/review-exchange', icon: Star },
           { name: 'Mon Solde', href: '/dashboard/balance', icon: Wallet },
           { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },
         ];
@@ -231,6 +233,7 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
               { name: 'Trouver des Médias', href: '/dashboard/quick-buy', icon: Zap },
               { name: 'Mes Demandes', href: '/dashboard/purchase-requests', icon: FileText, badge: unreadMessages > 0 ? unreadMessages : undefined },
               { name: 'Services', href: '/dashboard/services', icon: Settings },
+              { name: 'Échange d\'Avis', href: '/dashboard/review-exchange', icon: Star },
                { name: 'Mon Solde', href: '/dashboard/balance', icon: Wallet },
                { name: 'Mon Profil', href: '/dashboard/profile', icon: UserIcon },
              ];

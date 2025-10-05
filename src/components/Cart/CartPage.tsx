@@ -239,7 +239,7 @@ const CartPage: React.FC = () => {
           
           const { data: website, error: websiteError } = await supabase
             .from('websites')
-            .select('user_id')
+            .select('user_id, title, category, new_article_price')
             .eq('id', websiteId)
             .single();
           
@@ -250,8 +250,49 @@ const CartPage: React.FC = () => {
           }
           
           publisherId = website.user_id;
-          // Pour les nouveaux articles, utiliser l'ID du website comme référence
-          listingId = websiteId;
+          
+          // ✅ FIX: Pour les nouveaux articles, créer d'abord une annonce dans link_listings
+          // Ceci respecte la contrainte de clé étrangère
+          const listingData = {
+            website_id: websiteId,
+            user_id: website.user_id,
+            title: `Nouvel article sur ${website.title}`,
+            description: item.contentOption === 'platform' 
+              ? 'Article rédigé par notre équipe professionnelle' 
+              : 'Article avec contenu personnalisé',
+            target_url: item.targetUrl,
+            anchor_text: item.anchorText,
+            link_type: 'dofollow',
+            position: 'content',
+            price: item.listing.price,
+            currency: 'MAD',
+            minimum_contract_duration: 1,
+            status: 'pending', // Status pending car c'est une demande en cours
+            category: website.category,
+            images: [],
+            tags: ['nouveau-article', item.contentOption || 'custom']
+          };
+
+          console.log('Création d\'une annonce temporaire pour nouveau article:', listingData.title);
+
+          const { data: createdListing, error: listingError } = await supabase
+            .from('link_listings')
+            .insert([listingData])
+            .select()
+            .single();
+
+          if (listingError) {
+            console.error('Error creating listing for new article:', listingError);
+            results.push({
+              success: false,
+              item: item.listing.title,
+              error: `Erreur création annonce: ${listingError.message}`
+            });
+            continue; // Passer à l'item suivant
+          }
+
+          console.log(`Annonce temporaire créée: ${createdListing.id}`);
+          listingId = createdListing.id; // Utiliser le vrai link_listing_id
         } else {
           // Pour les articles existants, utiliser le publisher_id du listing
           if (!item.listing.user_id) {

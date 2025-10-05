@@ -13,6 +13,7 @@ import BlogPostPage from './pages/BlogPostPage';
 import SuccessStoriesPage from './pages/SuccessStoriesPage';
 import SuccessStoryDetailPage from './pages/SuccessStoryDetailPage';
 import SitemapPage from './pages/SitemapPage';
+import ReviewExchangePage from './pages/ReviewExchangePage';
 import UserDashboardPage from './pages/UserDashboardPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -77,6 +78,9 @@ function App() {
             {/* Routes pour les histoires de succès */}
             <Route path="/success-stories" element={<SuccessStoriesPage />} />
             <Route path="/success-stories/:slug" element={<SuccessStoryDetailPage />} />
+            
+            {/* Route échange d'avis */}
+            <Route path="/echange-avis-maroc" element={<ReviewExchangePage />} />
             
             {/* Routes d'authentification */}
             <Route path="/login" element={<LoginPage />} />

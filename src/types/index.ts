@@ -705,3 +705,77 @@ export interface ServiceRequest {
     price: number;
   };
 }
+// ===== SYSTÈME D'ÉCHANGE D'AVIS =====
+
+export type ReviewPlatform = 'google' | 'trustpilot';
+
+export type ReviewRequestStatus = 
+  | 'available' 
+  | 'in_progress' 
+  | 'pending_validation' 
+  | 'completed' 
+  | 'rejected' 
+  | 'cancelled' 
+  | 'expired';
+
+export interface ReviewExchangeRequest {
+  id: string;
+  requester_id: string;
+  platform: ReviewPlatform;
+  business_name: string;
+  business_url: string;
+  category?: string;
+  instructions?: string;
+  status: ReviewRequestStatus;
+  
+  reviewer_id?: string;
+  claimed_at?: string;
+  
+  review_screenshot_url?: string;
+  review_text?: string;
+  submitted_at?: string;
+  
+  validated_at?: string;
+  rejected_at?: string;
+  rejection_reason?: string;
+  
+  created_at: string;
+  updated_at: string;
+  expires_at?: string;
+  
+  // Relations
+  requester?: User;
+  reviewer?: User;
+}
+
+export interface ReviewExchangeCredits {
+  id: string;
+  user_id: string;
+  credits_balance: number;
+  total_reviews_given: number;
+  total_reviews_received: number;
+  total_reviews_validated: number;
+  total_reviews_rejected: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewExchangeTransaction {
+  id: string;
+  user_id: string;
+  type: 'earn' | 'spend' | 'bonus' | 'refund';
+  amount: number;
+  related_request_id?: string;
+  description: string;
+  balance_before: number;
+  balance_after: number;
+  created_at: string;
+}
+
+export interface CreateReviewRequestData {
+  platform: ReviewPlatform;
+  business_name: string;
+  business_url: string;
+  category?: string;
+  instructions?: string;
+}

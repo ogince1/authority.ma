@@ -31,6 +31,7 @@ const Header: React.FC<HeaderProps> = ({ onSearchChange, searchValue = '' }) => 
   const navigation = [
     { name: 'ACQUISITION DE LIENS', href: '/liens' },
     { name: 'MONÉTISATION', href: '/vendre-liens' },
+    { name: 'ÉCHANGE D\'AVIS', href: '/echange-avis-maroc' },
     { name: 'BLOG', href: '/blog' },
   ];
 

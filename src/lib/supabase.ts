@@ -3857,3 +3857,188 @@ export const acceptPurchaseRequestWithUrl = async (requestId: string, placedUrl:
   }
 };
 
+
+// ===== SYSTÈME D'ÉCHANGE D'AVIS =====
+
+export const getReviewCredits = async (): Promise<any> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Non connecté');
+
+    const { data, error } = await supabase
+      .from('review_exchange_credits')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) {
+      // Si pas de crédits, créer l'entrée
+      if (error.code === 'PGRST116') {
+        const { data: newCredits } = await supabase
+          .from('review_exchange_credits')
+          .insert([{ user_id: user.id, credits_balance: 4 }])
+          .select()
+          .single();
+        return newCredits;
+      }
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error fetching review credits:', error);
+    throw error;
+  }
+};
+
+export const getAvailableReviewRequests = async (filters?: {
+  platform?: string;
+  category?: string;
+}): Promise<any[]> => {
+  try {
+    let query = supabase
+      .from('review_exchange_requests')
+      .select('*, requester:users!review_exchange_requests_requester_id_fkey(id, name, email)')
+      .eq('status', 'available')
+      .order('created_at', { ascending: false });
+
+    if (filters?.platform) {
+      query = query.eq('platform', filters.platform);
+    }
+    if (filters?.category) {
+      query = query.eq('category', filters.category);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching available requests:', error);
+    throw error;
+  }
+};
+
+export const getMyReviewRequests = async (): Promise<any[]> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Non connecté');
+
+    const { data, error } = await supabase
+      .from('review_exchange_requests')
+      .select('*, reviewer:users!review_exchange_requests_reviewer_id_fkey(id, name, email)')
+      .eq('requester_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching my requests:', error);
+    throw error;
+  }
+};
+
+export const getMyReviewTasks = async (): Promise<any[]> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Non connecté');
+
+    const { data, error } = await supabase
+      .from('review_exchange_requests')
+      .select('*, requester:users!review_exchange_requests_requester_id_fkey(id, name, email)')
+      .eq('reviewer_id', user.id)
+      .in('status', ['in_progress', 'pending_validation'])
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching my tasks:', error);
+    throw error;
+  }
+};
+
+export const createReviewRequest = async (requestData: any): Promise<any> => {
+  try {
+    const { data, error } = await supabase.rpc('request_review', {
+      p_platform: requestData.platform,
+      p_business_name: requestData.business_name,
+      p_business_url: requestData.business_url,
+      p_category: requestData.category || null,
+      p_instructions: requestData.instructions || null
+    });
+
+    if (error) throw error;
+    
+    if (!data.success) {
+      throw new Error(data.error);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error creating review request:', error);
+    throw error;
+  }
+};
+
+export const claimReviewRequest = async (requestId: string): Promise<any> => {
+  try {
+    const { data, error } = await supabase.rpc('claim_review_request', {
+      p_request_id: requestId
+    });
+
+    if (error) throw error;
+    
+    if (!data.success) {
+      throw new Error(data.error);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error claiming review request:', error);
+    throw error;
+  }
+};
+
+export const submitReviewProof = async (
+  requestId: string,
+  screenshotUrl: string,
+  reviewText: string
+): Promise<any> => {
+  try {
+    const { data, error } = await supabase.rpc('submit_review_proof', {
+      p_request_id: requestId,
+      p_screenshot_url: screenshotUrl,
+      p_review_text: reviewText
+    });
+
+    if (error) throw error;
+    
+    if (!data.success) {
+      throw new Error(data.error);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error submitting review proof:', error);
+    throw error;
+  }
+};
+
+export const validateReviewReceived = async (requestId: string): Promise<any> => {
+  try {
+    const { data, error } = await supabase.rpc('validate_review', {
+      p_request_id: requestId
+    });
+
+    if (error) throw error;
+    
+    if (!data.success) {
+      throw new Error(data.error);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error validating review:', error);
+    throw error;
+  }
+};
