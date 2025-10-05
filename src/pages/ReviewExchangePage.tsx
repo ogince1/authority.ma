@@ -18,10 +18,45 @@ import {
 import { Link } from 'react-router-dom';
 import Header from '../components/Layout/Header';
 import Footer from '../components/Layout/Footer';
+import SEOHead from '../components/SEO/SEOHead';
 
 const ReviewExchangePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+      <SEOHead
+        title="Échange d'Avis Google My Business & Trustpilot au Maroc | Authority.ma"
+        description="Boostez votre réputation avec notre plateforme d'échange d'avis Google My Business et Trustpilot au Maroc. 500+ entreprises marocaines, échange 1 pour 1, guidelines sécurité. Gratuit - 4 crédits offerts."
+        keywords="échange avis, Google My Business Maroc, Trustpilot Maroc, réputation en ligne, avis clients, visibilité Google, entreprises marocaines, Casablanca, Rabat, Marrakech"
+        canonicalUrl="https://authority.ma/echange-avis-maroc"
+        ogTitle="Échange d'Avis Google My Business & Trustpilot au Maroc"
+        ogDescription="La première plateforme d'échange d'avis dédiée aux entreprises marocaines. Améliorez votre visibilité Google et Trustpilot de manière sécurisée."
+        ogImage="https://authority.ma/images/echange-avis-maroc-og.jpg"
+        twitterTitle="Échange d'Avis Google My Business & Trustpilot au Maroc"
+        twitterDescription="Boostez votre réputation avec notre plateforme d'échange d'avis pour entreprises marocaines. Gratuit - 4 crédits offerts."
+        twitterImage="https://authority.ma/images/echange-avis-maroc-twitter.jpg"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": "Échange d'Avis Google My Business et Trustpilot au Maroc",
+          "description": "Plateforme d'échange d'avis pour améliorer la réputation en ligne des entreprises marocaines sur Google My Business et Trustpilot",
+          "provider": {
+            "@type": "Organization",
+            "name": "Authority.ma",
+            "url": "https://authority.ma"
+          },
+          "areaServed": {
+            "@type": "Country",
+            "name": "Maroc"
+          },
+          "serviceType": "Échange d'avis en ligne",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "MAD",
+            "description": "4 crédits gratuits à l'inscription"
+          }
+        }}
+      />
       <Header />
       
       {/* Hero Section */}
