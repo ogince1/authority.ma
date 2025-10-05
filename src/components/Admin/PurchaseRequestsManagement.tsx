@@ -41,17 +41,58 @@ const PurchaseRequestsManagement: React.FC = () => {
   const loadRequests = async () => {
     try {
       setLoading(true);
+      // ✅ FIX: Pas de JOIN avec link_listings (contrainte FK supprimée)
       const { data, error } = await supabase
         .from('link_purchase_requests')
         .select(`
           *,
           advertiser:users!link_purchase_requests_user_id_fkey(id, name, email),
-          publisher:users!link_purchase_requests_publisher_id_fkey(id, name, email),
-          link_listing:link_listings(id, title, website_id, website:websites(id, title, url))
+          publisher:users!link_purchase_requests_publisher_id_fkey(id, name, email)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
+      // ✅ FIX: Enrichir manuellement avec link_listings ET websites
+      if (data && data.length > 0) {
+        const listingIds = data.map(r => r.link_listing_id).filter(Boolean);
+        
+        if (listingIds.length > 0) {
+          // Charger link_listings et websites en parallèle
+          const [listingsResult, websitesResult] = await Promise.all([
+            supabase.from('link_listings').select('id, title, website_id, website:websites(id, title, url)').in('id', listingIds),
+            supabase.from('websites').select('id, title, url, new_article_price').in('id', listingIds)
+          ]);
+          
+          const listingMap = new Map(listingsResult.data?.map(l => [l.id, l]) || []);
+          const websiteMap = new Map(websitesResult.data?.map(w => [w.id, w]) || []);
+          
+          // Enrichir les demandes
+          data.forEach(request => {
+            if (request.link_listing_id) {
+              const listing = listingMap.get(request.link_listing_id);
+              if (listing) {
+                request.link_listing = listing;
+              } else {
+                const website = websiteMap.get(request.link_listing_id);
+                if (website) {
+                  request.link_listing = {
+                    id: request.link_listing_id,
+                    title: `Nouvel article sur ${website.title}`,
+                    website_id: website.id,
+                    website: {
+                      id: website.id,
+                      title: website.title,
+                      url: website.url
+                    }
+                  } as any;
+                }
+              }
+            }
+          });
+        }
+      }
+      
       setRequests(data || []);
     } catch (error) {
       console.error('Error loading requests:', error);

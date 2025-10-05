@@ -1812,14 +1812,12 @@ export const getLinkPurchaseRequests = async (filters?: {
     const to = from + limit - 1;
 
     // ✅ OPTIMISATION: Requête unique avec comptage intégré
+    // ✅ FIX: Pas de JOIN avec link_listings (contrainte FK supprimée)
+    // On chargera les données séparément
     let query = supabase
       .from('link_purchase_requests')
       .select(`
         *,
-        link_listing:link_listings(
-          *,
-          website:websites(*)
-        ),
         advertiser:users!link_purchase_requests_user_id_fkey(*),
         publisher:users!link_purchase_requests_publisher_id_fkey(*)
       `, { count: 'exact' })
@@ -1842,34 +1840,45 @@ export const getLinkPurchaseRequests = async (filters?: {
     const total = count || 0;
     const totalPages = Math.ceil(total / limit);
 
-    // ✅ OPTIMISATION: Enrichissement optimisé avec requête unique
+    // ✅ FIX: Enrichir les données manuellement (plus de JOIN auto)
     if (data && data.length > 0) {
-      // Identifier les demandes qui ont besoin d'enrichissement
-      const needsEnrichment = data.filter(request => 
-        !request.link_listing && request.link_listing_id
-      );
+      const listingIds = data.map(r => r.link_listing_id).filter(Boolean);
       
-      if (needsEnrichment.length > 0) {
-        // ✅ OPTIMISATION: Une seule requête pour tous les websites manquants
-        const websiteIds = needsEnrichment.map(r => r.link_listing_id);
+      if (listingIds.length > 0) {
+        // Charger les link_listings
+        const { data: listings } = await supabase
+          .from('link_listings')
+          .select('*, website:websites(*)')
+          .in('id', listingIds);
+        
+        const listingMap = new Map(listings?.map(l => [l.id, l]) || []);
+        
+        // Charger les websites (pour nouveaux articles)
         const { data: websites } = await supabase
           .from('websites')
           .select('*')
-          .in('id', websiteIds);
+          .in('id', listingIds);
         
-        // Créer un map pour un accès rapide
         const websiteMap = new Map(websites?.map(w => [w.id, w]) || []);
         
         // Enrichir les données
         data.forEach(request => {
-          if (!request.link_listing && request.link_listing_id) {
-            const website = websiteMap.get(request.link_listing_id);
-            if (website) {
-              request.link_listing = {
-                id: request.link_listing_id,
-                title: `Nouvel article - ${website.name}`,
-                website: website
-              } as any;
+          if (request.link_listing_id) {
+            // Chercher d'abord dans link_listings (articles existants)
+            const listing = listingMap.get(request.link_listing_id);
+            if (listing) {
+              request.link_listing = listing;
+            } else {
+              // Sinon chercher dans websites (nouveaux articles)
+              const website = websiteMap.get(request.link_listing_id);
+              if (website) {
+                request.link_listing = {
+                  id: request.link_listing_id,
+                  title: `Nouvel article sur ${website.title}`,
+                  price: website.new_article_price || 0,
+                  website: website
+                } as any;
+              }
             }
           }
         });
@@ -1955,12 +1964,10 @@ export const getLinkPurchaseTransactions = async (filters?: {
 export const acceptPurchaseRequest = async (requestId: string): Promise<{ success: boolean; error?: string }> => {
   try {
     // Récupérer la demande avec les détails du lien
+    // ✅ FIX: Récupérer sans JOIN
     const { data: request, error: requestError } = await supabase
       .from('link_purchase_requests')
-      .select(`
-        *,
-        link_listings!inner(title)
-      `)
+      .select('*')
       .eq('id', requestId)
       .single();
 
@@ -2308,14 +2315,11 @@ export const confirmLinkPlacement = async (
 
 export const getPendingConfirmationRequests = async (userId: string): Promise<LinkPurchaseRequest[]> => {
   try {
+    // ✅ FIX: Pas de JOIN avec link_listings (contrainte FK supprimée)
     const { data, error } = await supabase
       .from('link_purchase_requests')
       .select(`
         *,
-        link_listing:link_listings(
-          *,
-          website:websites(*)
-        ),
         publisher:users!link_purchase_requests_publisher_id_fkey(*)
       `)
       .eq('user_id', userId)
@@ -2323,6 +2327,43 @@ export const getPendingConfirmationRequests = async (userId: string): Promise<Li
       .order('response_date', { ascending: true });
 
     if (error) throw error;
+    
+    // ✅ FIX: Enrichir manuellement avec link_listings ET websites
+    if (data && data.length > 0) {
+      const listingIds = data.map(r => r.link_listing_id).filter(Boolean);
+      
+      if (listingIds.length > 0) {
+        // Charger link_listings et websites en parallèle
+        const [listingsResult, websitesResult] = await Promise.all([
+          supabase.from('link_listings').select('*, website:websites(*)').in('id', listingIds),
+          supabase.from('websites').select('*').in('id', listingIds)
+        ]);
+        
+        const listingMap = new Map(listingsResult.data?.map(l => [l.id, l]) || []);
+        const websiteMap = new Map(websitesResult.data?.map(w => [w.id, w]) || []);
+        
+        // Enrichir
+        data.forEach(request => {
+          if (request.link_listing_id) {
+            const listing = listingMap.get(request.link_listing_id);
+            if (listing) {
+              request.link_listing = listing;
+            } else {
+              const website = websiteMap.get(request.link_listing_id);
+              if (website) {
+                request.link_listing = {
+                  id: request.link_listing_id,
+                  title: `Nouvel article sur ${website.title}`,
+                  price: website.new_article_price || 0,
+                  website: website
+                } as any;
+              }
+            }
+          }
+        });
+      }
+    }
+    
     return data || [];
   } catch (error) {
     console.error('Error fetching pending confirmation requests:', error);
@@ -3498,19 +3539,32 @@ export const sendNewMessageNotificationEmail = async (data: {
     // Récupérer les informations de la demande d'achat si disponible
     let websiteTitle = 'Demande de lien';
     if (data.requestId) {
+      // ✅ FIX: Récupérer sans JOIN
       const { data: request, error: requestError } = await supabase
         .from('link_purchase_requests')
-        .select(`
-          id,
-          link_listing:link_listings(
-            website:websites(title)
-          )
-        `)
+        .select('id, link_listing_id')
         .eq('id', data.requestId)
         .single();
 
-      if (!requestError && request?.link_listing?.website?.title) {
-        websiteTitle = request.link_listing.website.title;
+      if (!requestError && request) {
+        // Essayer de récupérer le nom du site (listing ou website)
+        const { data: listing } = await supabase
+          .from('link_listings')
+          .select('website:websites(title)')
+          .eq('id', request.link_listing_id)
+          .single();
+        
+        const { data: website } = await supabase
+          .from('websites')
+          .select('title')
+          .eq('id', request.link_listing_id)
+          .single();
+        
+        const siteTitle = listing?.website?.title || website?.title;
+        
+        if (siteTitle) {
+          websiteTitle = siteTitle;
+        }
       }
     }
 
