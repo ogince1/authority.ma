@@ -136,6 +136,9 @@ export const signUpWithEmail = async (email: string, password: string, name?: st
     throw error;
   }
 
+  // Le profil utilisateur sera créé automatiquement par le trigger sur auth.users
+  console.log('User signup successful, profile created by trigger');
+
   // Envoyer un email de vérification personnalisé
   if (data.user && !data.user.email_confirmed_at) {
     try {
@@ -160,7 +163,6 @@ export const signUpWithEmail = async (email: string, password: string, name?: st
     }
   }
 
-  console.log('User signup successful, profile will be created by trigger');
   return data;
 };
 
