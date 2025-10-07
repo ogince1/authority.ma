@@ -2014,14 +2014,27 @@ export const acceptPurchaseRequest = async (requestId: string): Promise<{ succes
     console.log(`💰 Montant éditeur: ${publisherCommission.toFixed(2)} MAD`);
     console.log(`💰 Bénéfice total plateforme: ${platformNetAmount.toFixed(2)} MAD`);
     
+    // ✅ ÉTAPE 1: DÉBITER L'ANNONCEUR
+    console.log(`💸 Débit annonceur: ${request.proposed_price} MAD`);
     await createCreditTransaction({
-      user_id: request.publisher_id,
+      user_id: request.user_id, // Annonceur
+      type: 'purchase',
+      amount: request.proposed_price,
+      description: `Achat de lien: ${request.anchor_text}`,
+      related_purchase_request_id: requestId
+    });
+    
+    // ✅ ÉTAPE 2: CRÉDITER L'ÉDITEUR
+    console.log(`💰 Crédit éditeur: ${publisherCommission} MAD`);
+    await createCreditTransaction({
+      user_id: request.publisher_id, // Éditeur
       type: 'commission',
       amount: publisherCommission,
-      description: `Commission pour lien: ${request.link_listings?.title}`
+      description: `Commission pour lien: ${request.anchor_text}`,
+      related_purchase_request_id: requestId
     });
 
-    console.log(`💰 Éditeur crédité: ${publisherCommission} MAD pour la demande ${requestId}`);
+    console.log(`✅ Paiement effectué: Annonceur débité, Éditeur crédité`);
 
     // Créer une notification pour l'annonceur
     await createNotification({
@@ -3830,13 +3843,27 @@ export const acceptPurchaseRequestWithUrl = async (requestId: string, placedUrl:
     console.log(`💰 Montant éditeur: ${publisherAmount.toFixed(2)} MAD`);
     console.log(`💰 Bénéfice total plateforme: ${platformNetAmount.toFixed(2)} MAD`);
 
-    // Créditer l'éditeur avec le montant après commission (sans le bénéfice de la rédaction)
+    // ✅ ÉTAPE 1: DÉBITER L'ANNONCEUR
+    console.log(`💸 Débit annonceur: ${request.proposed_price} MAD`);
     await createCreditTransaction({
-      user_id: request.publisher_id,
+      user_id: request.user_id, // Annonceur
+      type: 'purchase',
+      amount: request.proposed_price,
+      description: `Achat de lien: ${request.anchor_text}`,
+      related_purchase_request_id: requestId
+    });
+    
+    // ✅ ÉTAPE 2: CRÉDITER L'ÉDITEUR
+    console.log(`💰 Crédit éditeur: ${publisherAmount} MAD`);
+    await createCreditTransaction({
+      user_id: request.publisher_id, // Éditeur
       type: 'commission',
       amount: publisherAmount,
-      description: `Commission pour lien: ${request.link_listings?.title}`
+      description: `Commission pour lien: ${request.anchor_text}`,
+      related_purchase_request_id: requestId
     });
+
+    console.log(`✅ Paiement effectué: Annonceur débité, Éditeur crédité`);
 
     // Mettre à jour le statut de la demande avec l'URL placée
     const { error: updateError } = await supabase
