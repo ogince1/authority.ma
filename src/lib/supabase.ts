@@ -19,6 +19,7 @@ import {
   CreateCreditTransactionData,
   LinkPurchaseTransaction
 } from '../types';
+import { cache } from './cache';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -28,6 +29,95 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// ===== AUTO-REFRESH DU TOKEN & GESTION SESSION =====
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('🔐 Auth event:', event);
+  
+  if (event === 'TOKEN_REFRESHED') {
+    console.log('✅ Token Supabase rafraîchi automatiquement');
+  }
+  
+  if (event === 'SIGNED_OUT') {
+    console.log('❌ Session expirée - Redirection vers login');
+    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+      window.location.href = '/login';
+    }
+  }
+  
+  if (event === 'USER_UPDATED') {
+    console.log('👤 Utilisateur mis à jour');
+  }
+});
+
+// Vérifier la session toutes les 5 minutes
+let sessionCheckInterval: NodeJS.Timeout | null = null;
+
+if (typeof window !== 'undefined') {
+  sessionCheckInterval = setInterval(async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
+        console.error('❌ Session invalide - Redirection vers login');
+        if (sessionCheckInterval) clearInterval(sessionCheckInterval);
+        window.location.href = '/login';
+      } else {
+        console.log('✅ Session valide (expires:', new Date(session.expires_at! * 1000).toLocaleTimeString(), ')');
+      }
+    } catch (error) {
+      console.error('❌ Erreur vérification session:', error);
+    }
+  }, 5 * 60 * 1000); // 5 minutes
+}
+
+// Helper: Requêtes avec gestion automatique de session
+export const safeSupabaseQuery = async <T>(
+  queryFn: () => Promise<T>,
+  retries = 1
+): Promise<T> => {
+  try {
+    // Vérifier session avant chaque requête
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('SESSION_EXPIRED');
+    }
+    
+    // Exécuter la requête
+    return await queryFn();
+    
+  } catch (error: any) {
+    // Si erreur de session/token
+    if (
+      error.message?.includes('JWT') || 
+      error.message?.includes('session') ||
+      error.message === 'SESSION_EXPIRED'
+    ) {
+      console.log('🔄 Token expiré, tentative de refresh...');
+      
+      // Tenter de rafraîchir
+      const { data: { session: newSession }, error: refreshError } = 
+        await supabase.auth.refreshSession();
+      
+      if (refreshError || !newSession) {
+        console.error('❌ Impossible de rafraîchir la session');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        throw new Error('SESSION_EXPIRED');
+      }
+      
+      // Réessayer avec nouveau token
+      if (retries > 0) {
+        console.log('✅ Token rafraîchi, nouvelle tentative...');
+        return await safeSupabaseQuery(queryFn, retries - 1);
+      }
+    }
+    
+    throw error;
+  }
+};
 
 // ===== AUTHENTIFICATION =====
 
@@ -1813,6 +1903,20 @@ export const getLinkPurchaseRequests = async (filters?: {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
+    // ✅ CACHE: Vérifier d'abord le cache
+    const cacheKey = `purchase_requests_${JSON.stringify(filters)}`;
+    const cached = cache.get<{ data: LinkPurchaseRequest[]; total: number; totalPages: number }>(
+      cacheKey, 
+      2 * 60 * 1000 // 2 minutes de cache
+    );
+    
+    if (cached) {
+      console.log('✅ Cache HIT pour demandes d\'achat');
+      return cached;
+    }
+
+    console.log('📥 Chargement des demandes depuis Supabase...');
+
     // ✅ OPTIMISATION: Requête unique avec comptage intégré
     // ✅ FIX: Pas de JOIN avec link_listings (contrainte FK supprimée)
     // On chargera les données séparément
@@ -1887,11 +1991,16 @@ export const getLinkPurchaseRequests = async (filters?: {
       }
     }
     
-    return {
+    const result = {
       data: data || [],
       total,
       totalPages
     };
+    
+    // ✅ CACHE: Mettre en cache le résultat
+    cache.set(cacheKey, result);
+    
+    return result;
   } catch (error) {
     console.error('Error fetching purchase requests:', error);
     throw error;
@@ -2044,6 +2153,10 @@ export const acceptPurchaseRequest = async (requestId: string): Promise<{ succes
       action_type: 'link_purchase',
       action_id: requestId
     });
+
+    // ✅ Invalider le cache des demandes
+    cache.invalidate('purchase_requests_');
+    console.log('🗑️  Cache des demandes invalidé après acceptation');
 
     return { success: true };
   } catch (error) {

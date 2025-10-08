@@ -88,6 +88,9 @@ const PurchaseRequests: React.FC<PurchaseRequestsProps> = ({ initialUser }) => {
   const [placementNotes, setPlacementNotes] = React.useState('');
   const [selectedRequestForPlacement, setSelectedRequestForPlacement] = React.useState<LinkPurchaseRequest | null>(null);
   
+  // ✅ État pour empêcher les clics multiples
+  const [isSubmittingPlacement, setIsSubmittingPlacement] = React.useState(false);
+  
   // État pour afficher l'article complet
   const [showArticleModal, setShowArticleModal] = React.useState(false);
 
@@ -374,48 +377,99 @@ const PurchaseRequests: React.FC<PurchaseRequestsProps> = ({ initialUser }) => {
   };
 
 
-  // Fonction pour ajouter l'URL de placement (étape 2)
+  // ✅ FIX: Fonction pour ajouter l'URL de placement (étape 2) - SÉCURISÉE
   const handleAddPlacementUrl = async () => {
     if (!selectedRequestForPlacement || !placementUrl.trim()) {
       toast.error('Veuillez saisir une URL de placement');
       return;
     }
 
+    // ✅ PROTECTION: Empêcher les clics multiples
+    if (isSubmittingPlacement) {
+      console.log('⚠️ Traitement déjà en cours, veuillez patienter...');
+      return;
+    }
+
     try {
+      setIsSubmittingPlacement(true);
+      console.log('🚀 Début du traitement de placement pour:', selectedRequestForPlacement.id);
+      
       const { supabase } = await import('../../lib/supabase');
       
-      // Mettre à jour la demande avec l'URL de placement
-      const { error } = await supabase
+      // ✅ Vérifier la session AVANT toute opération
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Votre session a expiré. Veuillez vous reconnecter.');
+        window.location.href = '/login';
+        return;
+      }
+      
+      // ✅ Mettre à jour la demande avec l'URL de placement
+      const { error: updateError } = await supabase
         .from('link_purchase_requests')
         .update({
           extended_status: 'placement_completed',
           status: 'accepted', // Garder le statut original pour la compatibilité
           placed_url: placementUrl.trim(),
           placement_notes: placementNotes.trim() || null,
+          placed_at: new Date().toISOString(), // ✅ Ajouter timestamp
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedRequestForPlacement.id);
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('❌ Erreur mise à jour demande:', updateError);
+        throw new Error(`Mise à jour impossible: ${updateError.message}`);
+      }
 
-      // Créer une transaction de crédit pour l'éditeur
-      await createCreditTransaction({
-        user_id: selectedRequestForPlacement.publisher_id!,
-        type: 'commission',
-        amount: Math.round(selectedRequestForPlacement.proposed_price! * 0.7), // 70% pour l'éditeur
-        description: `Commission pour placement de lien - Demande #${selectedRequestForPlacement.id.slice(0, 8)}`,
-        related_purchase_request_id: selectedRequestForPlacement.id
-      });
+      console.log('✅ Demande mise à jour avec succès');
 
-      toast.success('URL de placement ajoutée avec succès ! Commission créditée.');
+      // ✅ Créer la transaction de crédit AVEC gestion d'erreur séparée
+      try {
+        await createCreditTransaction({
+          user_id: selectedRequestForPlacement.publisher_id!,
+          type: 'commission',
+          amount: Math.round(selectedRequestForPlacement.proposed_price! * 0.7), // 70% pour l'éditeur
+          description: `Commission pour placement de lien - Demande #${selectedRequestForPlacement.id.slice(0, 8)}`,
+          related_purchase_request_id: selectedRequestForPlacement.id
+        });
+        console.log('✅ Transaction de crédit créée');
+      } catch (creditError) {
+        console.error('❌ Erreur transaction crédit:', creditError);
+        // ⚠️ Le lien est placé mais pas de crédit
+        toast.warning('⚠️ Lien placé mais erreur lors du crédit. Contactez le support avec le code: ' + selectedRequestForPlacement.id.slice(0, 8));
+      }
+
+      toast.success('✅ URL de placement ajoutée avec succès ! Commission créditée.');
+      
+      // ✅ Fermer modal et réinitialiser AVANT de recharger
       setShowPlacementModal(false);
       setSelectedRequestForPlacement(null);
       setPlacementUrl('');
       setPlacementNotes('');
-      loadRequests(); // Recharger les données
+      
+      // ✅ Invalider le cache si disponible
+      try {
+        const { cache } = await import('../../lib/cache');
+        cache.invalidate('purchase_requests_');
+        console.log('🗑️  Cache invalidé après placement');
+      } catch (cacheError) {
+        console.log('⚠️ Cache non disponible (normal en dev)');
+      }
+      
+      // ✅ IMPORTANT: AWAIT le rechargement des données
+      console.log('🔄 Rechargement des demandes...');
+      await loadRequests();
+      console.log('✅ Rechargement terminé');
+      
     } catch (error) {
-      console.error('Error adding placement URL:', error);
-      toast.error('Erreur lors de l\'ajout de l\'URL de placement');
+      console.error('❌ Erreur lors de l\'ajout de l\'URL de placement:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      toast.error(`Erreur: ${errorMessage}`);
+    } finally {
+      // ✅ TOUJOURS débloquer le bouton
+      setIsSubmittingPlacement(false);
+      console.log('🏁 Traitement terminé');
     }
   };
 
@@ -1664,14 +1718,33 @@ const PurchaseRequests: React.FC<PurchaseRequestsProps> = ({ initialUser }) => {
               <div className="flex items-center space-x-3 mt-6 pt-6 border-t border-gray-200">
                 <button
                   onClick={handleAddPlacementUrl}
-                  className="flex-1 bg-green-600 text-white py-3 px-4 rounded-xl hover:bg-green-700 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  disabled={isSubmittingPlacement || !placementUrl.trim()}
+                  className={`flex-1 bg-green-600 text-white py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 ${
+                    isSubmittingPlacement || !placementUrl.trim()
+                      ? 'opacity-50 cursor-not-allowed' 
+                      : 'hover:bg-green-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+                  }`}
                 >
-                  <Target className="h-4 w-4" />
-                  <span>Confirmer le placement</span>
+                  {isSubmittingPlacement ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Traitement en cours...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Target className="h-4 w-4" />
+                      <span>Confirmer le placement</span>
+                    </>
+                  )}
                 </button>
                 <button
-                  onClick={() => setShowPlacementModal(false)}
-                  className="flex-1 bg-gray-300 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-400 transition-all duration-200"
+                  onClick={() => {
+                    if (!isSubmittingPlacement) {
+                      setShowPlacementModal(false);
+                    }
+                  }}
+                  disabled={isSubmittingPlacement}
+                  className="flex-1 bg-gray-300 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Annuler
                 </button>

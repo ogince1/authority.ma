@@ -117,73 +117,104 @@ const UserLayout: React.FC<UserLayoutProps> = ({ children }) => {
     }
   };
 
+  // ✅ FIX: Charger l'utilisateur UNE SEULE FOIS au montage
   React.useEffect(() => {
+    let mounted = true;
+    
     const fetchUser = async () => {
       try {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
-      
-      if (currentUser) {
-        const profile = await getCurrentUserProfile();
-        setUserProfile(profile);
+        const currentUser = await getCurrentUser();
         
-        // Charger le solde de l'utilisateur
-        try {
-          const userBalance = await getUserBalance(currentUser.id);
+        if (!mounted) return;
+        setUser(currentUser);
+        
+        if (currentUser) {
+          // ✅ Charger toutes les données en parallèle
+          const [profile, userBalance] = await Promise.all([
+            getCurrentUserProfile(),
+            getUserBalance(currentUser.id)
+          ]).catch(err => {
+            console.error('Error loading user data:', err);
+            return [null, 0];
+          });
+          
+          if (!mounted) return;
+          
+          setUserProfile(profile);
           setBalance(userBalance);
-        } catch (error) {
-          console.error('Error fetching balance:', error);
-        }
-
-          // Charger les messages non lus
+          
+          // ✅ Charger messages après avoir l'utilisateur
           loadUnreadMessages();
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
-        setIsLoading(false);
+        if (mounted) setIsLoading(false);
       }
     };
+    
     fetchUser();
 
-    // Rafraîchir les notifications toutes les 30 secondes
-    const notificationInterval = setInterval(() => {
-      if (user) {
-        loadUnreadMessages();
+    return () => {
+      mounted = false;
+    };
+  }, []); // ✅ AUCUNE dépendance!
+
+  // ✅ FIX: UN SEUL interval pour tout, démarre seulement quand user est chargé
+  React.useEffect(() => {
+    if (!user?.id) return; // ✅ Attendre que user soit chargé
+
+    console.log('🔄 Démarrage des intervalles de refresh pour user:', user.id);
+
+    // ✅ UN SEUL interval qui fait tout
+    const refreshInterval = setInterval(() => {
+      // ✅ Ne rafraîchir que si la page est visible
+      if (document.visibilityState !== 'visible') {
+        console.log('⏸️  Page cachée, skip refresh');
+        return;
       }
-    }, 30000);
+
+      // ✅ Rafraîchir en parallèle
+      console.log('🔄 Refresh automatique des données...');
+      Promise.all([
+        refreshBalance(),
+        loadUnreadMessages()
+      ]).catch(error => {
+        console.error('Error during auto-refresh:', error);
+      });
+
+    }, 60000); // ✅ 60 secondes au lieu de 30 (moins agressif)
 
     return () => {
-      clearInterval(notificationInterval);
+      console.log('🧹 Nettoyage interval pour user:', user.id);
+      clearInterval(refreshInterval);
     };
-  }, [user]);
+  }, [user?.id]); // ✅ Dépendance sur user.id (string immuable) pas sur user (objet)
 
-  // Écouter les événements de mise à jour du solde
+  // ✅ FIX: Event listeners séparés, sans interval supplémentaire
   React.useEffect(() => {
+    if (!user?.id) return;
+
     const handleBalanceUpdate = () => {
+      console.log('💰 Event: balance-updated');
       refreshBalance();
     };
 
     const handlePurchaseCompleted = () => {
-      // Recharger toutes les données après un achat
+      console.log('✅ Event: purchase-completed');
       refreshBalance();
       loadUnreadMessages();
-      console.log('🔄 Données rechargées après achat');
     };
 
-    // Écouter les événements personnalisés pour la mise à jour du solde
+    // ✅ Event listeners seulement
     window.addEventListener('balance-updated', handleBalanceUpdate);
     window.addEventListener('purchase-completed', handlePurchaseCompleted);
-    
-    // Recharger le solde toutes les 30 secondes
-    const interval = setInterval(refreshBalance, 30000);
 
     return () => {
       window.removeEventListener('balance-updated', handleBalanceUpdate);
       window.removeEventListener('purchase-completed', handlePurchaseCompleted);
-      clearInterval(interval);
     };
-  }, [user]);
+  }, [user?.id]); // ✅ Dépendance sur user.id uniquement
 
   // Fonction pour mettre à jour le compteur du panier
   const updateCartCount = () => {

@@ -1,21 +1,46 @@
 import React, { useEffect } from 'react';
 
+// ✅ Variable globale pour éviter les chargements multiples
+declare global {
+  interface Window {
+    dataLayer: any[];
+    gtmLoaded?: boolean;
+  }
+}
+
 /**
  * Google Tag Manager Component
  * Intègre GTM avec l'ID GTM-PR8F82D3 sur toutes les pages
+ * ✅ OPTIMISÉ: Ne charge qu'une seule fois, même si le composant monte/démonte
  */
 const GoogleTagManager: React.FC = () => {
   useEffect(() => {
-    // Vérifier si GTM est déjà chargé
-    if (typeof window === 'undefined' || window.dataLayer) {
+    // ✅ Vérifier si GTM est déjà chargé (vérification améliorée)
+    if (typeof window === 'undefined') {
       return;
     }
+
+    if (window.gtmLoaded) {
+      console.log('✅ GTM déjà initialisé, skip');
+      return;
+    }
+
+    // ✅ Vérifier si le script existe déjà dans le DOM
+    const existingScript = document.getElementById('gtm-script');
+    if (existingScript) {
+      console.log('✅ Script GTM déjà présent, skip');
+      window.gtmLoaded = true;
+      return;
+    }
+
+    console.log('📊 Initialisation de Google Tag Manager...');
 
     // Initialiser le dataLayer
     window.dataLayer = window.dataLayer || [];
     
     // Script GTM
     const gtmScript = document.createElement('script');
+    gtmScript.id = 'gtm-script'; // ✅ ID unique pour éviter duplications
     gtmScript.innerHTML = `
       (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -26,12 +51,14 @@ const GoogleTagManager: React.FC = () => {
     
     // Ajouter le script au head
     document.head.appendChild(gtmScript);
+    window.gtmLoaded = true; // ✅ Marquer comme chargé
     
-    // Nettoyer le script lors du démontage
+    console.log('✅ Google Tag Manager chargé avec succès');
+    
+    // ✅ Ne PAS supprimer le script au démontage
+    // GTM doit rester chargé pour toute la session
     return () => {
-      if (document.head.contains(gtmScript)) {
-        document.head.removeChild(gtmScript);
-      }
+      console.log('📊 GTM component unmounted (script reste actif)');
     };
   }, []);
 
