@@ -407,23 +407,21 @@ const CartPage: React.FC = () => {
         // Ne pas bloquer le processus si l'email échoue
       }
       
-      // Vider le panier et nettoyer les données de campagne APRÈS l'envoi de l'email
-      setCartItems([]);
+      // ✅ FIX: Vider le panier et rediriger IMMÉDIATEMENT
+      // Pas de setTimeout qui montre un panier vide
       localStorage.removeItem('cart');
       localStorage.removeItem('quick-buy-cart');
       localStorage.removeItem('current_campaign_id');
 
-      toast.success('Achats traités avec succès ! Email de confirmation envoyé.');
-      
-      // ✅ OPTIMISATION: Déclencher le rechargement des données
-      // Émettre un événement pour forcer le rechargement des données
+      // ✅ Déclencher le rechargement des données
       window.dispatchEvent(new CustomEvent('balance-updated'));
       window.dispatchEvent(new CustomEvent('purchase-completed'));
       
-      // Rediriger vers l'onglet "Mes demandes" pour l'annonceur
-      setTimeout(() => {
-        navigate('/dashboard/purchase-requests', { replace: true });
-      }, 1000);
+      // ✅ Toast de succès
+      toast.success('Achats traités avec succès ! Redirection vers vos demandes...');
+      
+      // ✅ Redirection IMMÉDIATE vers "Mes demandes" (pas de setTimeout!)
+      navigate('/dashboard/purchase-requests', { replace: true });
     } catch (error) {
       console.error('Error processing purchases:', error);
       toast.error('Erreur lors du traitement des achats');

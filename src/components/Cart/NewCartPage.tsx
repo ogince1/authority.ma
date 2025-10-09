@@ -242,18 +242,15 @@ const NewCartPage: React.FC = () => {
       // ✅ OPTIMISATION: Redirection après paiement réussi
       if (results.length > 0) {
         setSuccess('Achats traités avec succès !');
-        // Vider le panier
-        setCartItems([]);
+        // ✅ FIX: Vider le panier et rediriger IMMÉDIATEMENT
         localStorage.removeItem('cart');
         
-        // ✅ OPTIMISATION: Déclencher le rechargement des données
+        // ✅ Déclencher le rechargement des données
         window.dispatchEvent(new CustomEvent('balance-updated'));
         window.dispatchEvent(new CustomEvent('purchase-completed'));
         
-        // Rediriger vers l'onglet "Mes demandes" pour l'annonceur
-        setTimeout(() => {
-          navigate('/dashboard/purchase-requests', { replace: true });
-        }, 2000);
+        // ✅ Redirection IMMÉDIATE vers "Mes demandes" (pas de setTimeout!)
+        navigate('/dashboard/purchase-requests', { replace: true });
       }
 
     } catch (error) {
