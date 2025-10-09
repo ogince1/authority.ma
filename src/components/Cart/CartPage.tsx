@@ -233,8 +233,8 @@ const CartPage: React.FC = () => {
         let listingId: string;
         
         if (isVirtualLink) {
-          // Pour les nouveaux articles, récupérer le publisher_id du website
-          // L'ID du listing pour les nouveaux articles est "new-{website_id}"
+          // ✅ NOUVEAUX ARTICLES: Ne PAS créer de link_listing
+          // C'est une demande unique, pas un lien existant réutilisable
           const websiteId = item.listing.id.replace('new-', '');
           
           const { data: website, error: websiteError } = await supabase
@@ -251,48 +251,11 @@ const CartPage: React.FC = () => {
           
           publisherId = website.user_id;
           
-          // ✅ FIX: Pour les nouveaux articles, créer d'abord une annonce dans link_listings
-          // Ceci respecte la contrainte de clé étrangère
-          const listingData = {
-            website_id: websiteId,
-            user_id: website.user_id,
-            title: `Nouvel article sur ${website.title}`,
-            description: item.contentOption === 'platform' 
-              ? 'Article rédigé par notre équipe professionnelle' 
-              : 'Article avec contenu personnalisé',
-            target_url: item.targetUrl,
-            anchor_text: item.anchorText,
-            link_type: 'dofollow',
-            position: 'content',
-            price: item.listing.price,
-            currency: 'MAD',
-            minimum_contract_duration: 1,
-            status: 'pending', // Status pending car c'est une demande en cours
-            category: website.category,
-            images: [],
-            tags: ['nouveau-article', item.contentOption || 'custom']
-          };
-
-          console.log('Création d\'une annonce temporaire pour nouveau article:', listingData.title);
-
-          const { data: createdListing, error: listingError } = await supabase
-            .from('link_listings')
-            .insert([listingData])
-            .select()
-            .single();
-
-          if (listingError) {
-            console.error('Error creating listing for new article:', listingError);
-            results.push({
-              success: false,
-              item: item.listing.title,
-              error: `Erreur création annonce: ${listingError.message}`
-            });
-            continue; // Passer à l'item suivant
-          }
-
-          console.log(`Annonce temporaire créée: ${createdListing.id}`);
-          listingId = createdListing.id; // Utiliser le vrai link_listing_id
+          // ✅ Pour les nouveaux articles, utiliser directement le website_id
+          // PAS besoin de créer un link_listing
+          listingId = websiteId;
+          
+          console.log(`✅ Nouvel article sur ${website.title} - Pas de link_listing créé`);
         } else {
           // Pour les articles existants, utiliser le publisher_id du listing
           if (!item.listing.user_id) {

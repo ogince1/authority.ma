@@ -107,17 +107,6 @@ const PublisherPaymentSettings: React.FC = () => {
         <p className="text-gray-600 mt-1">Configurez vos méthodes de retrait pour recevoir vos revenus</p>
       </div>
 
-      {/* Avertissement commission */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div className="flex items-start space-x-2">
-          <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-          <div className="text-sm text-yellow-800">
-            <p className="font-medium">Frais de plateforme</p>
-            <p>Une commission de 20% est appliquée sur tous les retraits pour couvrir les frais de traitement et de plateforme.</p>
-          </div>
-        </div>
-      </div>
-
       {/* Méthode préférée */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Méthode de retrait préférée</h3>
@@ -276,7 +265,6 @@ const PublisherPaymentSettings: React.FC = () => {
         <h4 className="font-medium text-gray-900 mb-2">💡 À propos des retraits</h4>
         <div className="text-sm text-gray-600 space-y-1">
           <p>• Les demandes de retrait sont traitées par l'administration</p>
-          <p>• Une commission de 20% est appliquée sur tous les retraits</p>
           <p>• Les virements bancaires prennent 2-5 jours ouvrés</p>
           <p>• Les retraits PayPal sont traités sous 24h</p>
           <p>• Montant minimum de retrait : 50 MAD</p>

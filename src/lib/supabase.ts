@@ -585,6 +585,8 @@ export const getLinkListings = async (filters?: LinkListingFilterOptions): Promi
       query = query.eq('user_id', filters.user_id);
     }
 
+    // ✅ Récupérer uniquement les liens existants réels (active, pending)
+    // Les nouveaux articles ne créent PLUS de link_listing
     const { data, error } = await query
       .in('status', ['active', 'pending'])
       .order('created_at', { ascending: false });
