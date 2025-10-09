@@ -1,93 +1,127 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Configuration Supabase
-const supabaseUrl = 'https://lqldqgbpaxqaazfjzlsz.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxbGRxZ2JwYXhxYWF6Zmp6bHN6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzU2NDE5MSwiZXhwIjoyMDY5MTQwMTkxfQ.rVOMDNv6DVaAq3202AcAacXaM2-hGqppyeI617eWieI';
+const SUPABASE_URL = 'https://lqldqgbpaxqaazfjzlsz.supabase.co';
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxbGRxZ2JwYXhxYWF6Zmp6bHN6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzU2NDE5MSwiZXhwIjoyMDY5MTQwMTkxfQ.rVOMDNv6DVaAq3202AcAacXaM2-hGqppyeI617eWieI';
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-console.log('🔍 VÉRIFICATION DES TRIGGERS SUR LA TABLE users\n');
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 async function checkTriggers() {
+  console.log('\n🔍 VÉRIFICATION DES TRIGGERS ACTIFS DANS SUPABASE\n');
+  console.log('='.repeat(80));
+  
   try {
-    // Vérifier les triggers sur la table users
-    const { data: triggers, error: triggerError } = await supabase
-      .rpc('get_table_triggers', { table_name: 'users' });
+    // Requête pour lister tous les triggers
+    const { data, error } = await supabase.rpc('exec_sql', {
+      sql: `
+        SELECT 
+          trigger_name,
+          event_manipulation as event,
+          event_object_table as table_name,
+          action_timing as timing,
+          action_statement as action
+        FROM information_schema.triggers
+        WHERE trigger_schema = 'public'
+        ORDER BY event_object_table, trigger_name;
+      `
+    });
 
-    if (triggerError) {
-      console.log('❌ Erreur récupération triggers:', triggerError);
+    if (error) {
+      // Si la fonction RPC n'existe pas, utiliser une requête directe
+      console.log('⚠️  RPC exec_sql non disponible, tentative avec requête directe...\n');
       
-      // Essayer une autre méthode
-      console.log('\n🔍 Tentative alternative...');
+      const query = `
+        SELECT 
+          t.trigger_name,
+          t.event_manipulation,
+          t.event_object_table,
+          t.action_timing,
+          p.proname as function_name
+        FROM information_schema.triggers t
+        LEFT JOIN pg_trigger tr ON tr.tgname = t.trigger_name
+        LEFT JOIN pg_proc p ON p.oid = tr.tgfoid
+        WHERE t.trigger_schema = 'public'
+        ORDER BY t.event_object_table, t.trigger_name;
+      `;
       
-      // Vérifier s'il y a des triggers en regardant les fonctions
-      const { data: functions, error: funcError } = await supabase
-        .rpc('get_database_functions');
+      // Utiliser une connexion PostgreSQL directe
+      const { Client } = await import('pg');
+      
+      // Extraire les infos de connexion de l'URL Supabase
+      const dbUrl = SUPABASE_URL.replace('https://', '');
+      const projectRef = dbUrl.split('.')[0];
+      
+      const client = new Client({
+        host: `db.${dbUrl}`,
+        port: 5432,
+        database: 'postgres',
+        user: 'postgres',
+        password: 'votre_mot_de_passe', // Vous devez fournir le mot de passe
+        ssl: { rejectUnauthorized: false }
+      });
 
-      if (funcError) {
-        console.log('❌ Erreur récupération fonctions:', funcError);
-      } else {
-        console.log('✅ Fonctions trouvées:');
-        functions?.forEach((func, index) => {
-          console.log(`   ${index + 1}. ${func.function_name} (${func.function_type})`);
-        });
+      await client.connect();
+      const result = await client.query(query);
+      await client.end();
+
+      if (result.rows.length === 0) {
+        console.log('ℹ️  Aucun trigger trouvé dans la base de données.\n');
+        return;
       }
-    } else {
-      console.log('✅ Triggers trouvés:');
-      triggers?.forEach((trigger, index) => {
-        console.log(`   ${index + 1}. ${trigger.trigger_name} (${trigger.event_manipulation})`);
+
+      console.log(`\n✅ ${result.rows.length} TRIGGER(S) TROUVÉ(S):\n`);
+      
+      let currentTable = '';
+      result.rows.forEach((trigger, index) => {
+        if (currentTable !== trigger.event_object_table) {
+          currentTable = trigger.event_object_table;
+          console.log(`\n📊 TABLE: ${currentTable}`);
+          console.log('-'.repeat(80));
+        }
+        
+        console.log(`\n${index + 1}. ${trigger.trigger_name}`);
+        console.log(`   Event: ${trigger.event_manipulation}`);
+        console.log(`   Timing: ${trigger.action_timing}`);
+        console.log(`   Function: ${trigger.function_name || 'N/A'}`);
       });
-    }
 
-    // Vérifier les triggers sur la table credit_transactions
-    console.log('\n🔍 VÉRIFICATION DES TRIGGERS SUR LA TABLE credit_transactions\n');
-    
-    const { data: creditTriggers, error: creditTriggerError } = await supabase
-      .rpc('get_table_triggers', { table_name: 'credit_transactions' });
-
-    if (creditTriggerError) {
-      console.log('❌ Erreur récupération triggers credit_transactions:', creditTriggerError);
     } else {
-      console.log('✅ Triggers credit_transactions trouvés:');
-      creditTriggers?.forEach((trigger, index) => {
-        console.log(`   ${index + 1}. ${trigger.trigger_name} (${trigger.event_manipulation})`);
-      });
-    }
-
-    // Vérifier les triggers sur la table link_purchase_transactions
-    console.log('\n🔍 VÉRIFICATION DES TRIGGERS SUR LA TABLE link_purchase_transactions\n');
-    
-    const { data: purchaseTriggers, error: purchaseTriggerError } = await supabase
-      .rpc('get_table_triggers', { table_name: 'link_purchase_transactions' });
-
-    if (purchaseTriggerError) {
-      console.log('❌ Erreur récupération triggers link_purchase_transactions:', purchaseTriggerError);
-    } else {
-      console.log('✅ Triggers link_purchase_transactions trouvés:');
-      purchaseTriggers?.forEach((trigger, index) => {
-        console.log(`   ${index + 1}. ${trigger.trigger_name} (${trigger.event_manipulation})`);
-      });
-    }
-
-    // Vérifier les migrations récentes
-    console.log('\n🔍 VÉRIFICATION DES MIGRATIONS RÉCENTES\n');
-    
-    const { data: migrations, error: migrationError } = await supabase
-      .rpc('get_recent_migrations');
-
-    if (migrationError) {
-      console.log('❌ Erreur récupération migrations:', migrationError);
-    } else {
-      console.log('✅ Migrations récentes:');
-      migrations?.forEach((migration, index) => {
-        console.log(`   ${index + 1}. ${migration.version} - ${migration.name}`);
-      });
+      console.log('Résultat:', data);
     }
 
   } catch (error) {
-    console.error('❌ Erreur générale:', error);
+    console.error('❌ Erreur:', error.message);
+    console.log('\n💡 Alternative: Vérification via les migrations SQL...\n');
+    
+    // Lister les triggers depuis les fichiers de migration
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    const migrationsPath = './supabase/migrations';
+    const files = fs.readdirSync(migrationsPath)
+      .filter(f => f.endsWith('.sql') && !f.startsWith('_'))
+      .sort();
+    
+    console.log('📁 Fichiers de migration actifs:\n');
+    
+    for (const file of files) {
+      const filePath = path.join(migrationsPath, file);
+      const content = fs.readFileSync(filePath, 'utf-8');
+      
+      // Chercher les CREATE TRIGGER
+      const triggerMatches = content.match(/CREATE\s+(OR\s+REPLACE\s+)?TRIGGER\s+(\w+)/gi);
+      
+      if (triggerMatches && triggerMatches.length > 0) {
+        console.log(`\n✅ ${file}:`);
+        triggerMatches.forEach(match => {
+          const triggerName = match.match(/TRIGGER\s+(\w+)/i)[1];
+          console.log(`   - ${triggerName}`);
+        });
+      }
+    }
   }
+  
+  console.log('\n' + '='.repeat(80));
+  console.log('✅ Vérification terminée\n');
 }
 
-// Exécuter la vérification
 checkTriggers();

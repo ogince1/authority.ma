@@ -8,7 +8,11 @@ import {
   TrendingUp,
   TrendingDown,
   Filter,
-  Upload
+  Upload,
+  Receipt,
+  CheckCircle,
+  Clock,
+  XCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CreditTransaction } from '../../types';
@@ -24,6 +28,19 @@ import toast from 'react-hot-toast';
 import PayPalPayment from '../Payment/PayPalPayment';
 import StripePayment from '../Payment/StripePayment';
 
+interface BalanceRequest {
+  id: string;
+  user_id: string;
+  type: 'deposit' | 'withdraw_funds';
+  amount: number;
+  payment_method: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  description: string;
+  admin_notes?: string;
+  created_at: string;
+  processed_at?: string;
+}
+
 const BalanceManager: React.FC = () => {
   const [balance, setBalance] = React.useState<number>(0);
   const [transactions, setTransactions] = React.useState<CreditTransaction[]>([]);
@@ -38,10 +55,22 @@ const BalanceManager: React.FC = () => {
   const [filterType, setFilterType] = React.useState<string>('all');
   const [userRole, setUserRole] = React.useState<string>('');
   const [publisherPaymentInfo, setPublisherPaymentInfo] = React.useState<any>(null);
+  
+  // ✅ Nouvel état pour les onglets
+  const [activeTab, setActiveTab] = React.useState<'transactions' | 'requests'>('transactions');
+  const [paymentRequests, setPaymentRequests] = React.useState<BalanceRequest[]>([]);
+  const [requestsLoading, setRequestsLoading] = React.useState(false);
 
   React.useEffect(() => {
     trackPageView('/dashboard/balance', 'Gestion du Solde | Back.ma');
     fetchBalanceAndTransactions();
+    
+    // ✅ Si ?success=true dans l'URL, basculer sur l'onglet requests
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+      setActiveTab('requests');
+      fetchPaymentRequests();
+    }
   }, []);
 
   // Debug: Surveiller l'état du modal
@@ -65,6 +94,28 @@ const BalanceManager: React.FC = () => {
       showPaymentModal
     });
   }, [loading, balance, paymentMethod, showAddFunds, showWithdraw, showPaymentModal]);
+
+  const fetchPaymentRequests = async () => {
+    try {
+      setRequestsLoading(true);
+      const user = await getCurrentUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('balance_requests')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPaymentRequests(data || []);
+    } catch (error) {
+      console.error('Error fetching payment requests:', error);
+      toast.error('Erreur lors du chargement des demandes');
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
 
   const fetchBalanceAndTransactions = async () => {
     try {
@@ -150,6 +201,10 @@ const BalanceManager: React.FC = () => {
           setShowAddFunds(false);
           setAmount('');
           setDescription('');
+          
+          // ✅ Basculer sur l'onglet demandes et recharger
+          setActiveTab('requests');
+          await fetchPaymentRequests();
         } else {
           toast.error(result?.message || 'Erreur lors de la création de la demande');
         }
@@ -342,6 +397,46 @@ const BalanceManager: React.FC = () => {
           </div>
         </motion.div>
 
+        {/* ✅ Onglets Transactions / Demandes de paiement */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="mb-6"
+        >
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setActiveTab('transactions')}
+                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                  activeTab === 'transactions'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <DollarSign className="h-4 w-4" />
+                <span>Transactions</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('requests');
+                  if (paymentRequests.length === 0) {
+                    fetchPaymentRequests();
+                  }
+                }}
+                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                  activeTab === 'requests'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Receipt className="h-4 w-4" />
+                <span>Demandes de Paiement</span>
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Solde actuel */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -365,6 +460,9 @@ const BalanceManager: React.FC = () => {
           </div>
         </motion.div>
 
+        {/* ✅ Contenu selon l'onglet actif */}
+        {activeTab === 'transactions' ? (
+          <>
         {/* Actions selon le rôle */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -520,7 +618,6 @@ const BalanceManager: React.FC = () => {
           )}
         </div>
         </motion.div>
-      </div>
 
       {/* Modal Ajouter des fonds - Seulement pour annonceurs */}
       {showAddFunds && (userRole === 'advertiser' || !userRole || (userRole !== 'advertiser' && userRole !== 'publisher')) && (
@@ -797,6 +894,125 @@ const BalanceManager: React.FC = () => {
         </div>
       )}
 
+          </>
+        ) : (
+          /* ✅ Onglet Demandes de Paiement */
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Bannière de confirmation */}
+            {new URLSearchParams(window.location.search).get('success') === 'true' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="h-6 w-6 text-green-600 mt-0.5" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-green-900 mb-2">
+                      ✅ Demande d'ajout de solde créée avec succès!
+                    </h3>
+                    <p className="text-green-700 mb-3">
+                      Votre demande a été envoyée à l'administration pour validation.
+                    </p>
+                    <div className="bg-white rounded-lg p-4 border border-green-200">
+                      <p className="text-sm font-medium text-gray-900 mb-2">Prochaines étapes:</p>
+                      <ol className="list-decimal list-inside text-sm text-gray-600 space-y-1">
+                        <li>Notre équipe vérifie votre demande (généralement sous 24h)</li>
+                        <li>Vous recevrez une notification par email</li>
+                        <li>Le solde sera ajouté à votre compte après validation</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Liste des demandes */}
+            {requestsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            ) : paymentRequests.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+                <Wallet className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Aucune demande de paiement
+                </h3>
+                <p className="text-gray-500">
+                  Vous n'avez pas encore fait de demande d'ajout de solde ou de retrait
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {paymentRequests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {request.type === 'deposit' ? '📥 Ajout de solde' : '💰 Demande de retrait'}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {new Date(request.created_at).toLocaleString('fr-FR')}
+                        </p>
+                      </div>
+                      {request.status === 'pending' && (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          <Clock className="h-3 w-3 mr-1" />
+                          En attente
+                        </span>
+                      )}
+                      {request.status === 'completed' && (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Complétée
+                        </span>
+                      )}
+                      {request.status === 'rejected' && (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Rejetée
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-sm text-gray-600 mb-1">Montant</p>
+                        <p className="text-xl font-bold text-gray-900">
+                          {request.amount.toLocaleString()} MAD
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-sm text-gray-600 mb-1">Méthode</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {request.payment_method === 'bank_transfer' ? 'Virement bancaire' :
+                           request.payment_method === 'paypal' ? 'PayPal' : 'Carte'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {request.description && (
+                      <div className="mt-4 bg-blue-50 rounded-lg p-3">
+                        <p className="text-sm text-gray-700">{request.description}</p>
+                      </div>
+                    )}
+
+                    {request.admin_notes && (
+                      <div className="mt-4 bg-yellow-50 rounded-lg p-3">
+                        <p className="text-sm font-medium text-gray-900 mb-1">Note admin:</p>
+                        <p className="text-sm text-gray-700">{request.admin_notes}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
       {/* Modal de paiement PayPal/Stripe */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -845,6 +1061,7 @@ const BalanceManager: React.FC = () => {
           </motion.div>
         </div>
       )}
+      </div>
     </div>
   );
 };

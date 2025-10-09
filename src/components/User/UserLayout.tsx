@@ -23,7 +23,8 @@ import {
   Zap,
   Package,
   Mail,
-  Star
+  Star,
+  Receipt
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { signOut, getCurrentUser, getCurrentUserProfile, getUserBalance } from '../../lib/supabase';

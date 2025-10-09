@@ -81,7 +81,7 @@ const UserDashboardPage: React.FC = () => {
       } />
       
       
-      {/* Route pour la gestion du solde */}
+      {/* Route pour la gestion du solde (inclut demandes de paiement en onglet) */}
       <Route path="/balance" element={
         <ProtectedRoute>
           <BalanceManager />
